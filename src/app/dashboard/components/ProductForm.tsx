@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { downloadTemplate } from '../utils/templateGenerator'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,6 +13,34 @@ interface FormData {
   channels: string[]
 }
 
+interface ProdutoRevisao {
+  sku: string
+  nome: string
+  custo: number
+  preco_ml: number
+  preco_shopee: number
+  peso_g: number
+  comprimento_cm: number
+  largura_cm: number
+  altura_cm: number
+  confianca_dimensoes: 'alta' | 'media'
+}
+
+type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm'
+
+interface ApiResultado {
+  status: string
+  produtos_processados: number
+  alertas: string[]
+  arquivos: {
+    shopee: string | null
+    ml: string | null
+  }
+  produtos_revisao: ProdutoRevisao[]
+}
+
+type Stage = 'formulario' | 'carregando' | 'pronto' | 'revisao' | 'resultado' | 'erro'
+
 const INITIAL: FormData = {
   file: null,
   taxRegime: 'MEI',
@@ -20,13 +49,34 @@ const INITIAL: FormData = {
 }
 
 const CHANNELS = [
-  { id: 'shopee',        name: 'Shopee',         desc: 'Maior marketplace em volume de pedidos' },
-  { id: 'mercado_livre', name: 'Mercado Livre',  desc: 'Maior marketplace da América Latina' },
-  { id: 'tiktok_shop',  name: 'TikTok Shop',    desc: 'Venda direto pelo feed do TikTok' },
-  { id: 'amazon',       name: 'Amazon Brasil',   desc: 'Marketplace global com entrega rápida' },
-  { id: 'magalu',       name: 'Magazine Luiza',  desc: 'Grande varejista com alto tráfego' },
-  { id: 'bling',        name: 'Bling (ERP)',     desc: 'Gestão integrada de estoque e pedidos' },
+  { id: 'shopee',        name: 'Shopee',        desc: 'Maior marketplace em volume de pedidos' },
+  { id: 'mercado_livre', name: 'Mercado Livre', desc: 'Maior marketplace da América Latina' },
+  { id: 'tiktok_shop',  name: 'TikTok Shop',   desc: 'Venda direto pelo feed do TikTok' },
+  { id: 'amazon',       name: 'Amazon Brasil',  desc: 'Marketplace global com entrega rápida' },
+  { id: 'magalu',       name: 'Magazine Luiza', desc: 'Grande varejista com alto tráfego' },
+  { id: 'bling',        name: 'Bling (ERP)',    desc: 'Gestão integrada de estoque e pedidos' },
 ]
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+
+function downloadBase64(base64: string, filename: string) {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  const blob = new Blob([bytes], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -170,7 +220,7 @@ function FileUploadZone({ file, onFile }: { file: File | null; onFile: (f: File)
   )
 }
 
-// ─── Photo guide ─────────────────────────────────────────────────────────────
+// ─── Photo guide ──────────────────────────────────────────────────────────────
 
 const DRIVE_STEPS = [
   {
@@ -302,7 +352,7 @@ function SkuGuide() {
   )
 }
 
-// ─── Step 1 — Planilha de produtos ────────────────────────────────────────────
+// ─── Step 1 — Planilha de produtos ───────────────────────────────────────────
 
 function Step1({
   data,
@@ -533,26 +583,26 @@ function Step3({
   )
 }
 
-// ─── Step 4 — Review ─────────────────────────────────────────────────────────
+// ─── Step 4 — Revisão ─────────────────────────────────────────────────────────
 
-function Step4({ data, onBack }: { data: FormData; onBack: () => void }) {
-  const [toast, setToast] = useState(false)
-
-  function handleConfirm() {
-    setToast(true)
-    setTimeout(() => setToast(false), 3000)
-  }
-
+function Step4({
+  data,
+  onBack,
+  onConfirm,
+}: {
+  data: FormData
+  onBack: () => void
+  onConfirm: () => void
+}) {
   const channelNames = data.channels
     .map(id => CHANNELS.find(c => c.id === id)?.name ?? id)
     .join(', ')
 
   const rows: [string, string][] = [
-    ['Planilha',           data.file?.name ?? '—'],
-    ['Produtos',           '0 produtos'],
-    ['Regime tributário',  data.taxRegime],
-    ['Google Drive',       data.driveLink],
-    ['Canais',             channelNames || '—'],
+    ['Planilha',          data.file?.name ?? '—'],
+    ['Regime tributário', data.taxRegime],
+    ['Google Drive',      data.driveLink],
+    ['Canais',            channelNames || '—'],
   ]
 
   return (
@@ -585,7 +635,7 @@ function Step4({ data, onBack }: { data: FormData; onBack: () => void }) {
       </div>
 
       <button
-        onClick={handleConfirm}
+        onClick={onConfirm}
         style={{
           width: '100%', padding: '14px',
           borderRadius: 10, border: 'none',
@@ -602,22 +652,745 @@ function Step4({ data, onBack }: { data: FormData; onBack: () => void }) {
       <button type="button" onClick={onBack} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
         ← Voltar e editar
       </button>
+    </div>
+  )
+}
 
-      {toast && (
+// ─── Loading screen ───────────────────────────────────────────────────────────
+
+function LoadingScreen({ numProdutos }: { numProdutos: number }) {
+  const [progress, setProgress] = useState(0)
+  const estimadoSeg = Math.max(20, numProdutos * 2.5)
+
+  useEffect(() => {
+    const tickMs = 300
+    const incremento = (90 / (estimadoSeg * 1000)) * tickMs
+    const id = setInterval(() => {
+      setProgress(prev => {
+        const next = prev + incremento
+        if (next >= 90) { clearInterval(id); return 90 }
+        return next
+      })
+    }, tickMs)
+    return () => clearInterval(id)
+  }, [estimadoSeg])
+
+  const restanteSeg = Math.max(0, Math.round(estimadoSeg * (1 - progress / 90)))
+  const tempoTexto = progress >= 90
+    ? 'Finalizando...'
+    : restanteSeg > 60
+      ? `~${Math.ceil(restanteSeg / 60)} min restantes`
+      : `~${restanteSeg}s restantes`
+
+  return (
+    <>
+      <style>{`@keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
-          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--navy-2)',
-          border: '1px solid rgba(37,99,235,0.4)',
-          borderRadius: 10,
-          padding: '12px 24px',
-          fontSize: 14, color: 'var(--white)', fontWeight: 500,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          whiteSpace: 'nowrap', zIndex: 100,
-          animation: 'fadeUp 0.3s ease',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          padding: '64px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 24,
         }}>
-          🚀 Em breve — geração automática em desenvolvimento!
+          <div style={{
+            width: 52, height: 52,
+            border: '3px solid var(--border)',
+            borderTop: '3px solid var(--blue)',
+            borderRadius: '50%',
+            animation: 'listify-spin 0.8s linear infinite',
+          }} />
+          <div style={{ width: '100%' }}>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 10, letterSpacing: '-0.01em' }}>
+              Processando seus produtos...
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, margin: '0 0 24px' }}>
+              A IA está gerando títulos, descrições e preços.<br />
+              {numProdutos} produto{numProdutos !== 1 ? 's' : ''} · {tempoTexto}
+            </p>
+            <div style={{ width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${progress}%`,
+                background: 'linear-gradient(90deg, var(--blue), var(--blue-glow))',
+                borderRadius: 8,
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, opacity: 0.6 }}>
+              {Math.round(progress)}%
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Pronto screen ────────────────────────────────────────────────────────────
+
+function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onContinuar: () => void }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '64px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 24,
+      }}>
+        <div style={{
+          width: 72, height: 72,
+          background: 'rgba(22,163,74,0.15)',
+          border: '2px solid rgba(22,163,74,0.5)',
+          borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 34, color: '#4ade80',
+          fontWeight: 700,
+        }}>✓</div>
+        <div>
+          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+            Seus produtos foram processados!
+          </h2>
+          <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
+            {numProdutos} produto{numProdutos !== 1 ? 's' : ''} prontos para revisão
+          </p>
+        </div>
+        <button
+          onClick={onContinuar}
+          style={{
+            padding: '14px 36px',
+            borderRadius: 10, border: 'none',
+            background: 'linear-gradient(135deg, #16a34a, #15803d)',
+            color: 'white', fontSize: 15, fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 0 24px rgba(22,163,74,0.35)',
+          }}
+        >
+          Revisar e baixar arquivos →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Price tooltip helpers ────────────────────────────────────────────────────
+
+function calcTooltip(
+  preco: number,
+  custo: number,
+  canal: 'ml' | 'shopee',
+  regime: 'MEI' | 'SN'
+) {
+  if (canal === 'ml') {
+    const imposto = regime === 'SN' ? preco * 0.04 : 0
+    const fixo = preco < 79 ? 12.25 : 5.5
+    const comissao = preco * 0.115
+    return { comissao, imposto, fixo, lucro: preco - custo - comissao - imposto - fixo, pctComissao: '11,5%', labelFixo: 'Taxa fixa ML' }
+  } else {
+    const comissao = preco * 0.14
+    const imposto = regime === 'SN' ? preco * 0.04 : 0
+    const extra = regime === 'MEI' ? 3.0 : 0
+    const fixo = 2.5 + extra
+    return { comissao, imposto, fixo, lucro: preco - custo - comissao - imposto - fixo, pctComissao: '14%', labelFixo: regime === 'MEI' ? 'Frete + extra' : 'Frete' }
+  }
+}
+
+function PriceTooltipIcon({
+  preco, custo, canal, regime,
+}: {
+  preco: number; custo: number; canal: 'ml' | 'shopee'; regime: 'MEI' | 'SN'
+}) {
+  const [show, setShow] = useState(false)
+  const bd = calcTooltip(preco, custo, canal, regime)
+
+  return (
+    <div
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <span style={{ fontSize: 11, color: 'var(--muted)', cursor: 'help', opacity: 0.55, userSelect: 'none' }}>ⓘ</span>
+      {show && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 6px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--navy-3)',
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          padding: '12px 14px',
+          minWidth: 210,
+          zIndex: 200,
+          textAlign: 'left',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Composição do preço
+          </p>
+          {(
+            [
+              { label: 'Custo',                    val: `R$ ${custo.toFixed(2)}`,          color: 'var(--white)' },
+              { label: `Comissão (${bd.pctComissao})`, val: `−R$ ${bd.comissao.toFixed(2)}`, color: '#f87171'       },
+              ...(bd.imposto > 0 ? [{ label: 'Imposto (4%)', val: `−R$ ${bd.imposto.toFixed(2)}`, color: '#f87171' }] : []),
+              { label: bd.labelFixo,               val: `−R$ ${bd.fixo.toFixed(2)}`,       color: '#f87171'       },
+            ] as { label: string; val: string; color: string }[]
+          ).map(r => (
+            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 12, marginBottom: 4, color: 'var(--muted)' }}>
+              <span>{r.label}</span>
+              <span style={{ color: r.color }}>{r.val}</span>
+            </div>
+          ))}
+          <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 13, fontWeight: 700 }}>
+            <span style={{ color: 'var(--muted)' }}>Lucro estimado</span>
+            <span style={{ color: bd.lucro >= 0 ? '#4ade80' : '#f87171' }}>R$ {bd.lucro.toFixed(2)}</span>
+          </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Resultado screen ─────────────────────────────────────────────────────────
+
+const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
+  shopee: { label: 'Shopee',        filename: 'listify-shopee.xlsx' },
+  ml:     { label: 'Mercado Livre', filename: 'listify-ml.xlsx' },
+}
+
+function ResultadoScreen({
+  resultado,
+  onReset,
+}: {
+  resultado: ApiResultado
+  onReset: () => void
+}) {
+  const arquivosGerados = Object.entries(resultado.arquivos).filter(([, b64]) => b64 !== null) as [string, string][]
+
+  return (
+    <div style={{ width: '100%', maxWidth: 560 }}>
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '36px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 52, height: 52,
+            background: 'rgba(22,163,74,0.15)',
+            border: '1px solid rgba(22,163,74,0.35)',
+            borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 24,
+            margin: '0 auto 16px',
+          }}>✅</div>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            Arquivos prontos para download
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+            {resultado.produtos_processados} produto{resultado.produtos_processados !== 1 ? 's' : ''} processado{resultado.produtos_processados !== 1 ? 's' : ''}
+          </p>
+        </div>
+
+        {arquivosGerados.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {arquivosGerados.map(([canal, b64]) => {
+              const info = ARQUIVO_INFO[canal] ?? { label: canal, filename: `listify-${canal}.xlsx` }
+              return (
+                <div
+                  key={canal}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 16,
+                    background: 'var(--navy)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '14px 18px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--white)' }}>{info.label}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{info.filename}</div>
+                  </div>
+                  <button
+                    onClick={() => downloadBase64(b64, info.filename)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '9px 16px',
+                      background: 'rgba(37,99,235,0.12)',
+                      border: '1px solid rgba(37,99,235,0.35)',
+                      borderRadius: 8,
+                      color: 'var(--blue-glow)',
+                      fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    ⬇ Baixar .xlsx
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {resultado.alertas.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Alertas
+            </p>
+            {resultado.alertas.map((alerta, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  background: 'rgba(234,179,8,0.07)',
+                  border: '1px solid rgba(234,179,8,0.25)',
+                  borderRadius: 10,
+                  padding: '11px 14px',
+                }}
+              >
+                <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                <p style={{ fontSize: 13, color: '#fbbf24', lineHeight: 1.6, margin: 0 }}>{alerta}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={onReset}
+          className="btn-secondary"
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          Gerar novos produtos
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Revisão screen ───────────────────────────────────────────────────────────
+
+const numInputBase: React.CSSProperties = {
+  background: 'var(--navy)',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  padding: '6px 8px',
+  fontSize: 13,
+  color: 'var(--white)',
+  outline: 'none',
+  textAlign: 'right' as const,
+  width: '100%',
+  boxSizing: 'border-box' as const,
+}
+
+const numInputWarn: React.CSSProperties = {
+  ...numInputBase,
+  border: '1px solid rgba(234,179,8,0.55)',
+  background: 'rgba(234,179,8,0.05)',
+}
+
+function RevisaoScreen({
+  resultado,
+  canais,
+  regime,
+  onConfirmar,
+  onVoltar,
+}: {
+  resultado: ApiResultado
+  canais: string[]
+  regime: 'MEI' | 'SN'
+  onConfirmar: (editados: ProdutoRevisao[]) => void
+  onVoltar: () => void
+}) {
+  const [editados, setEditados] = useState<ProdutoRevisao[]>(() =>
+    resultado.produtos_revisao.map(p => ({ ...p }))
+  )
+  const [ajustePct, setAjustePct] = useState('')
+  const [ajusteDir, setAjusteDir] = useState<'+' | '-'>('+')
+  const [resetKey, setResetKey] = useState(0)
+
+  function update(i: number, campo: CampoNumerico, valor: string) {
+    const num = parseFloat(valor)
+    if (isNaN(num)) return
+    setEditados(prev => prev.map((p, j) => j === i ? { ...p, [campo]: num } : p))
+  }
+
+  function aplicarAjuste() {
+    const pct = parseFloat(ajustePct)
+    if (isNaN(pct) || pct <= 0) return
+    const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
+    setEditados(prev => prev.map(p => ({
+      ...p,
+      preco_ml: Math.round(p.preco_ml * factor * 100) / 100,
+      preco_shopee: Math.round(p.preco_shopee * factor * 100) / 100,
+    })))
+    setAjustePct('')
+    setResetKey(k => k + 1)
+  }
+
+  const unico = editados.length === 1
+  const temPreco = canais.includes('shopee') || canais.includes('mercado_livre')
+
+  return (
+    <div style={{ width: '100%', maxWidth: unico ? 560 : 820 }}>
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '36px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}>
+        <div>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            Revisar dados gerados pela IA
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+            Confira e ajuste os valores antes de gerar os arquivos.
+            {editados.some(p => p.confianca_dimensoes === 'media') && (
+              <span style={{ color: '#fbbf24' }}> Campos em amarelo têm confiança média — revise com atenção.</span>
+            )}
+          </p>
+        </div>
+
+        {temPreco && (
+          <div style={{
+            background: 'rgba(37,99,235,0.06)',
+            border: '1px solid rgba(37,99,235,0.2)',
+            borderRadius: 12,
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>
+              Ajuste em massa:
+            </span>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
+              <select
+                value={ajusteDir}
+                onChange={e => setAjusteDir(e.target.value as '+' | '-')}
+                style={{ ...numInputBase, width: 56, padding: '6px 8px', cursor: 'pointer' }}
+              >
+                <option value="+">+</option>
+                <option value="−">−</option>
+              </select>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="0"
+                value={ajustePct}
+                onChange={e => setAjustePct(e.target.value)}
+                style={{ ...numInputBase, width: 72 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--muted)', flexShrink: 0 }}>%</span>
+              <button
+                onClick={aplicarAjuste}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: 8, border: 'none',
+                  background: 'var(--blue)',
+                  color: 'white', fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                Aplicar a todos
+              </button>
+            </div>
+          </div>
+        )}
+
+        {unico ? (
+          <CardUnico key={resetKey} produto={editados[0]} canais={canais} regime={regime} onUpdate={(campo, val) => update(0, campo, val)} />
+        ) : (
+          <TabelaProdutos key={resetKey} produtos={editados} canais={canais} regime={regime} onUpdate={update} />
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+          <button type="button" onClick={onVoltar} className="btn-secondary" style={{ justifyContent: 'center' }}>
+            ← Voltar
+          </button>
+          <button
+            onClick={() => onConfirmar(editados)}
+            style={{
+              padding: '14px',
+              borderRadius: 10, border: 'none',
+              background: 'linear-gradient(135deg, #16a34a, #15803d)',
+              color: 'white', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 0 20px rgba(22,163,74,0.3)',
+            }}
+          >
+            Confirmar e baixar arquivos
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Card layout (1 produto) ──────────────────────────────────────────────────
+
+function CardUnico({
+  produto,
+  canais,
+  regime,
+  onUpdate,
+}: {
+  produto: ProdutoRevisao
+  canais: string[]
+  regime: 'MEI' | 'SN'
+  onUpdate: (campo: CampoNumerico, valor: string) => void
+}) {
+  const warn = produto.confianca_dimensoes === 'media'
+
+  const precos: [CampoNumerico, string, 'ml' | 'shopee'][] = [
+    ...(canais.includes('mercado_livre') ? [['preco_ml',    'Preço ML (R$)',     'ml']     as [CampoNumerico, string, 'ml' | 'shopee']] : []),
+    ...(canais.includes('shopee')        ? [['preco_shopee','Preço Shopee (R$)', 'shopee'] as [CampoNumerico, string, 'ml' | 'shopee']] : []),
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{
+        background: 'var(--navy)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: '12px 14px',
+      }}>
+        <p style={{ fontSize: 11, color: 'var(--muted)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</p>
+        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--white)', margin: 0 }}>{produto.nome}</p>
+        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>SKU: {produto.sku}</p>
+      </div>
+
+      {precos.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: precos.length === 1 ? '1fr' : '1fr 1fr', gap: 12 }}>
+          {precos.map(([campo, label, canal]) => (
+            <div key={campo}>
+              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                {label}
+                <PriceTooltipIcon preco={produto[campo]} custo={produto.custo} canal={canal} regime={regime} />
+              </p>
+              <input
+                type="number"
+                step="0.01"
+                defaultValue={produto[campo]}
+                onChange={e => onUpdate(campo, e.target.value)}
+                style={numInputBase}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <p style={{ fontSize: 12, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: warn ? '#fbbf24' : 'var(--muted)' }}>Peso (g)</span>
+          {warn && <span title="Confiança média">⚠️</span>}
+        </p>
+        <input
+          type="number"
+          step="1"
+          defaultValue={produto.peso_g}
+          onChange={e => onUpdate('peso_g', e.target.value)}
+          style={warn ? numInputWarn : numInputBase}
+        />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        {([
+          ['comprimento_cm', 'Comprimento (cm)'],
+          ['largura_cm',     'Largura (cm)'],
+          ['altura_cm',      'Altura (cm)'],
+        ] as [CampoNumerico, string][]).map(([campo, label]) => (
+          <div key={campo}>
+            <p style={{ fontSize: 12, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: warn ? '#fbbf24' : 'var(--muted)' }}>{label}</span>
+              {warn && <span title="Confiança média" style={{ fontSize: 11 }}>⚠️</span>}
+            </p>
+            <input
+              type="number"
+              step="0.1"
+              defaultValue={produto[campo]}
+              onChange={e => onUpdate(campo, e.target.value)}
+              style={warn ? numInputWarn : numInputBase}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Tabela layout (2+ produtos) ──────────────────────────────────────────────
+
+const TH_STYLE: React.CSSProperties = {
+  padding: '10px 10px',
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--muted)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  textAlign: 'right',
+  whiteSpace: 'nowrap',
+  borderBottom: '1px solid var(--border)',
+}
+
+function TabelaProdutos({
+  produtos,
+  canais,
+  regime,
+  onUpdate,
+}: {
+  produtos: ProdutoRevisao[]
+  canais: string[]
+  regime: 'MEI' | 'SN'
+  onUpdate: (i: number, campo: CampoNumerico, valor: string) => void
+}) {
+  const allCols: { campo: CampoNumerico; label: string; step: string; width: number; canal?: 'ml' | 'shopee'; onlyIf?: boolean }[] = [
+    { campo: 'preco_ml',       label: 'Preço ML',    step: '0.01', width: 90,  canal: 'ml',     onlyIf: canais.includes('mercado_livre') },
+    { campo: 'preco_shopee',   label: 'Preço Shopee',step: '0.01', width: 105, canal: 'shopee', onlyIf: canais.includes('shopee') },
+    { campo: 'peso_g',         label: 'Peso (g)',     step: '1',    width: 82  },
+    { campo: 'comprimento_cm', label: 'Comp. (cm)',   step: '0.1',  width: 88  },
+    { campo: 'largura_cm',     label: 'Larg. (cm)',   step: '0.1',  width: 82  },
+    { campo: 'altura_cm',      label: 'Alt. (cm)',    step: '0.1',  width: 78  },
+  ]
+  const cols = allCols.filter(c => c.onlyIf !== false)
+
+  const dimCampos = new Set<CampoNumerico>(['peso_g','comprimento_cm','largura_cm','altura_cm'])
+
+  return (
+    <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+        <thead>
+          <tr style={{ background: 'var(--navy-3)' }}>
+            <th style={{ ...TH_STYLE, textAlign: 'left', paddingLeft: 14, width: 180 }}>Produto</th>
+            {cols.map(c => (
+              <th key={c.campo} style={{ ...TH_STYLE, width: c.width }}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {produtos.map((p, i) => {
+            const warn = p.confianca_dimensoes === 'media'
+            return (
+              <tr
+                key={p.sku}
+                style={{ borderBottom: i < produtos.length - 1 ? '1px solid var(--border)' : 'none' }}
+              >
+                <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
+                </td>
+                {cols.map(c => {
+                  const isDim = dimCampos.has(c.campo)
+                  const estilo = isDim && warn ? numInputWarn : numInputBase
+                  return (
+                    <td key={c.campo} style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                      <div style={{ position: 'relative' }}>
+                        {isDim && warn && (
+                          <span
+                            title="Confiança média"
+                            style={{ position: 'absolute', left: -18, top: '50%', transform: 'translateY(-50%)', fontSize: 11 }}
+                          >⚠️</span>
+                        )}
+                        <input
+                          type="number"
+                          step={c.step}
+                          defaultValue={p[c.campo]}
+                          onChange={e => onUpdate(i, c.campo, e.target.value)}
+                          style={estilo}
+                        />
+                        {c.canal && (
+                          <div style={{ position: 'absolute', top: 2, right: 2 }}>
+                            <PriceTooltipIcon preco={p[c.campo]} custo={p.custo} canal={c.canal} regime={regime} />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Erro screen ──────────────────────────────────────────────────────────────
+
+function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 560 }}>
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '48px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+        textAlign: 'center',
+      }}>
+        <div style={{
+          width: 52, height: 52,
+          background: 'rgba(239,68,68,0.12)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 24,
+        }}>❌</div>
+
+        <div>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 12, letterSpacing: '-0.01em' }}>
+            Algo deu errado
+          </h2>
+          <p style={{
+            fontSize: 13, lineHeight: 1.7, margin: 0,
+            color: '#f87171',
+            background: 'rgba(248,113,113,0.08)',
+            border: '1px solid rgba(248,113,113,0.2)',
+            borderRadius: 8,
+            padding: '12px 16px',
+            textAlign: 'left',
+          }}>
+            {message}
+          </p>
+        </div>
+
+        <button
+          onClick={onRetry}
+          className="btn-primary"
+          style={{ justifyContent: 'center' }}
+        >
+          Tentar novamente
+        </button>
+      </div>
     </div>
   )
 }
@@ -627,10 +1400,112 @@ function Step4({ data, onBack }: { data: FormData; onBack: () => void }) {
 export default function ProductForm({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [data, setData] = useState<FormData>(INITIAL)
+  const [stage, setStage] = useState<Stage>('formulario')
+  const [resultado, setResultado] = useState<ApiResultado | null>(null)
+  const [produtosEditados, setProdutosEditados] = useState<ProdutoRevisao[]>([])
+  const [erroMsg, setErroMsg] = useState('')
+  const [numProdutos, setNumProdutos] = useState(0)
 
   function patch(update: Partial<FormData>) {
     setData(prev => ({ ...prev, ...update }))
   }
+
+  function handleReset() {
+    setStage('formulario')
+    setStep(1)
+    setData(INITIAL)
+    setResultado(null)
+    setProdutosEditados([])
+    setErroMsg('')
+    setNumProdutos(0)
+  }
+
+  function handleConfirmarRevisao(editados: ProdutoRevisao[]) {
+    setProdutosEditados(editados)
+    setStage('resultado')
+  }
+
+  async function handleConfirm() {
+    if (!data.file) return
+    setStage('carregando')
+
+    try {
+      // Parse the uploaded spreadsheet
+      const buffer = await data.file.arrayBuffer()
+      const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws)
+      console.log('[parse] linhas lidas:', rows.length, '| colunas:', rows[0] ? Object.keys(rows[0]) : '(vazio)')
+
+      const produtos = rows
+        .map((row, i) => ({
+          sku: String(row['SKU'] ?? `PROD_${i + 1}`),
+          nome: String(row['Nome do produto'] ?? ''),
+          custo: Number(row['Custo unitário (R$)'] ?? 0),
+          estoque: Number(row['Estoque'] ?? 0),
+        }))
+        .filter(p => p.nome.trim() !== '')
+
+      if (produtos.length === 0) {
+        throw new Error(
+          'Nenhum produto encontrado na planilha. Verifique se as colunas estão corretas: SKU, Nome do produto, Estoque, Custo unitário (R$).'
+        )
+      }
+
+      setNumProdutos(produtos.length)
+
+      const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
+      const canais = data.channels.map(ch => ch === 'mercado_livre' ? 'ml' : ch)
+
+      const res = await fetch('/api/process-catalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produtos,
+          regime,
+          canais,
+          drive_folder_url: data.driveLink,
+        }),
+      })
+
+      if (res.status === 401) {
+        throw new Error('Sessão expirada. Recarregue a página e faça login novamente.')
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Erro ${res.status} ao processar produtos.`)
+      }
+
+      const result: ApiResultado = await res.json()
+      setResultado(result)
+      setStage(result.produtos_revisao.length > 0 ? 'pronto' : 'resultado')
+    } catch (err) {
+      setErroMsg(err instanceof Error ? err.message : 'Erro desconhecido. Tente novamente.')
+      setStage('erro')
+    }
+  }
+
+  const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
+
+  if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} />
+  if (stage === 'pronto' && resultado) return (
+    <ProntoScreen
+      numProdutos={resultado.produtos_processados}
+      onContinuar={() => setStage('revisao')}
+    />
+  )
+  if (stage === 'revisao' && resultado) return (
+    <RevisaoScreen
+      resultado={resultado}
+      canais={data.channels}
+      regime={regime}
+      onConfirmar={handleConfirmarRevisao}
+      onVoltar={() => { setStage('formulario'); setStep(4) }}
+    />
+  )
+  if (stage === 'resultado' && resultado) return <ResultadoScreen resultado={resultado} onReset={handleReset} />
+  if (stage === 'erro') return <ErroScreen message={erroMsg} onRetry={() => setStage('formulario')} />
 
   const titles: Record<number, string> = {
     1: 'Planilha de produtos',
@@ -672,7 +1547,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
         {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} />}
         {step === 2 && <Step2 data={data} onChange={patch} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
         {step === 3 && <Step3 data={data} onChange={patch} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} />}
+        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={handleConfirm} />}
       </div>
     </div>
   )
