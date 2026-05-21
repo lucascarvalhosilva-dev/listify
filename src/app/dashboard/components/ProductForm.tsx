@@ -482,6 +482,27 @@ function Step2({
   onNext: () => void
   onBack: () => void
 }) {
+  const [driveStatus, setDriveStatus] = useState<'idle' | 'checking' | 'ok' | 'error' | 'bad-url'>('idle')
+
+  const isValidDriveUrl = data.driveLink.includes('drive.google.com/drive/folders/')
+
+  function handleDriveChange(url: string) {
+    onChange({ driveLink: url })
+    setDriveStatus('idle')
+  }
+
+  async function verificarAcesso() {
+    if (!isValidDriveUrl) { setDriveStatus('bad-url'); return }
+    setDriveStatus('checking')
+    try {
+      const res = await fetch(`/api/check-drive?url=${encodeURIComponent(data.driveLink)}`)
+      const json = await res.json() as { ok: boolean; reason?: string }
+      setDriveStatus(json.ok ? 'ok' : 'error')
+    } catch {
+      setDriveStatus('error')
+    }
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     onNext()
@@ -522,14 +543,62 @@ function Step2({
 
       <div>
         <Label>Link da pasta do Google Drive com as fotos</Label>
-        <input
-          style={inputStyle}
-          type="url"
-          required
-          value={data.driveLink}
-          onChange={e => onChange({ driveLink: e.target.value })}
-          placeholder="https://drive.google.com/drive/folders/..."
-        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <input
+            style={{ ...inputStyle, flex: 1, margin: 0 }}
+            type="url"
+            required
+            value={data.driveLink}
+            onChange={e => handleDriveChange(e.target.value)}
+            placeholder="https://drive.google.com/drive/folders/..."
+          />
+          <button
+            type="button"
+            onClick={verificarAcesso}
+            disabled={driveStatus === 'checking' || !data.driveLink}
+            style={{
+              padding: '0 16px',
+              height: 44,
+              borderRadius: 10,
+              border: '1.5px solid var(--border)',
+              background: 'var(--navy)',
+              color: driveStatus === 'checking' ? 'var(--muted)' : 'var(--white)',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: driveStatus === 'checking' || !data.driveLink ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap' as const,
+              flexShrink: 0,
+              transition: 'all 0.15s',
+            }}
+          >
+            {driveStatus === 'checking' ? 'Verificando...' : 'Verificar acesso'}
+          </button>
+        </div>
+
+        {driveStatus === 'bad-url' && (
+          <p style={{ fontSize: 12, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 8, lineHeight: 1.5 }}>
+            URL inválida. O link deve ser uma pasta do Drive: <code style={{ fontFamily: 'monospace' }}>drive.google.com/drive/folders/...</code>
+          </p>
+        )}
+
+        {driveStatus === 'error' && (
+          <p style={{ fontSize: 12, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 8, lineHeight: 1.5 }}>
+            Pasta não está pública. Abra o link em aba anônima para confirmar o acesso.
+          </p>
+        )}
+
+        {driveStatus === 'ok' && (
+          <p style={{ fontSize: 12, color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 8 }}>
+            ✓ Pasta acessível
+          </p>
+        )}
+
+        {driveStatus === 'idle' && data.driveLink && (
+          <p style={{ fontSize: 12, color: '#fbbf24', background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 8, padding: '8px 12px', marginTop: 8, lineHeight: 1.5 }}>
+            Recomendado: clique em "Verificar acesso" para confirmar que as fotos estarão visíveis nos anúncios.
+          </p>
+        )}
+
         <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6 }}>
           Nomeie os arquivos como <strong style={{ color: 'var(--white)' }}>SKU_01.jpg</strong>, <strong style={{ color: 'var(--white)' }}>SKU_02.jpg</strong>...
           A IA mapeia automaticamente.
