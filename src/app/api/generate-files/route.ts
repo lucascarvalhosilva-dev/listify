@@ -11,6 +11,7 @@ interface ProdutoRevisao {
   nome: string
   custo: number
   estoque: number
+  embalagem?: number
   preco_ml: number
   preco_shopee: number
   peso_g: number

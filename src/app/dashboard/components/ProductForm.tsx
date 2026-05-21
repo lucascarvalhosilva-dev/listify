@@ -18,6 +18,7 @@ interface ProdutoRevisao {
   nome: string
   custo: number
   estoque: number
+  embalagem: number
   preco_ml: number
   preco_shopee: number
   peso_g: number
@@ -32,7 +33,7 @@ interface ProdutoRevisao {
   gtin: string
 }
 
-type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm'
+type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
 type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'descricao' | 'ncm' | 'gtin'
 
 interface ApiResultado {
@@ -46,7 +47,7 @@ interface ApiResultado {
   produtos_revisao: ProdutoRevisao[]
 }
 
-type Stage = 'formulario' | 'carregando' | 'pronto' | 'revisao' | 'gerando' | 'resultado' | 'correcao' | 'erro'
+type Stage = 'formulario' | 'carregando' | 'pronto' | 'revisao_precos' | 'revisao_dimensoes' | 'gerando' | 'resultado' | 'correcao' | 'erro'
 
 interface CorrecaoApiResponse {
   mensagem: string
@@ -1140,7 +1141,7 @@ function ResultadoScreen({
   )
 }
 
-// ─── Revisão screen ───────────────────────────────────────────────────────────
+// ─── Revisão screens ──────────────────────────────────────────────────────────
 
 const numInputBase: React.CSSProperties = {
   background: 'var(--navy)',
@@ -1161,24 +1162,495 @@ const numInputWarn: React.CSSProperties = {
   background: 'rgba(234,179,8,0.05)',
 }
 
-function RevisaoScreen({
-  resultado,
+// ─── ETAPA 1: Revisão de Preços ───────────────────────────────────────────────
+
+type ModoAjuste = 'pct' | 'margem' | 'filtro'
+
+function calcLucro(preco: number, custo: number, embalagem: number, comissao: number, imposto: number): number {
+  return preco - custo - embalagem - preco * comissao - preco * imposto
+}
+
+function calcMargem(preco: number, custo: number, embalagem: number, comissao: number, imposto: number): number {
+  if (preco <= 0) return 0
+  return (calcLucro(preco, custo, embalagem, comissao, imposto) / preco) * 100
+}
+
+function precoParaMargem(custo: number, embalagem: number, comissao: number, imposto: number, targetMargem: number): number {
+  const denom = 1 - targetMargem / 100 - comissao - imposto
+  if (denom <= 0) return 0
+  return Math.round(((custo + embalagem) / denom) * 100) / 100
+}
+
+function RevisaoPrecosScreen({
+  editados,
+  canais,
+  regime,
+  onProximo,
+  onVoltar,
+}: {
+  editados: ProdutoRevisao[]
+  canais: string[]
+  regime: 'MEI' | 'SN'
+  onProximo: (editados: ProdutoRevisao[]) => void
+  onVoltar: () => void
+}) {
+  const [prods, setProds] = useState<ProdutoRevisao[]>(() => editados.map(p => ({ ...p })))
+  const [modo, setModo] = useState<ModoAjuste>('pct')
+  const [ajustePct, setAjustePct] = useState('')
+  const [ajusteDir, setAjusteDir] = useState<'+' | '-'>('+')
+  const [margemAlvo, setMargemAlvo] = useState('')
+  const [filtro, setFiltro] = useState('')
+  const [busca, setBusca] = useState('')
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
+  const [resetKey, setResetKey] = useState(0)
+  const checkAllRef = useRef<HTMLInputElement>(null)
+
+  const temML = canais.includes('mercado_livre')
+  const temShopee = canais.includes('shopee')
+
+  const comissaoML = 0.115
+  const comissaoShopee = 0.14
+  const imposto = regime === 'SN' ? 0.04 : 0
+
+  const indicesFiltrados = (() => {
+    if (busca.trim() === '') return prods.map((_, i) => i)
+    const q = busca.trim().toLowerCase()
+    return prods.reduce<number[]>((acc, p, i) => {
+      if (p.nome.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)) acc.push(i)
+      return acc
+    }, [])
+  })()
+
+  const todosSelecionadosVisiveis = indicesFiltrados.length > 0 && indicesFiltrados.every(i => selecionados.has(i))
+  const algunsSelecionadosVisiveis = indicesFiltrados.some(i => selecionados.has(i)) && !todosSelecionadosVisiveis
+
+  useEffect(() => {
+    if (checkAllRef.current) checkAllRef.current.indeterminate = algunsSelecionadosVisiveis
+  }, [algunsSelecionadosVisiveis])
+
+  function update(i: number, campo: CampoNumerico, valor: string) {
+    const num = parseFloat(valor)
+    if (isNaN(num)) return
+    setProds(prev => prev.map((p, j) => j === i ? { ...p, [campo]: num } : p))
+  }
+
+  function toggleSelecionado(i: number) {
+    setSelecionados(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  function toggleTodos() {
+    setSelecionados(prev => {
+      const next = new Set(prev)
+      if (todosSelecionadosVisiveis) {
+        indicesFiltrados.forEach(i => next.delete(i))
+      } else {
+        indicesFiltrados.forEach(i => next.add(i))
+      }
+      return next
+    })
+  }
+
+  function prodsFiltrados(): number[] {
+    if (modo !== 'filtro' || filtro.trim() === '') return prods.map((_, i) => i)
+    const q = filtro.trim().toLowerCase()
+    return prods.map((p, i) => (p.nome.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)) ? i : -1).filter(i => i >= 0)
+  }
+
+  function aplicar() {
+    const indices = selecionados.size > 0 ? [...selecionados] : prodsFiltrados()
+    setProds(prev => {
+      const next = prev.map(p => ({ ...p }))
+      if (modo === 'pct') {
+        const pct = parseFloat(ajustePct)
+        if (isNaN(pct) || pct <= 0) return next
+        const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
+        for (const i of indices) {
+          next[i].preco_ml = Math.round(next[i].preco_ml * factor * 100) / 100
+          next[i].preco_shopee = Math.round(next[i].preco_shopee * factor * 100) / 100
+        }
+      } else if (modo === 'margem') {
+        const m = parseFloat(margemAlvo)
+        if (isNaN(m)) return next
+        for (const i of indices) {
+          const p = next[i]
+          if (temML) next[i].preco_ml = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
+          if (temShopee) next[i].preco_shopee = precoParaMargem(p.custo, p.embalagem, comissaoShopee, imposto, m)
+        }
+      } else {
+        const pct = parseFloat(ajustePct)
+        if (isNaN(pct) || pct <= 0) return next
+        const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
+        for (const i of indices) {
+          next[i].preco_ml = Math.round(next[i].preco_ml * factor * 100) / 100
+          next[i].preco_shopee = Math.round(next[i].preco_shopee * factor * 100) / 100
+        }
+      }
+      return next
+    })
+    setSelecionados(new Set())
+    setResetKey(k => k + 1)
+  }
+
+  const panelStyle: React.CSSProperties = {
+    background: 'rgba(37,99,235,0.06)',
+    border: '1px solid rgba(37,99,235,0.2)',
+    borderRadius: 12,
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  }
+
+  const tabBtn = (m: ModoAjuste, label: string) => (
+    <button
+      type="button"
+      onClick={() => setModo(m)}
+      style={{
+        padding: '5px 14px',
+        borderRadius: 20,
+        border: `1.5px solid ${modo === m ? 'var(--blue)' : 'var(--border)'}`,
+        background: modo === m ? 'rgba(37,99,235,0.12)' : 'transparent',
+        color: modo === m ? 'var(--blue-glow)' : 'var(--muted)',
+        fontSize: 12, fontWeight: modo === m ? 600 : 400,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap' as const,
+      }}
+    >{label}</button>
+  )
+
+  const fmt = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  return (
+    <div style={{ width: '100%', maxWidth: 900 }}>
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '36px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}>
+        <div>
+          <p style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 1 de 2</p>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            Revisar preços
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+            Ajuste custos, embalagem e preços de venda. Lucro e margem são calculados automaticamente.
+          </p>
+        </div>
+
+        {/* Bulk panel */}
+        <div style={panelStyle}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {tabBtn('pct', 'Ajuste %')}
+            {tabBtn('margem', 'Margem mínima')}
+            {tabBtn('filtro', 'Por produto')}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {modo === 'pct' && (
+              <>
+                <select value={ajusteDir} onChange={e => setAjusteDir(e.target.value as '+' | '-')}
+                  style={{ ...numInputBase, width: 52, padding: '6px 8px', cursor: 'pointer' }}>
+                  <option value="+">+</option>
+                  <option value="-">−</option>
+                </select>
+                <input type="number" min="0" step="0.5" placeholder="0" value={ajustePct}
+                  onChange={e => setAjustePct(e.target.value)}
+                  style={{ ...numInputBase, width: 72 }} />
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
+              </>
+            )}
+            {modo === 'margem' && (
+              <>
+                <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Margem mínima:</span>
+                <input type="number" min="0" max="100" step="0.5" placeholder="20" value={margemAlvo}
+                  onChange={e => setMargemAlvo(e.target.value)}
+                  style={{ ...numInputBase, width: 80 }} />
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
+              </>
+            )}
+            {modo === 'filtro' && (
+              <>
+                <input type="text" placeholder="Nome ou SKU do produto..." value={filtro}
+                  onChange={e => setFiltro(e.target.value)}
+                  style={{ ...numInputBase, width: 220, textAlign: 'left' }} />
+                <select value={ajusteDir} onChange={e => setAjusteDir(e.target.value as '+' | '-')}
+                  style={{ ...numInputBase, width: 52, padding: '6px 8px', cursor: 'pointer' }}>
+                  <option value="+">+</option>
+                  <option value="-">−</option>
+                </select>
+                <input type="number" min="0" step="0.5" placeholder="0" value={ajustePct}
+                  onChange={e => setAjustePct(e.target.value)}
+                  style={{ ...numInputBase, width: 72 }} />
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
+              </>
+            )}
+            <button onClick={aplicar} style={{
+              padding: '7px 16px', borderRadius: 8, border: 'none',
+              background: 'var(--blue)', color: 'white', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', flexShrink: 0,
+            }}>Aplicar</button>
+          </div>
+        </div>
+
+        {/* Search + selection bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input
+            type="text"
+            placeholder="Buscar produto..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            style={{ ...numInputBase, textAlign: 'left' as const, flex: 1, maxWidth: 300 }}
+          />
+          {busca.trim() !== '' && (
+            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>
+              {indicesFiltrados.length} resultado{indicesFiltrados.length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {selecionados.size > 0 && (
+            <span style={{ fontSize: 12, color: 'var(--blue-glow)', whiteSpace: 'nowrap' as const }}>
+              {selecionados.size} selecionado{selecionados.size !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {/* Price table */}
+        <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: temML && temShopee ? 1160 : 760 }}>
+            <thead>
+              <tr style={{ background: 'var(--navy-3)' }}>
+                <th rowSpan={2} style={{ ...TH_STYLE, width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
+                  <input
+                    ref={checkAllRef}
+                    type="checkbox"
+                    checked={todosSelecionadosVisiveis}
+                    onChange={toggleTodos}
+                    style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }}
+                  />
+                </th>
+                <th rowSpan={2} style={{ ...TH_STYLE, textAlign: 'left', paddingLeft: 14, width: 160, verticalAlign: 'bottom' }}>Produto</th>
+                <th rowSpan={2} title="Custo unitário do produto" style={{ ...TH_STYLE, width: 80, verticalAlign: 'bottom' }}>Custo (R$)</th>
+                <th rowSpan={2} title="Custo de embalagem" style={{ ...TH_STYLE, width: 80, verticalAlign: 'bottom' }}>Embalagem (R$)</th>
+                {temML && (
+                  <th
+                    colSpan={5 + (imposto > 0 ? 1 : 0)}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#60a5fa',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(37,99,235,0.12)',
+                      borderBottom: '2px solid rgba(37,99,235,0.5)',
+                      borderLeft: '1px solid rgba(37,99,235,0.3)',
+                      borderRight: '1px solid rgba(37,99,235,0.3)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >Mercado Livre</th>
+                )}
+                {temShopee && (
+                  <th
+                    colSpan={5 + (imposto > 0 ? 1 : 0)}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#fb923c',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(249,115,22,0.1)',
+                      borderBottom: '2px solid rgba(249,115,22,0.45)',
+                      borderLeft: '1px solid rgba(249,115,22,0.25)',
+                      borderRight: '1px solid rgba(249,115,22,0.25)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >Shopee</th>
+                )}
+              </tr>
+              <tr style={{ background: 'var(--navy-3)' }}>
+                {temML && <th title="Preço de venda no Mercado Livre" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th>}
+                {temML && <th title="Comissão do canal: 11,5% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
+                {temML && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
+                {temML && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temML && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temML && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(37,99,235,0.3)' }}>Margem</th>}
+                {temShopee && <th title="Preço de venda na Shopee" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(249,115,22,0.25)' }}>Preço</th>}
+                {temShopee && <th title="Comissão do canal: 14% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
+                {temShopee && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
+                {temShopee && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temShopee && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temShopee && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(249,115,22,0.25)' }}>Margem</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {indicesFiltrados.map((idx, rowIdx) => {
+                const p = prods[idx]
+                const comisMLR = p.preco_ml * comissaoML
+                const impostMLR = p.preco_ml * imposto
+                const custoTotalML = p.custo + p.embalagem + comisMLR + impostMLR
+                const lucroML = p.preco_ml - custoTotalML
+                const margemML = p.preco_ml > 0 ? (lucroML / p.preco_ml) * 100 : 0
+                const comisSHR = p.preco_shopee * comissaoShopee
+                const impostSHR = p.preco_shopee * imposto
+                const custoTotalSh = p.custo + p.embalagem + comisSHR + impostSHR
+                const lucroSh = p.preco_shopee - custoTotalSh
+                const margemSh = p.preco_shopee > 0 ? (lucroSh / p.preco_shopee) * 100 : 0
+                const isLast = rowIdx === indicesFiltrados.length - 1
+                const mcML = margemML >= 15 ? '#4ade80' : margemML >= 5 ? '#fbbf24' : '#f87171'
+                const mcSh = margemSh >= 15 ? '#4ade80' : margemSh >= 5 ? '#fbbf24' : '#f87171'
+                const isSel = selecionados.has(idx)
+                return (
+                  <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: isSel ? 'rgba(37,99,235,0.06)' : undefined }}>
+                    <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center' as const }}>
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={() => toggleSelecionado(idx)}
+                        style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }}
+                      />
+                    </td>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
+                    </td>
+                    <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                      <input type="number" step="0.01" defaultValue={p.custo}
+                        onChange={e => update(idx, 'custo' as CampoNumerico, e.target.value)}
+                        style={{ ...numInputBase, width: 72 }} />
+                    </td>
+                    <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                      <input type="number" step="0.01" defaultValue={p.embalagem}
+                        onChange={e => update(idx, 'embalagem', e.target.value)}
+                        style={{ ...numInputBase, width: 72 }} />
+                    </td>
+                    {temML && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <input type="number" step="0.01" defaultValue={p.preco_ml}
+                          onChange={e => update(idx, 'preco_ml', e.target.value)}
+                          style={{ ...numInputBase, width: 72 }} />
+                      </td>
+                    )}
+                    {temML && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisMLR)}</span>
+                      </td>
+                    )}
+                    {temML && imposto > 0 && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostMLR)}</span>
+                      </td>
+                    )}
+                    {temML && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalML)}</span>
+                      </td>
+                    )}
+                    {temML && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroML >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroML)}
+                        </span>
+                      </td>
+                    )}
+                    {temML && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcML, fontWeight: 600 }}>
+                          {margemML.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
+                    {temShopee && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <input type="number" step="0.01" defaultValue={p.preco_shopee}
+                          onChange={e => update(idx, 'preco_shopee', e.target.value)}
+                          style={{ ...numInputBase, width: 72 }} />
+                      </td>
+                    )}
+                    {temShopee && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisSHR)}</span>
+                      </td>
+                    )}
+                    {temShopee && imposto > 0 && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostSHR)}</span>
+                      </td>
+                    )}
+                    {temShopee && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalSh)}</span>
+                      </td>
+                    )}
+                    {temShopee && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroSh >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroSh)}
+                        </span>
+                      </td>
+                    )}
+                    {temShopee && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcSh, fontWeight: 600 }}>
+                          {margemSh.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+          <button type="button" onClick={onVoltar} className="btn-secondary" style={{ justifyContent: 'center' }}>
+            ← Voltar
+          </button>
+          <button
+            onClick={() => onProximo(prods)}
+            style={{
+              padding: '14px',
+              borderRadius: 10, border: 'none',
+              background: 'var(--blue)',
+              color: 'white', fontSize: 15, fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 0 20px rgba(37,99,235,0.25)',
+            }}
+          >
+            Próximo: Revisar dimensões →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── ETAPA 2: Revisão de Dimensões ────────────────────────────────────────────
+
+function RevisaoDimensoesScreen({
+  editadosInit,
   canais,
   regime,
   onConfirmar,
   onVoltar,
 }: {
-  resultado: ApiResultado
+  editadosInit: ProdutoRevisao[]
   canais: string[]
   regime: 'MEI' | 'SN'
   onConfirmar: (editados: ProdutoRevisao[]) => void
-  onVoltar: () => void
+  onVoltar: (editados: ProdutoRevisao[]) => void
 }) {
-  const [editados, setEditados] = useState<ProdutoRevisao[]>(() =>
-    resultado.produtos_revisao.map(p => ({ ...p }))
-  )
-  const [ajustePct, setAjustePct] = useState('')
-  const [ajusteDir, setAjusteDir] = useState<'+' | '-'>('+')
+  const [editados, setEditados] = useState<ProdutoRevisao[]>(() => editadosInit.map(p => ({ ...p })))
+  const [ocultarAlertas, setOcultarAlertas] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
   function update(i: number, campo: CampoNumerico, valor: string) {
@@ -1191,21 +1663,8 @@ function RevisaoScreen({
     setEditados(prev => prev.map((p, j) => j === i ? { ...p, [campo]: valor } : p))
   }
 
-  function aplicarAjuste() {
-    const pct = parseFloat(ajustePct)
-    if (isNaN(pct) || pct <= 0) return
-    const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
-    setEditados(prev => prev.map(p => ({
-      ...p,
-      preco_ml: Math.round(p.preco_ml * factor * 100) / 100,
-      preco_shopee: Math.round(p.preco_shopee * factor * 100) / 100,
-    })))
-    setAjustePct('')
-    setResetKey(k => k + 1)
-  }
-
   const unico = editados.length === 1
-  const temPreco = canais.includes('shopee') || canais.includes('mercado_livre')
+  const temAlertas = editados.some(p => p.confianca_dimensoes === 'media')
 
   return (
     <div style={{ width: '100%', maxWidth: unico ? 560 : 820 }}>
@@ -1218,76 +1677,63 @@ function RevisaoScreen({
         flexDirection: 'column',
         gap: 24,
       }}>
-        <div>
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
-            Revisar dados gerados pela IA
-          </h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
-            Confira e ajuste os valores antes de gerar os arquivos.
-            {editados.some(p => p.confianca_dimensoes === 'media') && (
-              <span style={{ color: '#fbbf24' }}> Campos em amarelo têm confiança média — revise com atenção.</span>
-            )}
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div>
+            <p style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 2 de 2</p>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+              Revisar dimensões
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+              Confira peso e dimensões antes de gerar os arquivos.
+              {temAlertas && !ocultarAlertas && (
+                <span style={{ color: '#fbbf24' }}> Campos em amarelo têm confiança média.</span>
+              )}
+            </p>
+          </div>
+          {temAlertas && (
+            <button
+              type="button"
+              onClick={() => setOcultarAlertas(o => !o)}
+              style={{
+                padding: '6px 14px', borderRadius: 20, flexShrink: 0,
+                border: `1.5px solid ${ocultarAlertas ? 'var(--border)' : 'rgba(234,179,8,0.45)'}`,
+                background: ocultarAlertas ? 'transparent' : 'rgba(234,179,8,0.07)',
+                color: ocultarAlertas ? 'var(--muted)' : '#fbbf24',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              {ocultarAlertas ? 'Mostrar alertas ⚠️' : 'Ocultar alertas ⚠️'}
+            </button>
+          )}
         </div>
 
-        {temPreco && (
-          <div style={{
-            background: 'rgba(37,99,235,0.06)',
-            border: '1px solid rgba(37,99,235,0.2)',
-            borderRadius: 12,
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>
-              Ajuste em massa:
-            </span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
-              <select
-                value={ajusteDir}
-                onChange={e => setAjusteDir(e.target.value as '+' | '-')}
-                style={{ ...numInputBase, width: 56, padding: '6px 8px', cursor: 'pointer' }}
-              >
-                <option value="+">+</option>
-                <option value="−">−</option>
-              </select>
-              <input
-                type="number"
-                min="0"
-                step="0.5"
-                placeholder="0"
-                value={ajustePct}
-                onChange={e => setAjustePct(e.target.value)}
-                style={{ ...numInputBase, width: 72 }}
-              />
-              <span style={{ fontSize: 13, color: 'var(--muted)', flexShrink: 0 }}>%</span>
-              <button
-                onClick={aplicarAjuste}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: 8, border: 'none',
-                  background: 'var(--blue)',
-                  color: 'white', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-              >
-                Aplicar a todos
-              </button>
-            </div>
-          </div>
-        )}
-
         {unico ? (
-          <CardUnico key={resetKey} produto={editados[0]} canais={canais} regime={regime} onUpdate={(campo, val) => update(0, campo, val)} onUpdateTexto={(campo, val) => updateTexto(0, campo, val)} />
+          <CardUnico
+            key={resetKey}
+            produto={editados[0]}
+            canais={canais}
+            regime={regime}
+            showPrecos={false}
+            ocultarAlertas={ocultarAlertas}
+            onUpdate={(campo, val) => update(0, campo, val)}
+            onUpdateTexto={(campo, val) => updateTexto(0, campo, val)}
+          />
         ) : (
-          <TabelaProdutos key={resetKey} produtos={editados} canais={canais} regime={regime} onUpdate={update} onUpdateTexto={updateTexto} />
+          <TabelaProdutos
+            key={resetKey}
+            produtos={editados}
+            canais={canais}
+            regime={regime}
+            showPrecos={false}
+            ocultarAlertas={ocultarAlertas}
+            onUpdate={update}
+            onUpdateTexto={updateTexto}
+          />
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
-          <button type="button" onClick={onVoltar} className="btn-secondary" style={{ justifyContent: 'center' }}>
+          <button type="button" onClick={() => onVoltar(editados)} className="btn-secondary" style={{ justifyContent: 'center' }}>
             ← Voltar
           </button>
           <button
@@ -1315,17 +1761,21 @@ function CardUnico({
   produto,
   canais,
   regime,
+  showPrecos = true,
+  ocultarAlertas = false,
   onUpdate,
   onUpdateTexto,
 }: {
   produto: ProdutoRevisao
   canais: string[]
   regime: 'MEI' | 'SN'
+  showPrecos?: boolean
+  ocultarAlertas?: boolean
   onUpdate: (campo: CampoNumerico, valor: string) => void
   onUpdateTexto: (campo: CampoTexto, valor: string) => void
 }) {
   const [textosAbertos, setTextosAbertos] = useState(false)
-  const warn = produto.confianca_dimensoes === 'media'
+  const warn = produto.confianca_dimensoes === 'media' && !ocultarAlertas
 
   const precos: [CampoNumerico, string, 'ml' | 'shopee'][] = [
     ...(canais.includes('mercado_livre') ? [['preco_ml',    'Preço ML (R$)',     'ml']     as [CampoNumerico, string, 'ml' | 'shopee']] : []),
@@ -1345,7 +1795,7 @@ function CardUnico({
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>SKU: {produto.sku}</p>
       </div>
 
-      {precos.length > 0 && (
+      {showPrecos && precos.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: precos.length === 1 ? '1fr' : '1fr 1fr', gap: 12 }}>
           {precos.map(([campo, label, canal]) => (
             <div key={campo}>
@@ -1438,12 +1888,16 @@ function TabelaProdutos({
   produtos,
   canais,
   regime,
+  showPrecos = true,
+  ocultarAlertas = false,
   onUpdate,
   onUpdateTexto,
 }: {
   produtos: ProdutoRevisao[]
   canais: string[]
   regime: 'MEI' | 'SN'
+  showPrecos?: boolean
+  ocultarAlertas?: boolean
   onUpdate: (i: number, campo: CampoNumerico, valor: string) => void
   onUpdateTexto: (i: number, campo: CampoTexto, valor: string) => void
 }) {
@@ -1458,8 +1912,8 @@ function TabelaProdutos({
   }
 
   const allCols: { campo: CampoNumerico; label: string; step: string; width: number; canal?: 'ml' | 'shopee'; onlyIf?: boolean }[] = [
-    { campo: 'preco_ml',       label: 'Preço ML',    step: '0.01', width: 90,  canal: 'ml',     onlyIf: canais.includes('mercado_livre') },
-    { campo: 'preco_shopee',   label: 'Preço Shopee',step: '0.01', width: 105, canal: 'shopee', onlyIf: canais.includes('shopee') },
+    { campo: 'preco_ml',       label: 'Preço ML',    step: '0.01', width: 90,  canal: 'ml',     onlyIf: showPrecos && canais.includes('mercado_livre') },
+    { campo: 'preco_shopee',   label: 'Preço Shopee',step: '0.01', width: 105, canal: 'shopee', onlyIf: showPrecos && canais.includes('shopee') },
     { campo: 'peso_g',         label: 'Peso (g)',     step: '1',    width: 82  },
     { campo: 'comprimento_cm', label: 'Comp. (cm)',   step: '0.1',  width: 88  },
     { campo: 'largura_cm',     label: 'Larg. (cm)',   step: '0.1',  width: 82  },
@@ -1482,7 +1936,7 @@ function TabelaProdutos({
         </thead>
         <tbody>
           {produtos.map((p, i) => {
-            const warn = p.confianca_dimensoes === 'media'
+            const warn = p.confianca_dimensoes === 'media' && !ocultarAlertas
             const expanded = abertos.has(p.sku)
             const isLast = i === produtos.length - 1
             return (
@@ -1971,7 +2425,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
   const [data, setData] = useState<FormData>(INITIAL)
   const [stage, setStage] = useState<Stage>('formulario')
   const [resultado, setResultado] = useState<ApiResultado | null>(null)
-  const [produtosEditados, setProdutosEditados] = useState<ProdutoRevisao[]>([])
+  const [editados, setEditados] = useState<ProdutoRevisao[]>([])
   const [erroMsg, setErroMsg] = useState('')
   const [numProdutos, setNumProdutos] = useState(0)
 
@@ -1984,13 +2438,13 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
     setStep(1)
     setData(INITIAL)
     setResultado(null)
-    setProdutosEditados([])
+    setEditados([])
     setErroMsg('')
     setNumProdutos(0)
   }
 
-  async function handleConfirmarRevisao(editados: ProdutoRevisao[]) {
-    setProdutosEditados(editados)
+  async function handleConfirmarRevisao(finais: ProdutoRevisao[]) {
+    setEditados(finais)
     setStage('gerando')
     try {
       const regimeAPI = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
@@ -1999,7 +2453,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          produtos: editados,
+          produtos: finais,
           regime: regimeAPI,
           canais: canaisAPI,
           drive_folder_url: data.driveLink,
@@ -2074,6 +2528,10 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
 
       const result: ApiResultado = await res.json()
       setResultado(result)
+      const EMBALAGEM_PADRAO: Record<string, number> = { shopee: 2.5, mercado_livre: 5.5, tiktok_shop: 4.0, amazon: 5.5, magalu: 5.5 }
+      const embalVals = data.channels.map(ch => EMBALAGEM_PADRAO[ch]).filter((v): v is number => v !== undefined)
+      const embFinal = embalVals.length > 0 ? Math.min(...embalVals) : 0
+      setEditados(result.produtos_revisao.map(p => ({ ...p, embalagem: embFinal })))
       setStage(result.produtos_revisao.length > 0 ? 'pronto' : 'resultado')
     } catch (err) {
       setErroMsg(err instanceof Error ? err.message : 'Erro desconhecido. Tente novamente.')
@@ -2088,16 +2546,25 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
   if (stage === 'pronto' && resultado) return (
     <ProntoScreen
       numProdutos={resultado.produtos_processados}
-      onContinuar={() => setStage('revisao')}
+      onContinuar={() => setStage('revisao_precos')}
     />
   )
-  if (stage === 'revisao' && resultado) return (
-    <RevisaoScreen
-      resultado={resultado}
+  if (stage === 'revisao_precos' && resultado) return (
+    <RevisaoPrecosScreen
+      editados={editados}
+      canais={data.channels}
+      regime={regime}
+      onProximo={prods => { setEditados(prods); setStage('revisao_dimensoes') }}
+      onVoltar={() => { setStage('formulario'); setStep(4) }}
+    />
+  )
+  if (stage === 'revisao_dimensoes' && resultado) return (
+    <RevisaoDimensoesScreen
+      editadosInit={editados}
       canais={data.channels}
       regime={regime}
       onConfirmar={handleConfirmarRevisao}
-      onVoltar={() => { setStage('formulario'); setStep(4) }}
+      onVoltar={prods => { setEditados(prods); setStage('revisao_precos') }}
     />
   )
   if (stage === 'resultado' && resultado) return (
