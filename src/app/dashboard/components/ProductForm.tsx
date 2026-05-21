@@ -1093,6 +1093,140 @@ function TextosSection({
 
 // ─── Resultado screen ─────────────────────────────────────────────────────────
 
+interface PassoUpload { texto: string; atencao?: boolean }
+const GUIA_UPLOAD: Record<string, { titulo: string; passos: PassoUpload[] }> = {
+  shopee: {
+    titulo: 'Como fazer upload no Shopee',
+    passos: [
+      { texto: 'Central do Vendedor → Produto → Upload em massa → aba Envio' },
+      { texto: 'Selecione o arquivo listify-shopee.xlsx' },
+      { texto: "Verifique nos Registros o status — 'Sucesso X/X' = todos processados" },
+      { texto: 'Se houver falhas, use o chat de correção abaixo' },
+      { texto: 'Produto → Rascunho → Selecionar todos → Ações em Massa → Publicar' },
+    ],
+  },
+  ml: {
+    titulo: 'Como fazer upload no Mercado Livre',
+    passos: [
+      { texto: 'ML → Vender → Produtos → Anunciador em Massa → Carregar planilha' },
+      { texto: 'Selecione o arquivo listify-ml.xlsx' },
+      { texto: 'Aguarde processamento — ML envia e-mail quando concluído' },
+      { texto: 'Baixe o arquivo de resultado → se houver erros, use o chat de correção' },
+      { texto: 'Acesse Meus Anúncios → adicione fotos em cada produto manualmente' },
+    ],
+  },
+  tiktok: {
+    titulo: 'Como fazer upload no TikTok Shop',
+    passos: [
+      { texto: 'seller.tiktok.com → Produtos → Importar produtos em massa' },
+      { texto: 'Selecione o arquivo listify-tiktok.csv' },
+      { texto: 'Aguarde processamento (~10 min)' },
+      { texto: 'Acesse cada produto → adicione fotos e vídeo pelo painel' },
+      { texto: 'Ative os produtos em Meus Produtos → Inativo → Ativar' },
+    ],
+  },
+  bling: {
+    titulo: 'Como fazer upload no Bling',
+    passos: [
+      { texto: 'Bling → Produtos → Importar Produtos → Selecionar arquivo' },
+      { texto: 'Selecione o arquivo listify-bling.csv' },
+      { texto: 'Confirmar importação' },
+      { texto: "Ativar 'Atualizar dimensões ao exportar produto' nas configurações de integração ML", atencao: true },
+    ],
+  },
+  magalu: {
+    titulo: 'Como fazer upload no Magazine Luiza',
+    passos: [
+      { texto: 'Acesse o painel IntegraCommerce' },
+      { texto: 'Cadastre os produtos com o CSV gerado' },
+      { texto: 'Aguarde análise do catálogo Magalu (~24-48h)' },
+      { texto: 'Após aprovação, adicione fotos pelo painel (mín. 2, 900x900px)' },
+    ],
+  },
+  amazon: {
+    titulo: 'Como fazer upload na Amazon Brasil',
+    passos: [
+      { texto: 'Seller Central → Catálogo → Adicionar Produtos' },
+      { texto: 'Use o CSV gerado como referência para preencher os campos' },
+      { texto: 'Faça upload das fotos diretamente pelo Seller Central (mín. 1000x1000px)' },
+      { texto: 'Aguarde aprovação (~15 min a 24h)' },
+      { texto: 'Amazon exige GTIN válido — se não tiver, solicite isenção em sellercentral.amazon.com.br', atencao: true },
+    ],
+  },
+}
+
+function GuiaUploadCanal({ canal }: { canal: string }) {
+  const [aberto, setAberto] = useState(false)
+  const guia = GUIA_UPLOAD[canal]
+  if (!guia) return null
+
+  let passoNum = 0
+
+  return (
+    <div style={{
+      border: '1px solid var(--border)',
+      borderRadius: 10,
+      overflow: 'hidden',
+    }}>
+      <button
+        type="button"
+        onClick={() => setAberto(o => !o)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          background: 'var(--navy)',
+          border: 'none',
+          color: 'var(--white)',
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          textAlign: 'left' as const,
+          gap: 8,
+        }}
+      >
+        <span>📋 {guia.titulo}</span>
+        <span style={{
+          fontSize: 12, color: 'var(--muted)', flexShrink: 0,
+          transform: aberto ? 'rotate(180deg)' : 'none',
+          transition: 'transform 0.2s',
+          display: 'inline-block',
+        }}>▾</span>
+      </button>
+      {aberto && (
+        <div style={{
+          padding: '12px 16px 14px',
+          background: 'rgba(0,0,0,0.15)',
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}>
+          {guia.passos.map((passo, i) => {
+            if (!passo.atencao) passoNum++
+            const num = passoNum
+            return (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1, color: passo.atencao ? '#fbbf24' : '#4ade80' }}>
+                  {passo.atencao ? '⚠' : '✓'}
+                </span>
+                <p style={{ fontSize: 12, margin: 0, lineHeight: 1.6, color: passo.atencao ? '#fbbf24' : 'var(--muted)' }}>
+                  {passo.atencao
+                    ? <><strong style={{ color: '#fbbf24' }}>Atenção:</strong>{' '}{passo.texto}</>
+                    : <><strong style={{ color: 'var(--white)' }}>Passo {num}:</strong>{' '}{passo.texto}</>
+                  }
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
   shopee:  { label: 'Shopee',          filename: 'listify-shopee.xlsx' },
   ml:      { label: 'Mercado Livre',   filename: 'listify-ml.xlsx' },
@@ -1111,7 +1245,9 @@ function ResultadoScreen({
   onCorrecao: () => void
   onReset: () => void
 }) {
+  const [guiaAberto, setGuiaAberto] = useState(false)
   const arquivosGerados = Object.entries(resultado.arquivos).filter(([, b64]) => b64 !== null) as [string, string][]
+  const numFreteRestrito = resultado.alertas.filter(a => a.includes('frete a combinar')).length
 
   return (
     <div style={{ width: '100%', maxWidth: 560 }}>
@@ -1122,8 +1258,9 @@ function ResultadoScreen({
         padding: '36px 32px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 24,
+        gap: 20,
       }}>
+        {/* Header */}
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: 52, height: 52,
@@ -1142,24 +1279,17 @@ function ResultadoScreen({
           </p>
         </div>
 
+        {/* Downloads */}
         {arquivosGerados.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {arquivosGerados.map(([canal, b64]) => {
               const info = ARQUIVO_INFO[canal] ?? { label: canal, filename: `listify-${canal}.xlsx` }
               return (
-                <div
-                  key={canal}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 16,
-                    background: 'var(--navy)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    padding: '14px 18px',
-                  }}
-                >
+                <div key={canal} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: 16, background: 'var(--navy)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 18px',
+                }}>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--white)' }}>{info.label}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{info.filename}</div>
@@ -1169,14 +1299,10 @@ function ResultadoScreen({
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '9px 16px',
-                      background: 'rgba(37,99,235,0.12)',
-                      border: '1px solid rgba(37,99,235,0.35)',
-                      borderRadius: 8,
-                      color: 'var(--blue-glow)',
-                      fontSize: 13, fontWeight: 600,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
+                      background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.35)',
+                      borderRadius: 8, color: 'var(--blue-glow)',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      whiteSpace: 'nowrap' as const, flexShrink: 0,
                     }}
                   >
                     ⬇ Baixar {info.filename.endsWith('.csv') ? '.csv' : '.xlsx'}
@@ -1187,43 +1313,78 @@ function ResultadoScreen({
           </div>
         )}
 
-        {resultado.alertas.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Alertas
+        {/* Alerta compacto de frete */}
+        {numFreteRestrito > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(234,179,8,0.07)', border: '1px solid rgba(234,179,8,0.25)',
+            borderRadius: 10, padding: '10px 14px',
+          }}>
+            <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+            <p style={{ fontSize: 13, color: '#fbbf24', margin: 0, lineHeight: 1.5 }}>
+              {numFreteRestrito} produto{numFreteRestrito !== 1 ? 's' : ''} com restrição de frete — veja o guia abaixo
             </p>
-            {resultado.alertas.map((alerta, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 10,
-                  background: 'rgba(234,179,8,0.07)',
-                  border: '1px solid rgba(234,179,8,0.25)',
-                  borderRadius: 10,
-                  padding: '11px 14px',
-                }}
-              >
-                <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>⚠️</span>
-                <p style={{ fontSize: 13, color: '#fbbf24', lineHeight: 1.6, margin: 0 }}>{alerta}</p>
-              </div>
-            ))}
           </div>
         )}
 
+        {/* Botão destaque erros */}
         <button
           onClick={onCorrecao}
-          className="btn-secondary"
-          style={{ width: '100%', justifyContent: 'center' }}
+          style={{
+            width: '100%', padding: '14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            borderRadius: 10, border: '1.5px solid rgba(245,158,11,0.45)',
+            background: 'rgba(245,158,11,0.1)',
+            color: '#f59e0b', fontSize: 14, fontWeight: 700,
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}
         >
-          Tive erros no upload →
+          <span>⚠️</span> Tive erros no upload
         </button>
 
+        {/* Guia colapsado */}
+        {arquivosGerados.length > 0 && (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <button
+              type="button"
+              onClick={() => setGuiaAberto(o => !o)}
+              style={{
+                width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '13px 16px', background: 'var(--navy)', border: 'none',
+                color: 'var(--muted)', fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', textAlign: 'left' as const, gap: 8,
+              }}
+            >
+              <span>📋 Como fazer upload? (clique para ver)</span>
+              <span style={{
+                fontSize: 12, flexShrink: 0,
+                transform: guiaAberto ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s', display: 'inline-block',
+              }}>▾</span>
+            </button>
+            {guiaAberto && (
+              <div style={{
+                borderTop: '1px solid var(--border)',
+                background: 'rgba(0,0,0,0.1)',
+                display: 'flex', flexDirection: 'column', gap: 1,
+              }}>
+                {arquivosGerados.map(([canal]) => (
+                  <GuiaUploadCanal key={canal} canal={canal} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Botão secundário pequeno */}
         <button
           onClick={onReset}
-          className="btn-secondary"
-          style={{ width: '100%', justifyContent: 'center', opacity: 0.6, fontSize: 13 }}
+          style={{
+            width: '100%', padding: '10px',
+            background: 'transparent', border: '1px solid var(--border)',
+            borderRadius: 8, color: 'var(--muted)', fontSize: 13,
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}
         >
           Gerar novos produtos
         </button>
