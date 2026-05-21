@@ -154,6 +154,11 @@ export async function POST(request: NextRequest) {
       arquivos.amazon = arrayBufferToBase64(gerarCSVAmazon(produtosProcessados))
     }
 
+    const { error: gerErr } = await supabase
+      .from('geracoes')
+      .insert({ user_id: user.id, canais, total_produtos: produtosProcessados.length })
+    if (gerErr) console.error('[generate-files] geracoes insert:', gerErr.message)
+
     return NextResponse.json({
       status: 'success',
       produtos_processados: produtosProcessados.length,

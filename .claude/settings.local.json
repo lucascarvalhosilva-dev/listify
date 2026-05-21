@@ -16,7 +16,14 @@
       "Bash(curl *)",
       "Bash(npm install *)",
       "Bash(node -e \"const XLSX = require\\('xlsx'\\); console.log\\('xlsx ok, version:', XLSX.version\\)\")",
-      "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")"
+      "Bash(node -e \"require\\('@anthropic-ai/sdk'\\)\")",
+      "Bash(Get-ChildItem *)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lucas\\\\Desktop\\\\listify\\\\src\\\\app\\\\api\\\\delete-catalog\\\\[id]\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"dir created\")",
+      "PowerShell(New-Item *)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lucas\\\\Desktop\\\\listify\\\\src\\\\app\\\\painel\")",
+      "Bash(Write-Host \"done\")"
     ]
   }
 }

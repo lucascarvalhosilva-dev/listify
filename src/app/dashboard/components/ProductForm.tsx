@@ -13,7 +13,7 @@ interface FormData {
   channels: string[]
 }
 
-interface ProdutoRevisao {
+export interface ProdutoRevisao {
   sku: string
   nome: string
   custo: number
@@ -46,6 +46,16 @@ interface ProdutoRevisao {
   bullet_point5?: string
   ncm: string
   gtin: string
+}
+
+export interface CatalogoItem {
+  id: string
+  nome: string
+  criado_em: string
+  atualizado_em: string
+  regime_tributario: string
+  drive_url: string
+  produtos: ProdutoRevisao[]
 }
 
 type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'preco_tiktok' | 'preco_bling' | 'preco_magalu' | 'preco_amazon' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
@@ -411,12 +421,24 @@ function Step1({
   data,
   onChange,
   onNext,
+  onCarregarCatalogo,
 }: {
   data: FormData
   onChange: (p: Partial<FormData>) => void
   onNext: () => void
+  onCarregarCatalogo: (produtos: ProdutoRevisao[], driveUrl: string, taxRegime: 'MEI' | 'Simples Nacional') => void
 }) {
   const [error, setError] = useState('')
+  const [catalogos, setCatalogos] = useState<CatalogoItem[]>([])
+  const [carregandoCatalogos, setCarregandoCatalogos] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/get-catalogs')
+      .then(r => r.ok ? r.json() : { catalogos: [] })
+      .then((json: { catalogos?: CatalogoItem[] }) => setCatalogos(json.catalogos ?? []))
+      .catch(() => setCatalogos([]))
+      .finally(() => setCarregandoCatalogos(false))
+  }, [])
 
   function handleNext() {
     if (!data.file) { setError('Faça o upload da planilha antes de continuar.'); return }
@@ -455,6 +477,54 @@ function Step1({
       />
 
       <SkuGuide />
+
+      {!carregandoCatalogos && catalogos.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>ou use um catálogo salvo</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {catalogos.slice(0, 3).map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => {
+                  const taxRegime = (cat.regime_tributario === 'SN' ? 'Simples Nacional' : 'MEI') as 'MEI' | 'Simples Nacional'
+                  onCarregarCatalogo(cat.produtos, cat.drive_url, taxRegime)
+                }}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 14px', borderRadius: 10,
+                  border: '1px solid var(--border)', background: 'var(--navy)',
+                  cursor: 'pointer', textAlign: 'left' as const, gap: 12,
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)' }}>{cat.nome}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                    {cat.produtos.length} produto{cat.produtos.length !== 1 ? 's' : ''} · {cat.regime_tributario} · {new Date(cat.atualizado_em).toLocaleDateString('pt-BR')}
+                  </div>
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--blue-glow)', whiteSpace: 'nowrap' as const, flexShrink: 0 }}>Usar →</span>
+              </button>
+            ))}
+            {catalogos.length > 3 && (
+              <a
+                href="/painel"
+                style={{
+                  fontSize: 12, color: 'var(--blue-glow)', textDecoration: 'none',
+                  textAlign: 'center', display: 'block', padding: '6px 0',
+                }}
+              >
+                Ver todos ({catalogos.length}) →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <p style={{ fontSize: 13, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, padding: '10px 14px', margin: 0 }}>
@@ -711,17 +781,19 @@ function Step4({
   data,
   onBack,
   onConfirm,
+  fromCatalogo,
 }: {
   data: FormData
   onBack: () => void
   onConfirm: () => void
+  fromCatalogo?: boolean
 }) {
   const channelNames = data.channels
     .map(id => CHANNELS.find(c => c.id === id)?.name ?? id)
     .join(', ')
 
   const rows: [string, string][] = [
-    ['Planilha',          data.file?.name ?? '—'],
+    [fromCatalogo ? 'Produtos' : 'Planilha', fromCatalogo ? 'Catálogo salvo' : (data.file?.name ?? '—')],
     ['Regime tributário', data.taxRegime],
     ['Google Drive',      data.driveLink],
     ['Canais',            channelNames || '—'],
@@ -858,14 +930,53 @@ function LoadingScreen({ numProdutos, numProcessados, concluido }: { numProdutos
 
 // ─── Pronto screen ────────────────────────────────────────────────────────────
 
-function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onContinuar: () => void }) {
+function ProntoScreen({
+  numProdutos,
+  onContinuar,
+  produtos,
+  driveUrl,
+  regime,
+}: {
+  numProdutos: number
+  onContinuar: () => void
+  produtos: ProdutoRevisao[]
+  driveUrl: string
+  regime: string
+}) {
+  const [catalogoNome, setCatalogoNome] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [salvo, setSalvo] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState('')
+
+  async function salvarCatalogo() {
+    if (!catalogoNome.trim() || salvando) return
+    setSalvando(true)
+    setErroSalvar('')
+    try {
+      const res = await fetch('/api/save-catalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: catalogoNome, produtos, drive_url: driveUrl, regime_tributario: regime }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Erro ${res.status}`)
+      }
+      setSalvo(true)
+    } catch (err) {
+      setErroSalvar(err instanceof Error ? err.message : 'Erro ao salvar')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   return (
     <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
       <div style={{
         background: 'var(--navy-2)',
         border: '1px solid var(--border)',
         borderRadius: 20,
-        padding: '64px 40px',
+        padding: '48px 40px 36px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -901,6 +1012,45 @@ function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onCon
         >
           Revisar e baixar arquivos →
         </button>
+
+        {/* Salvar catálogo */}
+        <div style={{ width: '100%', borderTop: '1px solid var(--border)', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
+          <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            💾 Salvar este catálogo
+          </p>
+          {salvo ? (
+            <p style={{ fontSize: 13, color: '#4ade80', margin: 0 }}>✓ Catálogo salvo! Disponível na próxima geração.</p>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                placeholder='"Tá pra Pesca — Mai/2026"'
+                value={catalogoNome}
+                onChange={e => setCatalogoNome(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') salvarCatalogo() }}
+                style={{ ...inputStyle, fontSize: 13, padding: '9px 12px', flex: 1, width: 'auto' }}
+              />
+              <button
+                type="button"
+                onClick={salvarCatalogo}
+                disabled={!catalogoNome.trim() || salvando}
+                style={{
+                  padding: '9px 16px', borderRadius: 10,
+                  border: '1.5px solid var(--border)',
+                  background: 'var(--navy)',
+                  color: !catalogoNome.trim() || salvando ? 'var(--muted)' : 'var(--white)',
+                  fontSize: 13, fontWeight: 500,
+                  cursor: !catalogoNome.trim() || salvando ? 'not-allowed' : 'pointer',
+                  whiteSpace: 'nowrap' as const, flexShrink: 0,
+                  transition: 'all 0.15s',
+                }}
+              >
+                {salvando ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          )}
+          {erroSalvar && <p style={{ fontSize: 12, color: '#f87171', margin: 0 }}>{erroSalvar}</p>}
+        </div>
       </div>
     </div>
   )
@@ -2776,20 +2926,49 @@ function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
-export default function ProductForm({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  const [data, setData] = useState<FormData>(INITIAL)
+export default function ProductForm({
+  onBack,
+  catalogoInicial,
+}: {
+  onBack: () => void
+  catalogoInicial?: CatalogoItem
+}) {
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(catalogoInicial ? 3 : 1)
+  const [data, setData] = useState<FormData>(catalogoInicial ? {
+    ...INITIAL,
+    driveLink: catalogoInicial.drive_url,
+    taxRegime: catalogoInicial.regime_tributario === 'SN' ? 'Simples Nacional' : 'MEI',
+  } : INITIAL)
   const [stage, setStage] = useState<Stage>('formulario')
   const [carregandoConcluido, setCarregandoConcluido] = useState(false)
   const [gerandoConcluido, setGerandoConcluido] = useState(false)
   const [resultado, setResultado] = useState<ApiResultado | null>(null)
-  const [editados, setEditados] = useState<ProdutoRevisao[]>([])
+  const [editados, setEditados] = useState<ProdutoRevisao[]>(catalogoInicial?.produtos ?? [])
   const [erroMsg, setErroMsg] = useState('')
   const [numProdutos, setNumProdutos] = useState(0)
   const [numProdutosProcessados, setNumProdutosProcessados] = useState(0)
+  const [fromCatalogo, setFromCatalogo] = useState(!!catalogoInicial)
 
   function patch(update: Partial<FormData>) {
     setData(prev => ({ ...prev, ...update }))
+  }
+
+  function handleCarregarCatalogo(produtos: ProdutoRevisao[], driveUrl: string, taxRegime: 'MEI' | 'Simples Nacional') {
+    setEditados(produtos)
+    patch({ driveLink: driveUrl, taxRegime })
+    setFromCatalogo(true)
+    setStep(3)
+  }
+
+  function handleConfirmFromCatalogo() {
+    setResultado({
+      status: 'success',
+      produtos_processados: editados.length,
+      alertas: [],
+      arquivos: { shopee: null, ml: null, tiktok: null, bling: null, magalu: null, amazon: null },
+      produtos_revisao: editados,
+    })
+    setStage('revisao_precos')
   }
 
   function handleReset() {
@@ -2800,6 +2979,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
     setEditados([])
     setErroMsg('')
     setNumProdutos(0)
+    setFromCatalogo(false)
   }
 
   async function handleConfirmarRevisao(finais: ProdutoRevisao[]) {
@@ -2936,6 +3116,9 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
     <ProntoScreen
       numProdutos={resultado.produtos_processados}
       onContinuar={() => setStage('revisao_precos')}
+      produtos={editados}
+      driveUrl={data.driveLink}
+      regime={regime}
     />
   )
   if (stage === 'revisao_precos' && resultado) return (
@@ -3005,10 +3188,10 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
           {titles[step]}
         </h2>
 
-        {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} />}
+        {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} onCarregarCatalogo={handleCarregarCatalogo} />}
         {step === 2 && <Step2 data={data} onChange={patch} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-        {step === 3 && <Step3 data={data} onChange={patch} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={handleConfirm} />}
+        {step === 3 && <Step3 data={data} onChange={patch} onNext={() => setStep(4)} onBack={() => fromCatalogo ? setStep(1) : setStep(2)} />}
+        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={fromCatalogo ? handleConfirmFromCatalogo : handleConfirm} fromCatalogo={fromCatalogo} />}
       </div>
     </div>
   )
