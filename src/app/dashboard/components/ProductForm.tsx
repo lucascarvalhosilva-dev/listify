@@ -17,6 +17,7 @@ interface ProdutoRevisao {
   sku: string
   nome: string
   custo: number
+  estoque: number
   preco_ml: number
   preco_shopee: number
   peso_g: number
@@ -45,7 +46,23 @@ interface ApiResultado {
   produtos_revisao: ProdutoRevisao[]
 }
 
-type Stage = 'formulario' | 'carregando' | 'pronto' | 'revisao' | 'resultado' | 'erro'
+type Stage = 'formulario' | 'carregando' | 'pronto' | 'revisao' | 'gerando' | 'resultado' | 'correcao' | 'erro'
+
+interface CorrecaoApiResponse {
+  mensagem: string
+  arquivo_corrigido?: string | null
+  produtos_corrigidos?: number
+  total_com_erros?: number
+  diagnosticos?: string[]
+}
+
+interface ChatMsg {
+  role: 'user' | 'assistant'
+  content: string
+  arquivo_corrigido?: string
+  canal?: 'shopee' | 'ml'
+  arquivoNome?: string
+}
 
 const INITIAL: FormData = {
   file: null,
@@ -82,6 +99,15 @@ function downloadBase64(base64: string, filename: string) {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -786,6 +812,44 @@ function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onCon
   )
 }
 
+// ─── Gerando screen ───────────────────────────────────────────────────────────
+
+function GerandoScreen() {
+  return (
+    <>
+      <style>{`@keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
+        <div style={{
+          background: 'var(--navy-2)',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          padding: '64px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 20,
+        }}>
+          <div style={{
+            width: 48, height: 48,
+            border: '3px solid var(--border)',
+            borderTop: '3px solid #4ade80',
+            borderRadius: '50%',
+            animation: 'listify-spin 0.8s linear infinite',
+          }} />
+          <div>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+              Gerando arquivos finais...
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
+              Aplicando suas edições e criando os .xlsx
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Price tooltip helpers ────────────────────────────────────────────────────
 
 function calcTooltip(
@@ -948,9 +1012,11 @@ const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
 
 function ResultadoScreen({
   resultado,
+  onCorrecao,
   onReset,
 }: {
   resultado: ApiResultado
+  onCorrecao: () => void
   onReset: () => void
 }) {
   const arquivosGerados = Object.entries(resultado.arquivos).filter(([, b64]) => b64 !== null) as [string, string][]
@@ -1055,9 +1121,17 @@ function ResultadoScreen({
         )}
 
         <button
-          onClick={onReset}
+          onClick={onCorrecao}
           className="btn-secondary"
           style={{ width: '100%', justifyContent: 'center' }}
+        >
+          Tive erros no upload →
+        </button>
+
+        <button
+          onClick={onReset}
+          className="btn-secondary"
+          style={{ width: '100%', justifyContent: 'center', opacity: 0.6, fontSize: 13 }}
         >
           Gerar novos produtos
         </button>
@@ -1484,6 +1558,358 @@ function TabelaProdutos({
   )
 }
 
+// ─── Correção screen (chat) ───────────────────────────────────────────────────
+
+function CorrecaoScreen({
+  resultado,
+  onVoltar,
+}: {
+  resultado: ApiResultado
+  onVoltar: () => void
+}) {
+  const canaisDisponiveis: { id: 'shopee' | 'ml'; label: string }[] = [
+    ...(resultado.arquivos.shopee ? [{ id: 'shopee' as const, label: 'Shopee' }] : []),
+    ...(resultado.arquivos.ml    ? [{ id: 'ml'     as const, label: 'Mercado Livre' }] : []),
+  ]
+
+  const [canal, setCanal] = useState<'shopee' | 'ml'>(canaisDisponiveis[0]?.id ?? 'shopee')
+  const [mensagens, setMensagens] = useState<ChatMsg[]>([{
+    role: 'assistant',
+    content: 'Olá! Descreva o que aconteceu no upload, faça uma pergunta sobre um erro específico, ou anexe o relatório de erros do marketplace para correção automática.',
+  }])
+  const [input, setInput] = useState('')
+  const [arquivo, setArquivo] = useState<File | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const ultimoTextoRef = useRef('')
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [mensagens, enviando])
+
+  async function enviar() {
+    const texto = input.trim()
+    if (!texto && !arquivo) return
+
+    const userMsg: ChatMsg = {
+      role: 'user',
+      content: texto || `Arquivo anexado: ${arquivo!.name}`,
+      arquivoNome: arquivo?.name,
+    }
+    setMensagens(prev => [...prev, userMsg])
+    setInput('')
+    if (texto) ultimoTextoRef.current = texto
+    const arquivoAtual = arquivo
+    setArquivo(null)
+    setEnviando(true)
+
+    try {
+      const bodyObj: Record<string, string> = { canal }
+      if (texto) bodyObj.mensagem = texto
+      if (arquivoAtual) bodyObj.arquivo_base64 = await fileToBase64(arquivoAtual)
+
+      const res = await fetch('/api/fix-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyObj),
+      })
+      if (res.status === 401) throw new Error('Sessão expirada. Recarregue a página.')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Erro ${res.status}`)
+      }
+      const data: CorrecaoApiResponse = await res.json()
+      setMensagens(prev => [...prev, {
+        role: 'assistant',
+        content: data.mensagem,
+        arquivo_corrigido: data.arquivo_corrigido ?? undefined,
+        canal,
+      }])
+    } catch (err) {
+      setMensagens(prev => [...prev, {
+        role: 'assistant',
+        content: `Erro: ${err instanceof Error ? err.message : 'Falha na comunicação com o servidor.'}`,
+      }])
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() }
+  }
+
+  async function corrigirArquivoGerado() {
+    const arquivoB64 = resultado.arquivos[canal]
+    if (!arquivoB64 || enviando) return
+    const canalLabel = canal === 'shopee' ? 'Shopee' : 'Mercado Livre'
+    setMensagens(prev => [...prev, {
+      role: 'user' as const,
+      content: `Corrija minha planilha do ${canalLabel} com base nos erros descritos acima.`,
+    }])
+    setEnviando(true)
+    try {
+      const res = await fetch('/api/fix-errors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canal, mensagem: ultimoTextoRef.current, arquivo_base64: arquivoB64 }),
+      })
+      if (res.status === 401) throw new Error('Sessão expirada. Recarregue a página.')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Erro ${res.status}`)
+      }
+      const data: CorrecaoApiResponse = await res.json()
+      setMensagens(prev => [...prev, {
+        role: 'assistant' as const,
+        content: data.mensagem,
+        arquivo_corrigido: data.arquivo_corrigido ?? undefined,
+        canal,
+      }])
+    } catch (err) {
+      setMensagens(prev => [...prev, {
+        role: 'assistant' as const,
+        content: `Erro: ${err instanceof Error ? err.message : 'Falha na comunicação com o servidor.'}`,
+      }])
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  const canSend = (input.trim() !== '' || arquivo !== null) && !enviando
+
+  return (
+    <div style={{ width: '100%', maxWidth: 560 }}>
+      <button
+        type="button"
+        onClick={onVoltar}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--muted)', fontSize: 13,
+          display: 'flex', alignItems: 'center', gap: 6,
+          marginBottom: 20, padding: 0,
+        }}
+      >
+        ← Voltar aos downloads
+      </button>
+
+      <div style={{
+        background: 'var(--navy-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 20,
+        padding: '28px 28px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+      }}>
+        <div>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            O que aconteceu no upload?
+          </h2>
+          {canaisDisponiveis.length > 1 ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              {canaisDisponiveis.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCanal(c.id)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 20,
+                    border: `1.5px solid ${canal === c.id ? 'var(--blue)' : 'var(--border)'}`,
+                    background: canal === c.id ? 'rgba(37,99,235,0.12)' : 'transparent',
+                    color: canal === c.id ? 'var(--blue-glow)' : 'var(--muted)',
+                    fontSize: 12, fontWeight: canal === c.id ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >{c.label}</button>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>
+              Canal: {canaisDisponiveis[0]?.label ?? canal}
+            </p>
+          )}
+        </div>
+
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            maxHeight: 380,
+            overflowY: 'auto',
+            paddingRight: 2,
+          }}
+        >
+          {mensagens.map((m, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}>
+              <div style={{
+                maxWidth: '85%',
+                background: m.role === 'user' ? 'rgba(37,99,235,0.15)' : 'var(--navy)',
+                border: `1px solid ${m.role === 'user' ? 'rgba(37,99,235,0.35)' : 'var(--border)'}`,
+                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                padding: '10px 14px',
+                fontSize: 13,
+                color: 'var(--white)',
+                lineHeight: 1.65,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {m.arquivoNome && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'var(--muted)', fontSize: 12 }}>
+                    📎 {m.arquivoNome}
+                  </div>
+                )}
+                {m.content}
+              </div>
+              {m.arquivo_corrigido && m.canal && (
+                <button
+                  onClick={() => downloadBase64(m.arquivo_corrigido!, `listify-${m.canal}-corrigido.xlsx`)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '8px 14px',
+                    background: 'rgba(22,163,74,0.12)',
+                    border: '1px solid rgba(22,163,74,0.35)',
+                    borderRadius: 8,
+                    color: '#4ade80',
+                    fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⬇ Baixar arquivo corrigido
+                </button>
+              )}
+              {m.role === 'assistant' && i > 0 && !m.arquivo_corrigido && resultado.arquivos[canal] !== null && (
+                <button
+                  onClick={corrigirArquivoGerado}
+                  disabled={enviando}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 13px',
+                    background: 'rgba(37,99,235,0.1)',
+                    border: '1px solid rgba(37,99,235,0.3)',
+                    borderRadius: 8,
+                    color: enviando ? 'var(--muted)' : 'var(--blue-glow)',
+                    fontSize: 12, fontWeight: 600,
+                    cursor: enviando ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  🔧 Corrigir minha planilha gerada
+                </button>
+              )}
+            </div>
+          ))}
+          {enviando && (
+            <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+              <div style={{
+                background: 'var(--navy)',
+                border: '1px solid var(--border)',
+                borderRadius: '16px 16px 16px 4px',
+                padding: '10px 14px',
+                fontSize: 13,
+                color: 'var(--muted)',
+              }}>
+                Analisando...
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {arquivo && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              background: 'rgba(37,99,235,0.08)',
+              border: '1px solid rgba(37,99,235,0.25)',
+              borderRadius: 8,
+              padding: '5px 10px',
+              alignSelf: 'flex-start',
+            }}>
+              <span style={{ fontSize: 12, color: 'var(--blue-glow)' }}>📎 {arquivo.name}</span>
+              <button
+                type="button"
+                onClick={() => setArquivo(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, padding: 0, lineHeight: 1 }}
+              >×</button>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx"
+              onChange={e => { const f = e.target.files?.[0]; if (f) { setArquivo(f); e.target.value = '' } }}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              title="Anexar arquivo de erros (.xlsx)"
+              style={{
+                width: 38, height: 38,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--navy)',
+                color: 'var(--muted)',
+                fontSize: 16,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >📎</button>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Descreva o problema ou pergunte sobre um erro..."
+              rows={1}
+              style={{
+                flex: 1,
+                background: 'var(--navy)',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                padding: '9px 12px',
+                fontSize: 13,
+                color: 'var(--white)',
+                outline: 'none',
+                resize: 'none',
+                fontFamily: 'inherit',
+                lineHeight: 1.5,
+              }}
+            />
+            <button
+              onClick={enviar}
+              disabled={!canSend}
+              style={{
+                width: 38, height: 38,
+                borderRadius: 8, border: 'none',
+                background: canSend ? 'var(--blue)' : 'var(--navy-3)',
+                color: canSend ? 'white' : 'var(--muted)',
+                fontSize: 18,
+                cursor: canSend ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s',
+              }}
+            >→</button>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, opacity: 0.6 }}>
+            Enter para enviar · Shift+Enter para nova linha · Anexe o relatório de erros para correção automática
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Erro screen ──────────────────────────────────────────────────────────────
 
 function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -1563,9 +1989,35 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
     setNumProdutos(0)
   }
 
-  function handleConfirmarRevisao(editados: ProdutoRevisao[]) {
+  async function handleConfirmarRevisao(editados: ProdutoRevisao[]) {
     setProdutosEditados(editados)
-    setStage('resultado')
+    setStage('gerando')
+    try {
+      const regimeAPI = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
+      const canaisAPI = data.channels.map(ch => ch === 'mercado_livre' ? 'ml' : ch)
+      const res = await fetch('/api/generate-files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          produtos: editados,
+          regime: regimeAPI,
+          canais: canaisAPI,
+          drive_folder_url: data.driveLink,
+          alertas: resultado?.alertas ?? [],
+        }),
+      })
+      if (res.status === 401) throw new Error('Sessão expirada. Recarregue a página.')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? `Erro ${res.status} ao gerar arquivos.`)
+      }
+      const novoResultado: ApiResultado = await res.json()
+      setResultado(novoResultado)
+      setStage('resultado')
+    } catch (err) {
+      setErroMsg(err instanceof Error ? err.message : 'Erro ao gerar arquivos.')
+      setStage('erro')
+    }
   }
 
   async function handleConfirm() {
@@ -1632,6 +2084,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
   const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
 
   if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} />
+  if (stage === 'gerando') return <GerandoScreen />
   if (stage === 'pronto' && resultado) return (
     <ProntoScreen
       numProdutos={resultado.produtos_processados}
@@ -1647,7 +2100,16 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
       onVoltar={() => { setStage('formulario'); setStep(4) }}
     />
   )
-  if (stage === 'resultado' && resultado) return <ResultadoScreen resultado={resultado} onReset={handleReset} />
+  if (stage === 'resultado' && resultado) return (
+    <ResultadoScreen
+      resultado={resultado}
+      onCorrecao={() => setStage('correcao')}
+      onReset={handleReset}
+    />
+  )
+  if (stage === 'correcao' && resultado) return (
+    <CorrecaoScreen resultado={resultado} onVoltar={() => setStage('resultado')} />
+  )
   if (stage === 'erro') return <ErroScreen message={erroMsg} onRetry={() => setStage('formulario')} />
 
   const titles: Record<number, string> = {

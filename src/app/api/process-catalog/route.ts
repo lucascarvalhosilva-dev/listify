@@ -291,6 +291,7 @@ export async function POST(request: NextRequest) {
         comprimento_cm: p.specs.dimensoes.comprimento_cm,
         largura_cm: p.specs.dimensoes.largura_cm,
         altura_cm: p.specs.dimensoes.altura_cm,
+        estoque: p.estoque,
         confianca_dimensoes: p.specs.confianca_dimensoes,
         titulo_ml: p.specs.titulo_ml,
         titulo_shopee: p.specs.titulo_shopee,
