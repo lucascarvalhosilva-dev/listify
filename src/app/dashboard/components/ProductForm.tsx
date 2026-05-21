@@ -1522,21 +1522,27 @@ function RevisaoPrecosScreen({
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
                     </td>
-                    <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                      <input type="number" step="0.01" defaultValue={p.custo}
-                        onChange={e => update(idx, 'custo' as CampoNumerico, e.target.value)}
-                        style={{ ...numInputBase, width: 72 }} />
+                    <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'right' as const }}>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(p.custo)}</span>
                     </td>
                     <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                      <input type="number" step="0.01" defaultValue={p.embalagem}
-                        onChange={e => update(idx, 'embalagem', e.target.value)}
-                        style={{ ...numInputBase, width: 72 }} />
+                      <div style={{ position: 'relative', width: 80 }}>
+                        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                        <input type="number" step="0.01" defaultValue={p.embalagem.toFixed(2)}
+                          onChange={e => update(idx, 'embalagem', e.target.value)}
+                          onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                          style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                      </div>
                     </td>
                     {temML && (
                       <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <input type="number" step="0.01" defaultValue={p.preco_ml}
-                          onChange={e => update(idx, 'preco_ml', e.target.value)}
-                          style={{ ...numInputBase, width: 72 }} />
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={p.preco_ml.toFixed(2)}
+                            onChange={e => update(idx, 'preco_ml', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
                       </td>
                     )}
                     {temML && (
@@ -1570,9 +1576,13 @@ function RevisaoPrecosScreen({
                     )}
                     {temShopee && (
                       <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <input type="number" step="0.01" defaultValue={p.preco_shopee}
-                          onChange={e => update(idx, 'preco_shopee', e.target.value)}
-                          style={{ ...numInputBase, width: 72 }} />
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={p.preco_shopee.toFixed(2)}
+                            onChange={e => update(idx, 'preco_shopee', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
                       </td>
                     )}
                     {temShopee && (
