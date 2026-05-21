@@ -839,7 +839,7 @@ function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onCon
             Seus produtos foram processados!
           </h2>
           <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
-            {numProdutos} produto{numProdutos !== 1 ? 's' : ''} prontos para revisão
+            {numProdutos} produto{numProdutos !== 1 ? 's' : ''} {numProdutos !== 1 ? 'prontos' : 'pronto'} para revisão
           </p>
         </div>
         <button
@@ -964,85 +964,7 @@ function GerandoScreen({ concluido }: { concluido: boolean }) {
   )
 }
 
-// ─── Price tooltip helpers ────────────────────────────────────────────────────
 
-function calcTooltip(
-  preco: number,
-  custo: number,
-  canal: 'ml' | 'shopee',
-  regime: 'MEI' | 'SN'
-) {
-  if (canal === 'ml') {
-    const imposto = regime === 'SN' ? preco * 0.04 : 0
-    const fixo = preco < 79 ? 12.25 : 5.5
-    const comissao = preco * 0.115
-    return { comissao, imposto, fixo, lucro: preco - custo - comissao - imposto - fixo, pctComissao: '11,5%', labelFixo: 'Taxa fixa ML' }
-  } else {
-    const comissao = preco * 0.14
-    const imposto = regime === 'SN' ? preco * 0.04 : 0
-    const extra = regime === 'MEI' ? 3.0 : 0
-    const fixo = 2.5 + extra
-    return { comissao, imposto, fixo, lucro: preco - custo - comissao - imposto - fixo, pctComissao: '14%', labelFixo: regime === 'MEI' ? 'Frete + extra' : 'Frete' }
-  }
-}
-
-function PriceTooltipIcon({
-  preco, custo, canal, regime,
-}: {
-  preco: number; custo: number; canal: 'ml' | 'shopee'; regime: 'MEI' | 'SN'
-}) {
-  const [show, setShow] = useState(false)
-  const bd = calcTooltip(preco, custo, canal, regime)
-
-  return (
-    <div
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-    >
-      <span style={{ fontSize: 11, color: 'var(--muted)', cursor: 'help', opacity: 0.55, userSelect: 'none' }}>ⓘ</span>
-      {show && (
-        <div style={{
-          position: 'absolute',
-          bottom: 'calc(100% + 6px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'var(--navy-3)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          padding: '12px 14px',
-          minWidth: 210,
-          zIndex: 200,
-          textAlign: 'left',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-          pointerEvents: 'none',
-        }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Composição do preço
-          </p>
-          {(
-            [
-              { label: 'Custo',                    val: `R$ ${custo.toFixed(2)}`,          color: 'var(--white)' },
-              { label: `Comissão (${bd.pctComissao})`, val: `−R$ ${bd.comissao.toFixed(2)}`, color: '#f87171'       },
-              ...(bd.imposto > 0 ? [{ label: 'Imposto (4%)', val: `−R$ ${bd.imposto.toFixed(2)}`, color: '#f87171' }] : []),
-              { label: bd.labelFixo,               val: `−R$ ${bd.fixo.toFixed(2)}`,       color: '#f87171'       },
-            ] as { label: string; val: string; color: string }[]
-          ).map(r => (
-            <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 12, marginBottom: 4, color: 'var(--muted)' }}>
-              <span>{r.label}</span>
-              <span style={{ color: r.color }}>{r.val}</span>
-            </div>
-          ))}
-          <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, fontSize: 13, fontWeight: 700 }}>
-            <span style={{ color: 'var(--muted)' }}>Lucro estimado</span>
-            <span style={{ color: bd.lucro >= 0 ? '#4ade80' : '#f87171' }}>R$ {bd.lucro.toFixed(2)}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ─── Textos section ───────────────────────────────────────────────────────────
 
@@ -1322,6 +1244,7 @@ function RevisaoPrecosScreen({
   const [ajustePct, setAjustePct] = useState('')
   const [ajusteDir, setAjusteDir] = useState<'+' | '-'>('+')
   const [margemAlvo, setMargemAlvo] = useState('')
+  const [canalAjuste, setCanalAjuste] = useState('todos')
   const [filtro, setFiltro] = useState('')
   const [busca, setBusca] = useState('')
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
@@ -1393,31 +1316,33 @@ function RevisaoPrecosScreen({
 
   function aplicar() {
     const indices = selecionados.size > 0 ? [...selecionados] : prodsFiltrados()
+    const all = canalAjuste === 'todos'
     setProds(prev => {
       const next = prev.map(p => ({ ...p }))
       if (modo === 'pct' || modo === 'filtro') {
         const pct = parseFloat(ajustePct)
         if (isNaN(pct) || pct <= 0) return next
         const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
+        const r = (n: number) => Math.round(n * factor * 100) / 100
         for (const i of indices) {
-          next[i].preco_ml = Math.round(next[i].preco_ml * factor * 100) / 100
-          next[i].preco_shopee = Math.round(next[i].preco_shopee * factor * 100) / 100
-          if (temTikTok && next[i].preco_tiktok !== undefined) next[i].preco_tiktok = Math.round((next[i].preco_tiktok ?? 0) * factor * 100) / 100
-          if (temBling && next[i].preco_bling !== undefined) next[i].preco_bling = Math.round((next[i].preco_bling ?? 0) * factor * 100) / 100
-          if (temMagalu && next[i].preco_magalu !== undefined) next[i].preco_magalu = Math.round((next[i].preco_magalu ?? 0) * factor * 100) / 100
-          if (temAmazon && next[i].preco_amazon !== undefined) next[i].preco_amazon = Math.round((next[i].preco_amazon ?? 0) * factor * 100) / 100
+          if ((all || canalAjuste === 'ml') && temML) next[i].preco_ml = r(next[i].preco_ml)
+          if ((all || canalAjuste === 'shopee') && temShopee) next[i].preco_shopee = r(next[i].preco_shopee)
+          if ((all || canalAjuste === 'tiktok_shop') && temTikTok) next[i].preco_tiktok = r(next[i].preco_tiktok ?? 0)
+          if ((all || canalAjuste === 'bling') && temBling) next[i].preco_bling = r(next[i].preco_bling ?? 0)
+          if ((all || canalAjuste === 'magalu') && temMagalu) next[i].preco_magalu = r(next[i].preco_magalu ?? 0)
+          if ((all || canalAjuste === 'amazon') && temAmazon) next[i].preco_amazon = r(next[i].preco_amazon ?? 0)
         }
       } else if (modo === 'margem') {
         const m = parseFloat(margemAlvo)
         if (isNaN(m)) return next
         for (const i of indices) {
           const p = next[i]
-          if (temML) next[i].preco_ml = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
-          if (temShopee) next[i].preco_shopee = precoParaMargem(p.custo, p.embalagem, comissaoShopee, imposto, m)
-          if (temTikTok) next[i].preco_tiktok = precoParaMargem(p.custo, p.embalagem, platfeeTikTok, imposto, m)
-          if (temBling) next[i].preco_bling = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
-          if (temMagalu) next[i].preco_magalu = precoParaMargem(p.custo, p.embalagem, comissaoMagalu, imposto, m)
-          if (temAmazon) next[i].preco_amazon = precoParaMargem(p.custo, p.embalagem, comissaoAmazon, imposto, m)
+          if ((all || canalAjuste === 'ml') && temML) next[i].preco_ml = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
+          if ((all || canalAjuste === 'shopee') && temShopee) next[i].preco_shopee = precoParaMargem(p.custo, p.embalagem, comissaoShopee, imposto, m)
+          if ((all || canalAjuste === 'tiktok_shop') && temTikTok) next[i].preco_tiktok = precoParaMargem(p.custo, p.embalagem, platfeeTikTok, imposto, m)
+          if ((all || canalAjuste === 'bling') && temBling) next[i].preco_bling = precoParaMargem(p.custo, p.embalagem, 0, imposto, m)
+          if ((all || canalAjuste === 'magalu') && temMagalu) next[i].preco_magalu = precoParaMargem(p.custo, p.embalagem, comissaoMagalu, imposto, m)
+          if ((all || canalAjuste === 'amazon') && temAmazon) next[i].preco_amazon = precoParaMargem(p.custo, p.embalagem, comissaoAmazon, imposto, m)
         }
       }
       return next
@@ -1456,8 +1381,51 @@ function RevisaoPrecosScreen({
 
   const fmt = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+  const mc = (m: number) => m >= 15 ? '#4ade80' : m >= 5 ? '#fbbf24' : '#f87171'
+
+  const sTH = (left: number, extra: React.CSSProperties = {}): React.CSSProperties => ({
+    position: 'sticky', left, zIndex: 4, background: 'var(--navy-3)', ...extra,
+  })
+  const sTD = (left: number, bg: string): React.CSSProperties => ({
+    position: 'sticky', left, zIndex: 2, background: bg,
+  })
+
+  const priceCell = (val: number, campo: CampoNumerico, idx: number) => (
+    <td style={{ padding: '7px 6px', verticalAlign: 'middle', minWidth: 100 }}>
+      <div style={{ position: 'relative' }}>
+        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+        <input type="number" step="0.01" defaultValue={val.toFixed(2)}
+          onChange={e => update(idx, campo, e.target.value)}
+          onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+          style={{ ...numInputBase, width: '100%', paddingLeft: 26, textAlign: 'right' as const }} />
+      </div>
+    </td>
+  )
+
+  const valCell = (n: number, color?: string) => (
+    <td style={{ padding: '7px 10px', verticalAlign: 'middle', textAlign: 'right' as const, minWidth: 90, whiteSpace: 'nowrap' as const }}>
+      <span style={{ fontSize: 12, color: color ?? 'var(--muted)', fontWeight: color ? 600 : 400 }}>R$ {fmt(n)}</span>
+    </td>
+  )
+
+  const pctCell = (pct: number, color: string) => (
+    <td style={{ padding: '7px 10px', verticalAlign: 'middle', textAlign: 'right' as const, minWidth: 72, whiteSpace: 'nowrap' as const }}>
+      <span style={{ fontSize: 12, color, fontWeight: 600 }}>{pct.toFixed(1)}%</span>
+    </td>
+  )
+
+  const canaisOpcoes = [
+    { value: 'todos', label: 'Todos os canais' },
+    ...(temML     ? [{ value: 'ml',         label: 'Mercado Livre'   }] : []),
+    ...(temShopee ? [{ value: 'shopee',      label: 'Shopee'         }] : []),
+    ...(temTikTok ? [{ value: 'tiktok_shop', label: 'TikTok Shop'    }] : []),
+    ...(temBling  ? [{ value: 'bling',       label: 'Bling (ERP)'    }] : []),
+    ...(temMagalu ? [{ value: 'magalu',      label: 'Magazine Luiza' }] : []),
+    ...(temAmazon ? [{ value: 'amazon',      label: 'Amazon Brasil'  }] : []),
+  ]
+
   return (
-    <div style={{ width: '100%', maxWidth: 900 }}>
+    <div style={{ width: '100%', maxWidth: 1100 }}>
       <div style={{
         background: 'var(--navy-2)',
         border: '1px solid var(--border)',
@@ -1486,8 +1454,19 @@ function RevisaoPrecosScreen({
           </div>
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            {modo === 'pct' && (
+            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>Canal:</span>
+            <select value={canalAjuste} onChange={e => setCanalAjuste(e.target.value)}
+              style={{ ...numInputBase, padding: '6px 8px', cursor: 'pointer', fontSize: 12 }}>
+              {canaisOpcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+
+            {(modo === 'pct' || modo === 'filtro') && (
               <>
+                {modo === 'filtro' && (
+                  <input type="text" placeholder="Nome ou SKU..." value={filtro}
+                    onChange={e => setFiltro(e.target.value)}
+                    style={{ ...numInputBase, width: 180, textAlign: 'left' as const }} />
+                )}
                 <select value={ajusteDir} onChange={e => setAjusteDir(e.target.value as '+' | '-')}
                   style={{ ...numInputBase, width: 52, padding: '6px 8px', cursor: 'pointer' }}>
                   <option value="+">+</option>
@@ -1501,26 +1480,10 @@ function RevisaoPrecosScreen({
             )}
             {modo === 'margem' && (
               <>
-                <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Margem mínima:</span>
+                <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>Margem:</span>
                 <input type="number" min="0" max="100" step="0.5" placeholder="20" value={margemAlvo}
                   onChange={e => setMargemAlvo(e.target.value)}
                   style={{ ...numInputBase, width: 80 }} />
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
-              </>
-            )}
-            {modo === 'filtro' && (
-              <>
-                <input type="text" placeholder="Nome ou SKU do produto..." value={filtro}
-                  onChange={e => setFiltro(e.target.value)}
-                  style={{ ...numInputBase, width: 220, textAlign: 'left' }} />
-                <select value={ajusteDir} onChange={e => setAjusteDir(e.target.value as '+' | '-')}
-                  style={{ ...numInputBase, width: 52, padding: '6px 8px', cursor: 'pointer' }}>
-                  <option value="+">+</option>
-                  <option value="-">−</option>
-                </select>
-                <input type="number" min="0" step="0.5" placeholder="0" value={ajustePct}
-                  onChange={e => setAjustePct(e.target.value)}
-                  style={{ ...numInputBase, width: 72 }} />
                 <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
               </>
             )}
@@ -1555,472 +1518,106 @@ function RevisaoPrecosScreen({
 
         {/* Price table */}
         <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 356 + (temML ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temShopee ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temTikTok ? (6 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temBling ? 320 : 0) + (temMagalu ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temAmazon ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) }}>
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'auto' as const }}>
             <thead>
               <tr style={{ background: 'var(--navy-3)' }}>
-                <th rowSpan={2} style={{ ...TH_STYLE, width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
-                  <input
-                    ref={checkAllRef}
-                    type="checkbox"
-                    checked={todosSelecionadosVisiveis}
-                    onChange={toggleTodos}
-                    style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }}
-                  />
+                <th rowSpan={2} style={{ ...TH_STYLE, ...sTH(0), width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
+                  <input ref={checkAllRef} type="checkbox" checked={todosSelecionadosVisiveis} onChange={toggleTodos}
+                    style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }} />
                 </th>
-                <th rowSpan={2} style={{ ...TH_STYLE, textAlign: 'left', paddingLeft: 14, width: 160, verticalAlign: 'bottom' }}>Produto</th>
-                <th rowSpan={2} title="Custo unitário do produto" style={{ ...TH_STYLE, width: 80, verticalAlign: 'bottom' }}>Custo (R$)</th>
-                <th rowSpan={2} title="Custo de embalagem" style={{ ...TH_STYLE, width: 80, verticalAlign: 'bottom' }}>Embalagem (R$)</th>
-                {temML && (
-                  <th
-                    colSpan={5 + (imposto > 0 ? 1 : 0)}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#60a5fa',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(37,99,235,0.12)',
-                      borderBottom: '2px solid rgba(37,99,235,0.5)',
-                      borderLeft: '1px solid rgba(37,99,235,0.3)',
-                      borderRight: '1px solid rgba(37,99,235,0.3)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >Mercado Livre</th>
-                )}
-                {temShopee && (
-                  <th
-                    colSpan={5 + (imposto > 0 ? 1 : 0)}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#fb923c',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(249,115,22,0.1)',
-                      borderBottom: '2px solid rgba(249,115,22,0.45)',
-                      borderLeft: '1px solid rgba(249,115,22,0.25)',
-                      borderRight: '1px solid rgba(249,115,22,0.25)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >Shopee</th>
-                )}
-                {temTikTok && (
-                  <th
-                    colSpan={6 + (imposto > 0 ? 1 : 0)}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#fb7185',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(244,63,94,0.08)',
-                      borderBottom: '2px solid rgba(244,63,94,0.5)',
-                      borderLeft: '1px solid rgba(244,63,94,0.3)',
-                      borderRight: '1px solid rgba(244,63,94,0.3)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >TikTok Shop</th>
-                )}
-                {temBling && (
-                  <th
-                    colSpan={4}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#94a3b8',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(148,163,184,0.06)',
-                      borderBottom: '2px solid rgba(148,163,184,0.4)',
-                      borderLeft: '1px solid rgba(148,163,184,0.25)',
-                      borderRight: '1px solid rgba(148,163,184,0.25)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >Bling (ERP)</th>
-                )}
-                {temMagalu && (
-                  <th
-                    colSpan={5 + (imposto > 0 ? 1 : 0)}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#38bdf8',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(14,165,233,0.08)',
-                      borderBottom: '2px solid rgba(14,165,233,0.5)',
-                      borderLeft: '1px solid rgba(14,165,233,0.25)',
-                      borderRight: '1px solid rgba(14,165,233,0.25)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >Magazine Luiza</th>
-                )}
-                {temAmazon && (
-                  <th
-                    colSpan={5 + (imposto > 0 ? 1 : 0)}
-                    style={{
-                      padding: '7px 10px',
-                      fontSize: 10, fontWeight: 700,
-                      color: '#f59e0b',
-                      textTransform: 'uppercase' as const,
-                      letterSpacing: '0.08em',
-                      textAlign: 'center' as const,
-                      background: 'rgba(245,158,11,0.08)',
-                      borderBottom: '2px solid rgba(245,158,11,0.5)',
-                      borderLeft: '1px solid rgba(245,158,11,0.25)',
-                      borderRight: '1px solid rgba(245,158,11,0.25)',
-                      whiteSpace: 'nowrap' as const,
-                    }}
-                  >Amazon Brasil</th>
-                )}
+                <th rowSpan={2} style={{ ...TH_STYLE, ...sTH(36), textAlign: 'left', paddingLeft: 14, minWidth: 180, verticalAlign: 'bottom' }}>Produto</th>
+                <th rowSpan={2} style={{ ...TH_STYLE, ...sTH(216), minWidth: 90, verticalAlign: 'bottom' }}>Custo (R$)</th>
+                <th rowSpan={2} style={{ ...TH_STYLE, ...sTH(306), minWidth: 100, verticalAlign: 'bottom' }}>Embalagem</th>
+                {temML     && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#60a5fa', background: 'rgba(37,99,235,0.12)',    borderBottom: '2px solid rgba(37,99,235,0.5)',    borderLeft: '1px solid rgba(37,99,235,0.3)',    borderRight: '1px solid rgba(37,99,235,0.3)',    whiteSpace: 'nowrap' }}>Mercado Livre</th>}
+                {temShopee && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#fb923c', background: 'rgba(249,115,22,0.1)',    borderBottom: '2px solid rgba(249,115,22,0.45)',  borderLeft: '1px solid rgba(249,115,22,0.25)',   borderRight: '1px solid rgba(249,115,22,0.25)',   whiteSpace: 'nowrap' }}>Shopee</th>}
+                {temTikTok && <th colSpan={6 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#fb7185', background: 'rgba(244,63,94,0.08)',    borderBottom: '2px solid rgba(244,63,94,0.5)',    borderLeft: '1px solid rgba(244,63,94,0.3)',    borderRight: '1px solid rgba(244,63,94,0.3)',    whiteSpace: 'nowrap' }}>TikTok Shop</th>}
+                {temBling  && <th colSpan={4}                         style={{ ...TH_STYLE, textAlign: 'center', color: '#94a3b8', background: 'rgba(148,163,184,0.06)',  borderBottom: '2px solid rgba(148,163,184,0.4)',  borderLeft: '1px solid rgba(148,163,184,0.25)',  borderRight: '1px solid rgba(148,163,184,0.25)',  whiteSpace: 'nowrap' }}>Bling (ERP)</th>}
+                {temMagalu && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#38bdf8', background: 'rgba(14,165,233,0.08)',   borderBottom: '2px solid rgba(14,165,233,0.5)',   borderLeft: '1px solid rgba(14,165,233,0.25)',   borderRight: '1px solid rgba(14,165,233,0.25)',   whiteSpace: 'nowrap' }}>Magazine Luiza</th>}
+                {temAmazon && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#f59e0b', background: 'rgba(245,158,11,0.08)',   borderBottom: '2px solid rgba(245,158,11,0.5)',   borderLeft: '1px solid rgba(245,158,11,0.25)',   borderRight: '1px solid rgba(245,158,11,0.25)',   whiteSpace: 'nowrap' }}>Amazon Brasil</th>}
               </tr>
               <tr style={{ background: 'var(--navy-3)' }}>
-                {temML && <th title="Preço de venda no Mercado Livre" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th>}
-                {temML && <th title="Comissão do canal: 11,5% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
-                {temML && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
-                {temML && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temML && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temML && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(37,99,235,0.3)' }}>Margem</th>}
-                {temShopee && <th title="Preço de venda na Shopee" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(249,115,22,0.25)' }}>Preço</th>}
-                {temShopee && <th title="Comissão do canal: 14% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
-                {temShopee && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
-                {temShopee && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temShopee && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temShopee && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(249,115,22,0.25)' }}>Margem</th>}
-                {temTikTok && <th title="Preço de venda no TikTok Shop (modo promo)" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(244,63,94,0.3)' }}>Preço Promo</th>}
-                {temTikTok && <th title="Comissão do TikTok Shop no modo promo: 0%" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
-                {temTikTok && <th title="Taxa de pagamento TikTok: 2,99% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Taxa Pgto</th>}
-                {temTikTok && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
-                {temTikTok && <th title="Custo total = Custo + Embalagem + Taxa Pgto + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temTikTok && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temTikTok && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(244,63,94,0.3)' }}>Margem</th>}
-                {temBling && <th title="Preço de venda cadastrado no Bling" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(148,163,184,0.25)' }}>Preço</th>}
-                {temBling && <th title="Custo total = Custo + Embalagem (Bling não cobra comissão)" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temBling && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temBling && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(148,163,184,0.25)' }}>Margem</th>}
-                {temMagalu && <th title="Preço de venda no Magazine Luiza" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(14,165,233,0.25)' }}>Preço</th>}
-                {temMagalu && <th title="Comissão do Magazine Luiza: 14% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
-                {temMagalu && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
-                {temMagalu && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temMagalu && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temMagalu && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(14,165,233,0.25)' }}>Margem</th>}
-                {temAmazon && <th title="Preço de venda na Amazon Brasil" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(245,158,11,0.25)' }}>Preço</th>}
-                {temAmazon && <th title="Comissão da Amazon: 15% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
-                {temAmazon && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
-                {temAmazon && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
-                {temAmazon && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
-                {temAmazon && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(245,158,11,0.25)' }}>Margem</th>}
+                {temML && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(37,99,235,0.3)' }}>Margem</th></>}
+                {temShopee && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(249,115,22,0.25)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(249,115,22,0.25)' }}>Margem</th></>}
+                {temTikTok && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(244,63,94,0.3)' }}>Preço Promo</th><th style={TH_STYLE}>Comissão</th><th style={TH_STYLE}>Taxa Pgto</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(244,63,94,0.3)' }}>Margem</th></>}
+                {temBling  && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(148,163,184,0.25)' }}>Preço</th><th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(148,163,184,0.25)' }}>Margem</th></>}
+                {temMagalu && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(14,165,233,0.25)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(14,165,233,0.25)' }}>Margem</th></>}
+                {temAmazon && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(245,158,11,0.25)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(245,158,11,0.25)' }}>Margem</th></>}
               </tr>
             </thead>
             <tbody>
               {indicesFiltrados.map((idx, rowIdx) => {
                 const p = prods[idx]
-                const comisMLR = p.preco_ml * comissaoML
-                const impostMLR = p.preco_ml * imposto
-                const custoTotalML = p.custo + p.embalagem + comisMLR + impostMLR
-                const lucroML = p.preco_ml - custoTotalML
-                const margemML = p.preco_ml > 0 ? (lucroML / p.preco_ml) * 100 : 0
-                const comisSHR = p.preco_shopee * comissaoShopee
-                const impostSHR = p.preco_shopee * imposto
-                const custoTotalSh = p.custo + p.embalagem + comisSHR + impostSHR
-                const lucroSh = p.preco_shopee - custoTotalSh
-                const margemSh = p.preco_shopee > 0 ? (lucroSh / p.preco_shopee) * 100 : 0
+                const isSel = selecionados.has(idx)
                 const isLast = rowIdx === indicesFiltrados.length - 1
-                const mcML = margemML >= 15 ? '#4ade80' : margemML >= 5 ? '#fbbf24' : '#f87171'
-                const mcSh = margemSh >= 15 ? '#4ade80' : margemSh >= 5 ? '#fbbf24' : '#f87171'
+                const rowBg = isSel ? '#1a2744' : 'var(--navy-2)'
+
+                const comisML = p.preco_ml * comissaoML
+                const impML   = p.preco_ml * imposto
+                const ctML    = p.custo + p.embalagem + comisML + impML
+                const lucroML = p.preco_ml - ctML
+                const mML     = p.preco_ml > 0 ? (lucroML / p.preco_ml) * 100 : 0
+
+                const comisSH = p.preco_shopee * comissaoShopee
+                const impSH   = p.preco_shopee * imposto
+                const ctSH    = p.custo + p.embalagem + comisSH + impSH
+                const lucroSH = p.preco_shopee - ctSH
+                const mSH     = p.preco_shopee > 0 ? (lucroSH / p.preco_shopee) * 100 : 0
+
                 const precoTT = p.preco_tiktok ?? 0
-                const taxaTT = precoTT * platfeeTikTok
-                const impostTT = precoTT * imposto
-                const custoTotalTT = p.custo + p.embalagem + taxaTT + impostTT
-                const lucroTT = precoTT - custoTotalTT
-                const margemTT = precoTT > 0 ? (lucroTT / precoTT) * 100 : 0
-                const mcTT = margemTT >= 15 ? '#4ade80' : margemTT >= 5 ? '#fbbf24' : '#f87171'
+                const taxaTT  = precoTT * platfeeTikTok
+                const impTT   = precoTT * imposto
+                const ctTT    = p.custo + p.embalagem + taxaTT + impTT
+                const lucroTT = precoTT - ctTT
+                const mTT     = precoTT > 0 ? (lucroTT / precoTT) * 100 : 0
+
                 const precoBL = p.preco_bling ?? 0
-                const custoTotalBL = p.custo + p.embalagem
-                const lucroBL = precoBL - custoTotalBL
-                const margemBL = precoBL > 0 ? (lucroBL / precoBL) * 100 : 0
-                const mcBL = margemBL >= 15 ? '#4ade80' : margemBL >= 5 ? '#fbbf24' : '#f87171'
+                const ctBL    = p.custo + p.embalagem
+                const lucroBL = precoBL - ctBL
+                const mBL     = precoBL > 0 ? (lucroBL / precoBL) * 100 : 0
+
                 const precoMG = p.preco_magalu ?? 0
                 const comisMG = precoMG * comissaoMagalu
-                const impostMG = precoMG * imposto
-                const custoTotalMG = p.custo + p.embalagem + comisMG + impostMG
-                const lucroMG = precoMG - custoTotalMG
-                const margemMG = precoMG > 0 ? (lucroMG / precoMG) * 100 : 0
-                const mcMG = margemMG >= 15 ? '#4ade80' : margemMG >= 5 ? '#fbbf24' : '#f87171'
+                const impMG   = precoMG * imposto
+                const ctMG    = p.custo + p.embalagem + comisMG + impMG
+                const lucroMG = precoMG - ctMG
+                const mMG     = precoMG > 0 ? (lucroMG / precoMG) * 100 : 0
+
                 const precoAZ = p.preco_amazon ?? 0
                 const comisAZ = precoAZ * comissaoAmazon
-                const impostAZ = precoAZ * imposto
-                const custoTotalAZ = p.custo + p.embalagem + comisAZ + impostAZ
-                const lucroAZ = precoAZ - custoTotalAZ
-                const margemAZ = precoAZ > 0 ? (lucroAZ / precoAZ) * 100 : 0
-                const mcAZ = margemAZ >= 15 ? '#4ade80' : margemAZ >= 5 ? '#fbbf24' : '#f87171'
-                const isSel = selecionados.has(idx)
+                const impAZ   = precoAZ * imposto
+                const ctAZ    = p.custo + p.embalagem + comisAZ + impAZ
+                const lucroAZ = precoAZ - ctAZ
+                const mAZ     = precoAZ > 0 ? (lucroAZ / precoAZ) * 100 : 0
+
                 return (
-                  <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: isSel ? 'rgba(37,99,235,0.06)' : undefined }}>
-                    <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'center' as const }}>
-                      <input
-                        type="checkbox"
-                        checked={isSel}
-                        onChange={() => toggleSelecionado(idx)}
-                        style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }}
-                      />
+                  <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: rowBg }}>
+                    <td style={{ ...sTD(0, rowBg), padding: '10px 8px', textAlign: 'center' as const, verticalAlign: 'middle' }}>
+                      <input type="checkbox" checked={isSel} onChange={() => toggleSelecionado(idx)}
+                        style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }} />
                     </td>
-                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
+                    <td style={{ ...sTD(36, rowBg), padding: '10px 14px', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.3 }}>{p.nome}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
                     </td>
-                    <td style={{ padding: '8px 8px', verticalAlign: 'middle', textAlign: 'right' as const }}>
+                    <td style={{ ...sTD(216, rowBg), padding: '10px 10px', textAlign: 'right' as const, verticalAlign: 'middle', whiteSpace: 'nowrap' as const }}>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(p.custo)}</span>
                     </td>
-                    <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                      <div style={{ position: 'relative', width: 80 }}>
+                    <td style={{ ...sTD(306, rowBg), padding: '7px 6px', verticalAlign: 'middle' }}>
+                      <div style={{ position: 'relative', minWidth: 90 }}>
                         <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
                         <input type="number" step="0.01" defaultValue={p.embalagem.toFixed(2)}
                           onChange={e => update(idx, 'embalagem', e.target.value)}
                           onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                          style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                          style={{ ...numInputBase, width: '100%', paddingLeft: 26, textAlign: 'right' as const }} />
                       </div>
                     </td>
-                    {temML && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={p.preco_ml.toFixed(2)}
-                            onChange={e => update(idx, 'preco_ml', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temML && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisMLR)}</span>
-                      </td>
-                    )}
-                    {temML && imposto > 0 && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostMLR)}</span>
-                      </td>
-                    )}
-                    {temML && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalML)}</span>
-                      </td>
-                    )}
-                    {temML && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroML >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroML)}
-                        </span>
-                      </td>
-                    )}
-                    {temML && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcML, fontWeight: 600 }}>
-                          {margemML.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
-                    {temShopee && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={p.preco_shopee.toFixed(2)}
-                            onChange={e => update(idx, 'preco_shopee', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temShopee && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisSHR)}</span>
-                      </td>
-                    )}
-                    {temShopee && imposto > 0 && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostSHR)}</span>
-                      </td>
-                    )}
-                    {temShopee && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalSh)}</span>
-                      </td>
-                    )}
-                    {temShopee && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroSh >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroSh)}
-                        </span>
-                      </td>
-                    )}
-                    {temShopee && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcSh, fontWeight: 600 }}>
-                          {margemSh.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={precoTT.toFixed(2)}
-                            onChange={e => update(idx, 'preco_tiktok', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(0)}</span>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(taxaTT)}</span>
-                      </td>
-                    )}
-                    {temTikTok && imposto > 0 && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostTT)}</span>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalTT)}</span>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroTT >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroTT)}
-                        </span>
-                      </td>
-                    )}
-                    {temTikTok && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcTT, fontWeight: 600 }}>
-                          {margemTT.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
-                    {temBling && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={precoBL.toFixed(2)}
-                            onChange={e => update(idx, 'preco_bling', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temBling && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalBL)}</span>
-                      </td>
-                    )}
-                    {temBling && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroBL >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroBL)}
-                        </span>
-                      </td>
-                    )}
-                    {temBling && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcBL, fontWeight: 600 }}>
-                          {margemBL.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
-                    {temMagalu && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={precoMG.toFixed(2)}
-                            onChange={e => update(idx, 'preco_magalu', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temMagalu && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisMG)}</span>
-                      </td>
-                    )}
-                    {temMagalu && imposto > 0 && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostMG)}</span>
-                      </td>
-                    )}
-                    {temMagalu && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalMG)}</span>
-                      </td>
-                    )}
-                    {temMagalu && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroMG >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroMG)}
-                        </span>
-                      </td>
-                    )}
-                    {temMagalu && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcMG, fontWeight: 600 }}>
-                          {margemMG.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
-                    {temAmazon && (
-                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                        <div style={{ position: 'relative', width: 80 }}>
-                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
-                          <input type="number" step="0.01" defaultValue={precoAZ.toFixed(2)}
-                            onChange={e => update(idx, 'preco_amazon', e.target.value)}
-                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
-                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
-                        </div>
-                      </td>
-                    )}
-                    {temAmazon && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisAZ)}</span>
-                      </td>
-                    )}
-                    {temAmazon && imposto > 0 && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostAZ)}</span>
-                      </td>
-                    )}
-                    {temAmazon && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalAZ)}</span>
-                      </td>
-                    )}
-                    {temAmazon && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: lucroAZ >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
-                          R$ {fmt(lucroAZ)}
-                        </span>
-                      </td>
-                    )}
-                    {temAmazon && (
-                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
-                        <span style={{ fontSize: 13, color: mcAZ, fontWeight: 600 }}>
-                          {margemAZ.toFixed(1)}%
-                        </span>
-                      </td>
-                    )}
+
+                    {temML && <>{priceCell(p.preco_ml, 'preco_ml', idx)}{valCell(comisML)}{imposto > 0 && valCell(impML)}{valCell(ctML)}{valCell(lucroML, lucroML >= 0 ? '#4ade80' : '#f87171')}{pctCell(mML, mc(mML))}</>}
+                    {temShopee && <>{priceCell(p.preco_shopee, 'preco_shopee', idx)}{valCell(comisSH)}{imposto > 0 && valCell(impSH)}{valCell(ctSH)}{valCell(lucroSH, lucroSH >= 0 ? '#4ade80' : '#f87171')}{pctCell(mSH, mc(mSH))}</>}
+                    {temTikTok && <>{priceCell(precoTT, 'preco_tiktok', idx)}{valCell(0)}{valCell(taxaTT)}{imposto > 0 && valCell(impTT)}{valCell(ctTT)}{valCell(lucroTT, lucroTT >= 0 ? '#4ade80' : '#f87171')}{pctCell(mTT, mc(mTT))}</>}
+                    {temBling  && <>{priceCell(precoBL, 'preco_bling',  idx)}{valCell(ctBL)}{valCell(lucroBL, lucroBL >= 0 ? '#4ade80' : '#f87171')}{pctCell(mBL, mc(mBL))}</>}
+                    {temMagalu && <>{priceCell(precoMG, 'preco_magalu', idx)}{valCell(comisMG)}{imposto > 0 && valCell(impMG)}{valCell(ctMG)}{valCell(lucroMG, lucroMG >= 0 ? '#4ade80' : '#f87171')}{pctCell(mMG, mc(mMG))}</>}
+                    {temAmazon && <>{priceCell(precoAZ, 'preco_amazon', idx)}{valCell(comisAZ)}{imposto > 0 && valCell(impAZ)}{valCell(ctAZ)}{valCell(lucroAZ, lucroAZ >= 0 ? '#4ade80' : '#f87171')}{pctCell(mAZ, mc(mAZ))}</>}
                   </tr>
                 )
               })}
@@ -2266,9 +1863,8 @@ function CardUnico({
         <div style={{ display: 'grid', gridTemplateColumns: precos.length === 1 ? '1fr' : '1fr 1fr', gap: 12 }}>
           {precos.map(([campo, label, canal]) => (
             <div key={campo}>
-              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px' }}>
                 {label}
-                <PriceTooltipIcon preco={produto[campo] ?? 0} custo={produto.custo} canal={canal} regime={regime} />
               </p>
               <input
                 type="number"
@@ -2460,11 +2056,6 @@ function TabelaProdutos({
                             onChange={e => onUpdate(i, c.campo, e.target.value)}
                             style={estilo}
                           />
-                          {c.canal && (
-                            <div style={{ position: 'absolute', top: 2, right: 2 }}>
-                              <PriceTooltipIcon preco={p[c.campo] ?? 0} custo={p.custo} canal={c.canal} regime={regime} />
-                            </div>
-                          )}
                         </div>
                       </td>
                     )
