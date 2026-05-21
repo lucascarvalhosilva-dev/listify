@@ -711,33 +711,44 @@ function Step4({
 
 // ─── Loading screen ───────────────────────────────────────────────────────────
 
-function LoadingScreen({ numProdutos }: { numProdutos: number }) {
-  const [progress, setProgress] = useState(0)
-  const estimadoSeg = Math.max(20, numProdutos * 2.5)
+const MENSAGENS_LOADING = [
+  'Analisando seus produtos...',
+  'Pesquisando especificações técnicas...',
+  'Gerando títulos otimizados por canal...',
+  'Gerando descrições específicas...',
+  'Calculando preços e margens...',
+  'Montando arquivos de upload...',
+  'Quase lá...',
+]
+
+function LoadingScreen({ numProdutos, numCanais, concluido }: { numProdutos: number; numCanais: number; concluido: boolean }) {
+  const [msgIdx, setMsgIdx] = useState(0)
 
   useEffect(() => {
-    const tickMs = 300
-    const incremento = (90 / (estimadoSeg * 1000)) * tickMs
-    const id = setInterval(() => {
-      setProgress(prev => {
-        const next = prev + incremento
-        if (next >= 90) { clearInterval(id); return 90 }
-        return next
-      })
-    }, tickMs)
-    return () => clearInterval(id)
-  }, [estimadoSeg])
+    if (concluido) return
+    const totalMs = Math.max(numProdutos * numCanais * 15_000, 6000)
+    const intervalo = totalMs / (MENSAGENS_LOADING.length - 1)
+    const timers = MENSAGENS_LOADING.map((_, i) =>
+      i > 0 ? setTimeout(() => setMsgIdx(i), intervalo * i) : null
+    ).filter(Boolean) as ReturnType<typeof setTimeout>[]
+    return () => timers.forEach(clearTimeout)
+  }, [numProdutos, numCanais, concluido])
 
-  const restanteSeg = Math.max(0, Math.round(estimadoSeg * (1 - progress / 90)))
-  const tempoTexto = progress >= 90
-    ? 'Finalizando...'
-    : restanteSeg > 60
-      ? `~${Math.ceil(restanteSeg / 60)} min restantes`
-      : `~${restanteSeg}s restantes`
+  const mensagem = concluido ? 'Concluído!' : MENSAGENS_LOADING[msgIdx]
 
   return (
     <>
-      <style>{`@keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes listify-bounce {
+          0%, 100% { left: 0%; }
+          50%       { left: 65%; }
+        }
+        @keyframes listify-fill {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
+      `}</style>
       <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
           background: 'var(--navy-2)',
@@ -749,33 +760,49 @@ function LoadingScreen({ numProdutos }: { numProdutos: number }) {
           alignItems: 'center',
           gap: 24,
         }}>
-          <div style={{
-            width: 52, height: 52,
-            border: '3px solid var(--border)',
-            borderTop: '3px solid var(--blue)',
-            borderRadius: '50%',
-            animation: 'listify-spin 0.8s linear infinite',
-          }} />
+          {concluido ? (
+            <div style={{
+              width: 52, height: 52,
+              borderRadius: '50%',
+              background: 'rgba(74,222,128,0.15)',
+              border: '2px solid #4ade80',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 24, color: '#4ade80',
+            }}>✓</div>
+          ) : (
+            <div style={{
+              width: 52, height: 52,
+              border: '3px solid var(--border)',
+              borderTop: '3px solid var(--blue)',
+              borderRadius: '50%',
+              animation: 'listify-spin 0.8s linear infinite',
+            }} />
+          )}
           <div style={{ width: '100%' }}>
             <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 10, letterSpacing: '-0.01em' }}>
-              Processando seus produtos...
+              {mensagem}
             </h2>
             <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, margin: '0 0 24px' }}>
-              A IA está gerando títulos, descrições e preços.<br />
-              {numProdutos} produto{numProdutos !== 1 ? 's' : ''} · {tempoTexto}
+              {concluido ? 'Redirecionando para revisão...' : `${numProdutos} produto${numProdutos !== 1 ? 's' : ''} · Processando...`}
             </p>
-            <div style={{ width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, var(--blue), var(--blue-glow))',
-                borderRadius: 8,
-                transition: 'width 0.3s ease',
-              }} />
+            <div style={{ position: 'relative', width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+              {concluido ? (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0, left: 0,
+                  background: 'linear-gradient(90deg, #16a34a, #4ade80)',
+                  borderRadius: 8,
+                  animation: 'listify-fill 0.3s ease forwards',
+                }} />
+              ) : (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  width: '35%',
+                  background: 'linear-gradient(90deg, var(--blue), var(--blue-glow))',
+                  borderRadius: 8,
+                  animation: 'listify-bounce 2s ease-in-out infinite',
+                }} />
+              )}
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, opacity: 0.6 }}>
-              {Math.round(progress)}%
-            </p>
           </div>
         </div>
       </div>
@@ -835,10 +862,47 @@ function ProntoScreen({ numProdutos, onContinuar }: { numProdutos: number; onCon
 
 // ─── Gerando screen ───────────────────────────────────────────────────────────
 
-function GerandoScreen() {
+const ETAPAS_GERANDO = [
+  { mensagem: 'Analisando produtos...', delay: 0 },
+  { mensagem: 'Pesquisando especificações técnicas...', delay: 20_000 },
+  { mensagem: 'Gerando títulos otimizados por canal...', delay: 50_000 },
+  { mensagem: 'Gerando descrições específicas por canal...', delay: 90_000 },
+  { mensagem: 'Calculando preços e margens...', delay: 140_000 },
+  { mensagem: 'Montando arquivos de upload...', delay: 190_000 },
+  { mensagem: 'Finalizando...', delay: 230_000 },
+]
+
+function GerandoScreen({ concluido }: { concluido: boolean }) {
+  const [etapaIdx, setEtapaIdx] = useState(0)
+
+  useEffect(() => {
+    if (concluido) {
+      setEtapaIdx(ETAPAS_GERANDO.length)
+      return
+    }
+    const timers = ETAPAS_GERANDO.map((e, i) =>
+      i > 0 ? setTimeout(() => setEtapaIdx(i), e.delay) : null
+    ).filter(Boolean) as ReturnType<typeof setTimeout>[]
+    return () => timers.forEach(clearTimeout)
+  }, [concluido])
+
+  const mensagem = concluido
+    ? 'Concluído!'
+    : (ETAPAS_GERANDO[etapaIdx]?.mensagem ?? 'Finalizando...')
+
   return (
     <>
-      <style>{`@keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes listify-bounce {
+          0%, 100% { left: 0%; }
+          50%       { left: 65%; }
+        }
+        @keyframes listify-fill {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
+      `}</style>
       <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
           background: 'var(--navy-2)',
@@ -850,20 +914,49 @@ function GerandoScreen() {
           alignItems: 'center',
           gap: 20,
         }}>
-          <div style={{
-            width: 48, height: 48,
-            border: '3px solid var(--border)',
-            borderTop: '3px solid #4ade80',
-            borderRadius: '50%',
-            animation: 'listify-spin 0.8s linear infinite',
-          }} />
-          <div>
+          {concluido ? (
+            <div style={{
+              width: 48, height: 48,
+              borderRadius: '50%',
+              background: 'rgba(74,222,128,0.15)',
+              border: '2px solid #4ade80',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, color: '#4ade80',
+            }}>✓</div>
+          ) : (
+            <div style={{
+              width: 48, height: 48,
+              border: '3px solid var(--border)',
+              borderTop: '3px solid #4ade80',
+              borderRadius: '50%',
+              animation: 'listify-spin 0.8s linear infinite',
+            }} />
+          )}
+          <div style={{ width: '100%' }}>
             <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
-              Gerando arquivos finais...
+              {mensagem}
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', margin: 0 }}>
-              Aplicando suas edições e criando os .xlsx
+            <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 20px' }}>
+              {concluido ? 'Arquivos prontos' : 'Processando...'}
             </p>
+            <div style={{ position: 'relative', width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 6, overflow: 'hidden' }}>
+              {concluido ? (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0, left: 0,
+                  background: 'linear-gradient(90deg, #16a34a, #4ade80)',
+                  borderRadius: 8,
+                  animation: 'listify-fill 0.3s ease forwards',
+                }} />
+              ) : (
+                <div style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  width: '35%',
+                  background: 'linear-gradient(90deg, var(--blue), var(--blue-glow))',
+                  borderRadius: 8,
+                  animation: 'listify-bounce 2s ease-in-out infinite',
+                }} />
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -2823,6 +2916,8 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [data, setData] = useState<FormData>(INITIAL)
   const [stage, setStage] = useState<Stage>('formulario')
+  const [carregandoConcluido, setCarregandoConcluido] = useState(false)
+  const [gerandoConcluido, setGerandoConcluido] = useState(false)
   const [resultado, setResultado] = useState<ApiResultado | null>(null)
   const [editados, setEditados] = useState<ProdutoRevisao[]>([])
   const [erroMsg, setErroMsg] = useState('')
@@ -2844,6 +2939,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
 
   async function handleConfirmarRevisao(finais: ProdutoRevisao[]) {
     setEditados(finais)
+    setGerandoConcluido(false)
     setStage('gerando')
     try {
       const regimeAPI = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
@@ -2866,6 +2962,8 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
       }
       const novoResultado: ApiResultado = await res.json()
       setResultado(novoResultado)
+      setGerandoConcluido(true)
+      await new Promise(r => setTimeout(r, 700))
       setStage('resultado')
     } catch (err) {
       setErroMsg(err instanceof Error ? err.message : 'Erro ao gerar arquivos.')
@@ -2875,6 +2973,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
 
   async function handleConfirm() {
     if (!data.file) return
+    setCarregandoConcluido(false)
     setStage('carregando')
 
     try {
@@ -2931,6 +3030,8 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
       const embalVals = data.channels.map(ch => EMBALAGEM_PADRAO[ch]).filter((v): v is number => v !== undefined)
       const embFinal = embalVals.length > 0 ? Math.min(...embalVals) : 0
       setEditados(result.produtos_revisao.map(p => ({ ...p, embalagem: embFinal })))
+      setCarregandoConcluido(true)
+      await new Promise(r => setTimeout(r, 700))
       setStage(result.produtos_revisao.length > 0 ? 'pronto' : 'resultado')
     } catch (err) {
       setErroMsg(err instanceof Error ? err.message : 'Erro desconhecido. Tente novamente.')
@@ -2940,8 +3041,8 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
 
   const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
 
-  if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} />
-  if (stage === 'gerando') return <GerandoScreen />
+  if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} numCanais={data.channels.length} concluido={carregandoConcluido} />
+  if (stage === 'gerando') return <GerandoScreen concluido={gerandoConcluido} />
   if (stage === 'pronto' && resultado) return (
     <ProntoScreen
       numProdutos={resultado.produtos_processados}
