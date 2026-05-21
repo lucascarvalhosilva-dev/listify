@@ -46,7 +46,7 @@ function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string, cana
   const lista = produtos.map(p => `SKU ${p.sku}: ${p.nome} (custo R$${p.custo.toFixed(2)})`).join('\n')
 
   const descFields: string[] = []
-  if (canais.includes('mercado_livre')) descFields.push('  "descricao_ml": "string (texto corrido sem HTML, sem bullet points, sem links — specs técnicas + benefícios + uso, máx 3000 chars)"')
+  if (canais.includes('ml')) descFields.push('  "descricao_ml": "string (texto corrido sem HTML, sem bullet points, sem links — specs técnicas + benefícios + uso, máx 3000 chars)"')
   if (canais.includes('shopee'))        descFields.push('  "descricao_shopee": "string (bullet points com hífens em português — specs técnicas + indicação de uso + conteúdo da embalagem + garantia, máx 3000 chars)"')
   if (canais.includes('tiktok_shop'))   descFields.push('  "descricao_tiktok": "string (curta e impactante, linguagem jovem e direta, foco nos primeiros 150 chars, máx 500 chars)"')
   if (canais.includes('magalu'))        descFields.push('  "descricao_magalu": "string (texto corrido, sem links, sem dados de contato — specs + benefícios, máx 4000 chars)"')
