@@ -7,6 +7,7 @@ import { gerarPlanilhaML } from '@/lib/channels/ml'
 import { gerarCSVTikTok } from '@/lib/channels/tiktok'
 import { gerarCSVBling } from '@/lib/channels/bling'
 import { gerarCSVMagalu } from '@/lib/channels/magalu'
+import { gerarCSVAmazon } from '@/lib/channels/amazon'
 import type { ProductSpecs } from '@/lib/claude-client'
 
 interface ProdutoRevisao {
@@ -20,6 +21,7 @@ interface ProdutoRevisao {
   preco_tiktok?: number
   preco_bling?: number
   preco_magalu?: number
+  preco_amazon?: number
   peso_g: number
   comprimento_cm: number
   largura_cm: number
@@ -27,7 +29,13 @@ interface ProdutoRevisao {
   confianca_dimensoes: 'alta' | 'media'
   titulo_ml: string
   titulo_shopee: string
+  titulo_amazon?: string
   descricao: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
   ncm: string
   gtin: string
 }
@@ -82,6 +90,7 @@ export async function POST(request: NextRequest) {
         preco_tiktok_promo: p.preco_tiktok ?? basePrecos.preco_tiktok_promo,
         preco_bling: p.preco_bling ?? basePrecos.preco_bling,
         preco_magalu: p.preco_magalu ?? basePrecos.preco_magalu,
+        preco_amazon: p.preco_amazon ?? basePrecos.preco_amazon,
         tipo_frete: detectarFrete(p.comprimento_cm),
       }
 
@@ -98,8 +107,14 @@ export async function POST(request: NextRequest) {
         material: '',
         titulo_ml: p.titulo_ml,
         titulo_shopee: p.titulo_shopee,
+        titulo_amazon: p.titulo_amazon,
         descricao_ml: p.descricao,
         descricao_shopee: p.descricao,
+        bullet_point1: p.bullet_point1,
+        bullet_point2: p.bullet_point2,
+        bullet_point3: p.bullet_point3,
+        bullet_point4: p.bullet_point4,
+        bullet_point5: p.bullet_point5,
         palavras_chave: [],
         confianca_dimensoes: p.confianca_dimensoes,
       }
@@ -107,8 +122,8 @@ export async function POST(request: NextRequest) {
       return { sku: p.sku, nome: p.nome, custo: p.custo, estoque: p.estoque, regime, specs, precos, foto_capa_url: drive_folder_url }
     })
 
-    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null } = {
-      shopee: null, ml: null, tiktok: null, bling: null, magalu: null,
+    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null; amazon: string | null } = {
+      shopee: null, ml: null, tiktok: null, bling: null, magalu: null, amazon: null,
     }
 
     if (canais.includes('shopee')) {
@@ -125,6 +140,9 @@ export async function POST(request: NextRequest) {
     }
     if (canais.includes('magalu')) {
       arquivos.magalu = arrayBufferToBase64(gerarCSVMagalu(produtosProcessados))
+    }
+    if (canais.includes('amazon')) {
+      arquivos.amazon = arrayBufferToBase64(gerarCSVAmazon(produtosProcessados))
     }
 
     return NextResponse.json({

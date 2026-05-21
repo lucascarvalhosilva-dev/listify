@@ -24,6 +24,7 @@ interface ProdutoRevisao {
   preco_tiktok?: number
   preco_bling?: number
   preco_magalu?: number
+  preco_amazon?: number
   peso_g: number
   comprimento_cm: number
   largura_cm: number
@@ -31,13 +32,19 @@ interface ProdutoRevisao {
   confianca_dimensoes: 'alta' | 'media'
   titulo_ml: string
   titulo_shopee: string
+  titulo_amazon?: string
   descricao: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
   ncm: string
   gtin: string
 }
 
-type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'preco_tiktok' | 'preco_bling' | 'preco_magalu' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
-type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'descricao' | 'ncm' | 'gtin'
+type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'preco_tiktok' | 'preco_bling' | 'preco_magalu' | 'preco_amazon' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
+type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'titulo_amazon' | 'descricao' | 'bullet_point1' | 'bullet_point2' | 'bullet_point3' | 'bullet_point4' | 'bullet_point5' | 'ncm' | 'gtin'
 
 interface ApiResultado {
   status: string
@@ -49,6 +56,7 @@ interface ApiResultado {
     tiktok?: string | null
     bling?: string | null
     magalu?: string | null
+    amazon?: string | null
   }
   produtos_revisao: ProdutoRevisao[]
 }
@@ -965,6 +973,7 @@ function TextosSection({
   const campos: { campo: CampoTexto; label: string; max?: number; softMax?: number; rows?: number }[] = [
     ...(canais.includes('mercado_livre') ? [{ campo: 'titulo_ml'    as CampoTexto, label: 'Título ML',       max: 60  }] : []),
     ...(canais.includes('shopee')        ? [{ campo: 'titulo_shopee' as CampoTexto, label: 'Título Shopee',   max: 120 }] : []),
+    ...(canais.includes('amazon')        ? [{ campo: 'titulo_amazon' as CampoTexto, label: 'Título Amazon',   max: 200 }] : []),
     { campo: 'descricao' as CampoTexto, label: 'Descrição', softMax: 3000, rows: 3 },
     { campo: 'ncm'       as CampoTexto, label: 'NCM (8 dígitos)' },
     { campo: 'gtin'      as CampoTexto, label: 'GTIN / EAN' },
@@ -973,7 +982,7 @@ function TextosSection({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {campos.map(c => {
-        const rawVal = produto[c.campo]
+        const rawVal = produto[c.campo] ?? ''
         const val = c.campo === 'gtin' && (rawVal === '0' || rawVal === '') ? '' : rawVal
         const over = c.max !== undefined && val.length > c.max
         const borderColor = over ? 'rgba(248,113,113,0.6)' : 'var(--border)'
@@ -1019,6 +1028,7 @@ const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
   tiktok:  { label: 'TikTok Shop',     filename: 'listify-tiktok.csv' },
   bling:   { label: 'Bling (ERP)',     filename: 'listify-bling.csv' },
   magalu:  { label: 'Magazine Luiza',  filename: 'listify-magalu.csv' },
+  amazon:  { label: 'Amazon Brasil',   filename: 'listify-amazon.csv' },
 }
 
 function ResultadoScreen({
@@ -1220,12 +1230,14 @@ function RevisaoPrecosScreen({
   const temTikTok = canais.includes('tiktok_shop')
   const temBling = canais.includes('bling')
   const temMagalu = canais.includes('magalu')
+  const temAmazon = canais.includes('amazon')
 
   const comissaoML = 0.115
   const comissaoShopee = 0.14
   const comissaoTikTok = 0.06
   const platfeeTikTok = 0.0299
   const comissaoMagalu = 0.14
+  const comissaoAmazon = 0.15
   const imposto = regime === 'SN' ? 0.04 : 0
 
   const indicesFiltrados = (() => {
@@ -1290,6 +1302,7 @@ function RevisaoPrecosScreen({
           if (temTikTok && next[i].preco_tiktok !== undefined) next[i].preco_tiktok = Math.round((next[i].preco_tiktok ?? 0) * factor * 100) / 100
           if (temBling && next[i].preco_bling !== undefined) next[i].preco_bling = Math.round((next[i].preco_bling ?? 0) * factor * 100) / 100
           if (temMagalu && next[i].preco_magalu !== undefined) next[i].preco_magalu = Math.round((next[i].preco_magalu ?? 0) * factor * 100) / 100
+          if (temAmazon && next[i].preco_amazon !== undefined) next[i].preco_amazon = Math.round((next[i].preco_amazon ?? 0) * factor * 100) / 100
         }
       } else if (modo === 'margem') {
         const m = parseFloat(margemAlvo)
@@ -1301,6 +1314,7 @@ function RevisaoPrecosScreen({
           if (temTikTok) next[i].preco_tiktok = precoParaMargem(p.custo, p.embalagem, platfeeTikTok, imposto, m)
           if (temBling) next[i].preco_bling = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
           if (temMagalu) next[i].preco_magalu = precoParaMargem(p.custo, p.embalagem, comissaoMagalu, imposto, m)
+          if (temAmazon) next[i].preco_amazon = precoParaMargem(p.custo, p.embalagem, comissaoAmazon, imposto, m)
         }
       }
       return next
@@ -1438,7 +1452,7 @@ function RevisaoPrecosScreen({
 
         {/* Price table */}
         <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 356 + (temML ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temShopee ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temTikTok ? (6 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temBling ? 320 : 0) + (temMagalu ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 356 + (temML ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temShopee ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temTikTok ? (6 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temBling ? 320 : 0) + (temMagalu ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temAmazon ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) }}>
             <thead>
               <tr style={{ background: 'var(--navy-3)' }}>
                 <th rowSpan={2} style={{ ...TH_STYLE, width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
@@ -1543,6 +1557,24 @@ function RevisaoPrecosScreen({
                     }}
                   >Magazine Luiza</th>
                 )}
+                {temAmazon && (
+                  <th
+                    colSpan={5 + (imposto > 0 ? 1 : 0)}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#f59e0b',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(245,158,11,0.08)',
+                      borderBottom: '2px solid rgba(245,158,11,0.5)',
+                      borderLeft: '1px solid rgba(245,158,11,0.25)',
+                      borderRight: '1px solid rgba(245,158,11,0.25)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >Amazon Brasil</th>
+                )}
               </tr>
               <tr style={{ background: 'var(--navy-3)' }}>
                 {temML && <th title="Preço de venda no Mercado Livre" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th>}
@@ -1574,6 +1606,12 @@ function RevisaoPrecosScreen({
                 {temMagalu && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
                 {temMagalu && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
                 {temMagalu && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(14,165,233,0.25)' }}>Margem</th>}
+                {temAmazon && <th title="Preço de venda na Amazon Brasil" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(245,158,11,0.25)' }}>Preço</th>}
+                {temAmazon && <th title="Comissão da Amazon: 15% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
+                {temAmazon && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
+                {temAmazon && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temAmazon && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temAmazon && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(245,158,11,0.25)' }}>Margem</th>}
               </tr>
             </thead>
             <tbody>
@@ -1611,6 +1649,13 @@ function RevisaoPrecosScreen({
                 const lucroMG = precoMG - custoTotalMG
                 const margemMG = precoMG > 0 ? (lucroMG / precoMG) * 100 : 0
                 const mcMG = margemMG >= 15 ? '#4ade80' : margemMG >= 5 ? '#fbbf24' : '#f87171'
+                const precoAZ = p.preco_amazon ?? 0
+                const comisAZ = precoAZ * comissaoAmazon
+                const impostAZ = precoAZ * imposto
+                const custoTotalAZ = p.custo + p.embalagem + comisAZ + impostAZ
+                const lucroAZ = precoAZ - custoTotalAZ
+                const margemAZ = precoAZ > 0 ? (lucroAZ / precoAZ) * 100 : 0
+                const mcAZ = margemAZ >= 15 ? '#4ade80' : margemAZ >= 5 ? '#fbbf24' : '#f87171'
                 const isSel = selecionados.has(idx)
                 return (
                   <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: isSel ? 'rgba(37,99,235,0.06)' : undefined }}>
@@ -1833,6 +1878,46 @@ function RevisaoPrecosScreen({
                         </span>
                       </td>
                     )}
+                    {temAmazon && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={precoAZ.toFixed(2)}
+                            onChange={e => update(idx, 'preco_amazon', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
+                      </td>
+                    )}
+                    {temAmazon && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisAZ)}</span>
+                      </td>
+                    )}
+                    {temAmazon && imposto > 0 && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostAZ)}</span>
+                      </td>
+                    )}
+                    {temAmazon && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalAZ)}</span>
+                      </td>
+                    )}
+                    {temAmazon && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroAZ >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroAZ)}
+                        </span>
+                      </td>
+                    )}
+                    {temAmazon && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcAZ, fontWeight: 600 }}>
+                          {margemAZ.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 )
               })}
@@ -1986,6 +2071,55 @@ function RevisaoDimensoesScreen({
 
 // ─── Card layout (1 produto) ──────────────────────────────────────────────────
 
+function BulletPointsSection({
+  produto,
+  onUpdateTexto,
+}: {
+  produto: ProdutoRevisao
+  onUpdateTexto: (campo: CampoTexto, valor: string) => void
+}) {
+  const baseInput: React.CSSProperties = {
+    width: '100%',
+    background: 'var(--navy)',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontSize: 13,
+    color: 'var(--white)',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    fontFamily: 'inherit',
+    resize: 'vertical' as const,
+  }
+  const bullets: { campo: CampoTexto; label: string }[] = [
+    { campo: 'bullet_point1', label: 'Bullet 1 — Benefício principal + spec técnica' },
+    { campo: 'bullet_point2', label: 'Bullet 2' },
+    { campo: 'bullet_point3', label: 'Bullet 3' },
+    { campo: 'bullet_point4', label: 'Bullet 4' },
+    { campo: 'bullet_point5', label: 'Bullet 5' },
+  ]
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {bullets.map(b => (
+        <div key={b.campo}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{b.label}</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', opacity: 0.65 }}>
+              {(produto[b.campo] ?? '').length}/500
+            </span>
+          </div>
+          <textarea
+            value={produto[b.campo] ?? ''}
+            rows={2}
+            onChange={e => onUpdateTexto(b.campo, e.target.value)}
+            style={baseInput}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function CardUnico({
   produto,
   canais,
@@ -2004,6 +2138,7 @@ function CardUnico({
   onUpdateTexto: (campo: CampoTexto, valor: string) => void
 }) {
   const [textosAbertos, setTextosAbertos] = useState(false)
+  const [bulletsAbertos, setBulletsAbertos] = useState(false)
   const warn = produto.confianca_dimensoes === 'media' && !ocultarAlertas
 
   const precos: [CampoNumerico, string, 'ml' | 'shopee'][] = [
@@ -2030,7 +2165,7 @@ function CardUnico({
             <div key={campo}>
               <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 5 }}>
                 {label}
-                <PriceTooltipIcon preco={produto[campo]} custo={produto.custo} canal={canal} regime={regime} />
+                <PriceTooltipIcon preco={produto[campo] ?? 0} custo={produto.custo} canal={canal} regime={regime} />
               </p>
               <input
                 type="number"
@@ -2095,6 +2230,23 @@ function CardUnico({
           </div>
         )}
       </div>
+      {canais.includes('amazon') && (
+        <div style={collapsibleBoxStyle}>
+          <button type="button" onClick={() => setBulletsAbertos(o => !o)} style={collapsibleTriggerStyle}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📦 Bullet Points Amazon
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+              {bulletsAbertos ? 'Fechar ▲' : 'Ver e editar ▼'}
+            </span>
+          </button>
+          {bulletsAbertos && (
+            <div style={{ padding: '4px 16px 20px' }}>
+              <BulletPointsSection produto={produto} onUpdateTexto={onUpdateTexto} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -2207,7 +2359,7 @@ function TabelaProdutos({
                           />
                           {c.canal && (
                             <div style={{ position: 'absolute', top: 2, right: 2 }}>
-                              <PriceTooltipIcon preco={p[c.campo]} custo={p.custo} canal={c.canal} regime={regime} />
+                              <PriceTooltipIcon preco={p[c.campo] ?? 0} custo={p.custo} canal={c.canal} regime={regime} />
                             </div>
                           )}
                         </div>
@@ -2229,6 +2381,14 @@ function TabelaProdutos({
                         ✏️ Textos gerados pela IA — {p.nome}
                       </p>
                       <TextosSection produto={p} canais={canais} onUpdate={(campo, val) => onUpdateTexto(i, campo, val)} />
+                      {canais.includes('amazon') && (
+                        <>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b', margin: '20px 0 14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            📦 Bullet Points Amazon
+                          </p>
+                          <BulletPointsSection produto={p} onUpdateTexto={(campo, val) => onUpdateTexto(i, campo, val)} />
+                        </>
+                      )}
                     </td>
                   </tr>
                 )}

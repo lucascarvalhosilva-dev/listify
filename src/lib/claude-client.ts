@@ -8,7 +8,13 @@ export interface BatchProductSpec {
   sku: string
   titulo_ml: string
   titulo_shopee: string
+  titulo_amazon?: string
   descricao: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
   preco_ml: number
   preco_shopee: number
   peso_g: number
@@ -43,7 +49,13 @@ Retorne um array JSON com um objeto por produto, na mesma ordem, com exatamente 
   "sku": "string (mesmo SKU fornecido)",
   "titulo_ml": "string (máx 60 chars, palavra-chave no início, sem caracteres especiais)",
   "titulo_shopee": "string (máx 120 chars, palavra-chave no início, Title Case)",
+  "titulo_amazon": "string (máx 200 chars: Marca + Nome + Característica + Material)",
   "descricao": "string (specs técnicas + benefícios + modo de uso, máx 300 caracteres)",
+  "bullet_point1": "string (benefício principal + spec técnica, máx 500 chars)",
+  "bullet_point2": "string (segundo benefício + spec, máx 500 chars)",
+  "bullet_point3": "string (terceiro benefício + spec, máx 500 chars)",
+  "bullet_point4": "string (quarto benefício + spec, máx 500 chars)",
+  "bullet_point5": "string (quinto benefício + spec, máx 500 chars)",
   "preco_ml": number,
   "preco_shopee": number,
   "peso_g": number,
@@ -144,8 +156,14 @@ export interface ProductSpecs {
   material: string
   titulo_ml: string
   titulo_shopee: string
+  titulo_amazon?: string
   descricao_ml: string
   descricao_shopee: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
   palavras_chave: string[]
   confianca_dimensoes: 'alta' | 'media'
 }

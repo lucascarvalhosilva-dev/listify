@@ -8,6 +8,7 @@ import { gerarPlanilhaML } from '@/lib/channels/ml'
 import { gerarCSVTikTok } from '@/lib/channels/tiktok'
 import { gerarCSVBling } from '@/lib/channels/bling'
 import { gerarCSVMagalu } from '@/lib/channels/magalu'
+import { gerarCSVAmazon } from '@/lib/channels/amazon'
 import { type ProductSpecs } from '@/lib/claude-client'
 
 const BATCH_SIZE = 20
@@ -30,7 +31,13 @@ interface CacheRow {
   nome_produto: string
   titulo_ml: string
   titulo_shopee: string
+  titulo_amazon?: string
   descricao: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
   ncm: string
   peso_g: number
   comprimento_cm: number
@@ -63,8 +70,14 @@ function batchSpecToProductSpecs(spec: BatchProductSpec): ProductSpecs {
     material: '',
     titulo_ml: spec.titulo_ml,
     titulo_shopee: spec.titulo_shopee,
+    titulo_amazon: spec.titulo_amazon,
     descricao_ml: spec.descricao,
     descricao_shopee: spec.descricao,
+    bullet_point1: spec.bullet_point1,
+    bullet_point2: spec.bullet_point2,
+    bullet_point3: spec.bullet_point3,
+    bullet_point4: spec.bullet_point4,
+    bullet_point5: spec.bullet_point5,
     palavras_chave: [],
     confianca_dimensoes: spec.confianca_dimensoes,
   }
@@ -75,7 +88,13 @@ function cacheRowToBatchSpec(row: CacheRow, sku: string): BatchProductSpec {
     sku,
     titulo_ml: row.titulo_ml,
     titulo_shopee: row.titulo_shopee,
+    titulo_amazon: row.titulo_amazon,
     descricao: row.descricao,
+    bullet_point1: row.bullet_point1,
+    bullet_point2: row.bullet_point2,
+    bullet_point3: row.bullet_point3,
+    bullet_point4: row.bullet_point4,
+    bullet_point5: row.bullet_point5,
     preco_ml: 0,
     preco_shopee: 0,
     peso_g: row.peso_g,
@@ -205,7 +224,13 @@ export async function POST(request: NextRequest) {
           nome_produto: nome,
           titulo_ml: spec.titulo_ml,
           titulo_shopee: spec.titulo_shopee,
+          titulo_amazon: spec.titulo_amazon,
           descricao: spec.descricao,
+          bullet_point1: spec.bullet_point1,
+          bullet_point2: spec.bullet_point2,
+          bullet_point3: spec.bullet_point3,
+          bullet_point4: spec.bullet_point4,
+          bullet_point5: spec.bullet_point5,
           ncm: spec.ncm,
           peso_g: spec.peso_g,
           comprimento_cm: spec.comprimento_cm,
@@ -263,8 +288,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 6. Gera planilhas ───────────────────────────────────────────────────
-    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null } = {
-      shopee: null, ml: null, tiktok: null, bling: null, magalu: null,
+    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null; amazon: string | null } = {
+      shopee: null, ml: null, tiktok: null, bling: null, magalu: null, amazon: null,
     }
 
     if (produtosProcessados.length > 0) {
@@ -283,6 +308,9 @@ export async function POST(request: NextRequest) {
       if (canais.includes('magalu')) {
         arquivos.magalu = arrayBufferToBase64(gerarCSVMagalu(produtosProcessados))
       }
+      if (canais.includes('amazon')) {
+        arquivos.amazon = arrayBufferToBase64(gerarCSVAmazon(produtosProcessados))
+      }
     }
 
     return NextResponse.json({
@@ -299,6 +327,7 @@ export async function POST(request: NextRequest) {
         preco_tiktok: p.precos.preco_tiktok_promo,
         preco_bling: p.precos.preco_bling,
         preco_magalu: p.precos.preco_magalu,
+        preco_amazon: p.precos.preco_amazon,
         peso_g: p.specs.dimensoes.peso_g,
         comprimento_cm: p.specs.dimensoes.comprimento_cm,
         largura_cm: p.specs.dimensoes.largura_cm,
@@ -307,7 +336,13 @@ export async function POST(request: NextRequest) {
         confianca_dimensoes: p.specs.confianca_dimensoes,
         titulo_ml: p.specs.titulo_ml,
         titulo_shopee: p.specs.titulo_shopee,
+        titulo_amazon: p.specs.titulo_amazon,
         descricao: p.specs.descricao_ml,
+        bullet_point1: p.specs.bullet_point1,
+        bullet_point2: p.specs.bullet_point2,
+        bullet_point3: p.specs.bullet_point3,
+        bullet_point4: p.specs.bullet_point4,
+        bullet_point5: p.specs.bullet_point5,
         ncm: p.specs.ncm,
         gtin: p.specs.ean,
       })),
