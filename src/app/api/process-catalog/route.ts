@@ -11,7 +11,7 @@ import { gerarCSVMagalu } from '@/lib/channels/magalu'
 import { gerarCSVAmazon } from '@/lib/channels/amazon'
 import { type ProductSpecs } from '@/lib/claude-client'
 
-const BATCH_SIZE = 20
+const BATCH_SIZE = 5
 
 interface ProdutoInput {
   sku: string

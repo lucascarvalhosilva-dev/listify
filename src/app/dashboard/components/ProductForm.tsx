@@ -711,43 +711,19 @@ function Step4({
 
 // ─── Loading screen ───────────────────────────────────────────────────────────
 
-const MENSAGENS_LOADING = [
-  'Analisando seus produtos...',
-  'Pesquisando especificações técnicas...',
-  'Gerando títulos otimizados por canal...',
-  'Gerando descrições específicas...',
-  'Calculando preços e margens...',
-  'Montando arquivos de upload...',
-  'Quase lá...',
-]
-
-function LoadingScreen({ numProdutos, numCanais, concluido }: { numProdutos: number; numCanais: number; concluido: boolean }) {
-  const [msgIdx, setMsgIdx] = useState(0)
-
-  useEffect(() => {
-    if (concluido) return
-    const totalMs = Math.max(numProdutos * numCanais * 15_000, 6000)
-    const intervalo = totalMs / (MENSAGENS_LOADING.length - 1)
-    const timers = MENSAGENS_LOADING.map((_, i) =>
-      i > 0 ? setTimeout(() => setMsgIdx(i), intervalo * i) : null
-    ).filter(Boolean) as ReturnType<typeof setTimeout>[]
-    return () => timers.forEach(clearTimeout)
-  }, [numProdutos, numCanais, concluido])
-
-  const mensagem = concluido ? 'Concluído!' : MENSAGENS_LOADING[msgIdx]
+function LoadingScreen({ numProdutos, numProcessados, concluido }: { numProdutos: number; numProcessados: number; concluido: boolean }) {
+  const pct = numProdutos > 0 ? Math.round((numProcessados / numProdutos) * 100) : 0
+  const mensagem = concluido
+    ? 'Concluído!'
+    : numProcessados === 0
+      ? 'Processando...'
+      : `Processando ${numProcessados} de ${numProdutos}...`
 
   return (
     <>
       <style>{`
         @keyframes listify-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes listify-bounce {
-          0%, 100% { left: 0%; }
-          50%       { left: 65%; }
-        }
-        @keyframes listify-fill {
-          from { width: 0%; }
-          to   { width: 100%; }
-        }
+        @keyframes listify-fill { from { width: 0%; } to { width: 100%; } }
       `}</style>
       <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
@@ -783,7 +759,7 @@ function LoadingScreen({ numProdutos, numCanais, concluido }: { numProdutos: num
               {mensagem}
             </h2>
             <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, margin: '0 0 24px' }}>
-              {concluido ? 'Redirecionando para revisão...' : `${numProdutos} produto${numProdutos !== 1 ? 's' : ''} · Processando...`}
+              {concluido ? 'Redirecionando para revisão...' : 'Aguarde, isso pode levar alguns minutos'}
             </p>
             <div style={{ position: 'relative', width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
               {concluido ? (
@@ -795,11 +771,12 @@ function LoadingScreen({ numProdutos, numCanais, concluido }: { numProdutos: num
                 }} />
               ) : (
                 <div style={{
-                  position: 'absolute', top: 0, bottom: 0,
-                  width: '35%',
+                  position: 'absolute', top: 0, bottom: 0, left: 0,
+                  width: `${pct}%`,
+                  minWidth: pct > 0 ? 24 : 0,
                   background: 'linear-gradient(90deg, var(--blue), var(--blue-glow))',
                   borderRadius: 8,
-                  animation: 'listify-bounce 2s ease-in-out infinite',
+                  transition: 'width 0.4s ease',
                 }} />
               )}
             </div>
@@ -2513,6 +2490,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
   const [editados, setEditados] = useState<ProdutoRevisao[]>([])
   const [erroMsg, setErroMsg] = useState('')
   const [numProdutos, setNumProdutos] = useState(0)
+  const [numProdutosProcessados, setNumProdutosProcessados] = useState(0)
 
   function patch(update: Partial<FormData>) {
     setData(prev => ({ ...prev, ...update }))
@@ -2591,31 +2569,55 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
       }
 
       setNumProdutos(produtos.length)
+      setNumProdutosProcessados(0)
 
       const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
       const canais = data.channels.map(ch => ch === 'mercado_livre' ? 'ml' : ch)
 
-      const res = await fetch('/api/process-catalog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          produtos,
-          regime,
-          canais,
-          drive_folder_url: data.driveLink,
-        }),
-      })
-
-      if (res.status === 401) {
-        throw new Error('Sessão expirada. Recarregue a página e faça login novamente.')
+      const CHUNK_SIZE = 5
+      const chunks: typeof produtos[] = []
+      for (let i = 0; i < produtos.length; i += CHUNK_SIZE) {
+        chunks.push(produtos.slice(i, i + CHUNK_SIZE))
       }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(err.error ?? `Erro ${res.status} ao processar produtos.`)
+      const allProdutosRevisao: ApiResultado['produtos_revisao'] = []
+      const allAlertas: string[] = []
+      let processados = 0
+
+      for (const chunk of chunks) {
+        const res = await fetch('/api/process-catalog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            produtos: chunk,
+            regime,
+            canais,
+            drive_folder_url: data.driveLink,
+          }),
+        })
+
+        if (res.status === 401) {
+          throw new Error('Sessão expirada. Recarregue a página e faça login novamente.')
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({})) as { error?: string }
+          throw new Error(err.error ?? `Erro ${res.status} ao processar produtos.`)
+        }
+
+        const chunkResult: ApiResultado = await res.json()
+        allProdutosRevisao.push(...chunkResult.produtos_revisao)
+        allAlertas.push(...chunkResult.alertas)
+        processados += chunk.length
+        setNumProdutosProcessados(processados)
       }
 
-      const result: ApiResultado = await res.json()
+      const result: ApiResultado = {
+        status: 'success',
+        produtos_processados: allProdutosRevisao.length,
+        alertas: allAlertas,
+        arquivos: { shopee: null, ml: null, tiktok: null, bling: null, magalu: null, amazon: null },
+        produtos_revisao: allProdutosRevisao,
+      }
       setResultado(result)
       const EMBALAGEM_PADRAO: Record<string, number> = { shopee: 2.5, mercado_livre: 5.5, tiktok_shop: 4.0, amazon: 5.5, magalu: 5.5 }
       const embalVals = data.channels.map(ch => EMBALAGEM_PADRAO[ch]).filter((v): v is number => v !== undefined)
@@ -2632,7 +2634,7 @@ export default function ProductForm({ onBack }: { onBack: () => void }) {
 
   const regime = data.taxRegime === 'Simples Nacional' ? 'SN' : 'MEI'
 
-  if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} numCanais={data.channels.length} concluido={carregandoConcluido} />
+  if (stage === 'carregando') return <LoadingScreen numProdutos={numProdutos} numProcessados={numProdutosProcessados} concluido={carregandoConcluido} />
   if (stage === 'gerando') return <GerandoScreen concluido={gerandoConcluido} />
   if (stage === 'pronto' && resultado) return (
     <ProntoScreen
