@@ -9,7 +9,12 @@ export interface BatchProductSpec {
   titulo_ml: string
   titulo_shopee: string
   titulo_amazon?: string
-  descricao: string
+  descricao_ml?: string
+  descricao_shopee?: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
   bullet_point1?: string
   bullet_point2?: string
   bullet_point3?: string
@@ -37,8 +42,43 @@ const BATCH_SYSTEM_PROMPT =
   'Dado uma lista de produtos, gere especificações técnicas para cadastro em marketplaces. ' +
   'Responda APENAS com um array JSON válido, sem markdown, sem texto adicional.'
 
-function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string): string {
+function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string, canais: string[]): string {
   const lista = produtos.map(p => `SKU ${p.sku}: ${p.nome} (custo R$${p.custo.toFixed(2)})`).join('\n')
+
+  const descFields: string[] = []
+  if (canais.includes('mercado_livre')) descFields.push('  "descricao_ml": "string (texto corrido sem HTML, sem bullet points, sem links — specs técnicas + benefícios + uso, máx 3000 chars)"')
+  if (canais.includes('shopee'))        descFields.push('  "descricao_shopee": "string (bullet points com hífens em português — specs técnicas + indicação de uso + conteúdo da embalagem + garantia, máx 3000 chars)"')
+  if (canais.includes('tiktok_shop'))   descFields.push('  "descricao_tiktok": "string (curta e impactante, linguagem jovem e direta, foco nos primeiros 150 chars, máx 500 chars)"')
+  if (canais.includes('magalu'))        descFields.push('  "descricao_magalu": "string (texto corrido, sem links, sem dados de contato — specs + benefícios, máx 4000 chars)"')
+  if (canais.includes('bling'))         descFields.push('  "descricao_bling": "string (descrição técnica completa para uso interno no ERP — specs, dimensões, materiais, NCM)"')
+  if (canais.includes('amazon'))        descFields.push('  "descricao_amazon": "string (descrição longa estruturada — specs técnicas + benefícios + uso, máx 2000 chars)"')
+
+  const temAmazon = canais.includes('amazon')
+
+  const schemaFields = [
+    '  "sku": "string (mesmo SKU fornecido)"',
+    '  "titulo_ml": "string (máx 60 chars, palavra-chave no início, sem caracteres especiais)"',
+    '  "titulo_shopee": "string (máx 120 chars, palavra-chave no início, Title Case)"',
+    ...(temAmazon ? ['  "titulo_amazon": "string (máx 200 chars: Marca + Nome + Característica + Material)"'] : []),
+    ...descFields,
+    ...(temAmazon ? [
+      '  "bullet_point1": "string (benefício principal + spec técnica, máx 500 chars)"',
+      '  "bullet_point2": "string (segundo benefício + spec, máx 500 chars)"',
+      '  "bullet_point3": "string (terceiro benefício + spec, máx 500 chars)"',
+      '  "bullet_point4": "string (quarto benefício + spec, máx 500 chars)"',
+      '  "bullet_point5": "string (quinto benefício + spec, máx 500 chars)"',
+    ] : []),
+    '  "preco_ml": number',
+    '  "preco_shopee": number',
+    '  "peso_g": number',
+    '  "comprimento_cm": number',
+    '  "largura_cm": number',
+    '  "altura_cm": number',
+    '  "ncm": "string (8 dígitos)"',
+    '  "gtin": "string (EAN/GTIN ou 0 se não houver)"',
+    '  "confianca_dimensoes": "alta" ou "media"',
+  ].join(',\n')
+
   return `Regime tributário: ${regime}
 
 Produtos:
@@ -46,25 +86,7 @@ ${lista}
 
 Retorne um array JSON com um objeto por produto, na mesma ordem, com exatamente estes campos:
 [{
-  "sku": "string (mesmo SKU fornecido)",
-  "titulo_ml": "string (máx 60 chars, palavra-chave no início, sem caracteres especiais)",
-  "titulo_shopee": "string (máx 120 chars, palavra-chave no início, Title Case)",
-  "titulo_amazon": "string (máx 200 chars: Marca + Nome + Característica + Material)",
-  "descricao": "string (specs técnicas + benefícios + modo de uso, máx 300 caracteres)",
-  "bullet_point1": "string (benefício principal + spec técnica, máx 500 chars)",
-  "bullet_point2": "string (segundo benefício + spec, máx 500 chars)",
-  "bullet_point3": "string (terceiro benefício + spec, máx 500 chars)",
-  "bullet_point4": "string (quarto benefício + spec, máx 500 chars)",
-  "bullet_point5": "string (quinto benefício + spec, máx 500 chars)",
-  "preco_ml": number,
-  "preco_shopee": number,
-  "peso_g": number,
-  "comprimento_cm": number,
-  "largura_cm": number,
-  "altura_cm": number,
-  "ncm": "string (8 dígitos)",
-  "gtin": "string (EAN/GTIN ou 0 se não houver)",
-  "confianca_dimensoes": "alta" ou "media"
+${schemaFields}
 }]`
 }
 
@@ -125,13 +147,14 @@ function parseArrayResponse(text: string): unknown[] {
 
 export async function inferProductSpecsBatch(
   produtos: ProdutoParaBatch[],
-  regime: 'MEI' | 'SN'
+  regime: 'MEI' | 'SN',
+  canais: string[]
 ): Promise<BatchProductSpec[]> {
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 16000,
     system: BATCH_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildBatchUserPrompt(produtos, regime) }],
+    messages: [{ role: 'user', content: buildBatchUserPrompt(produtos, regime, canais) }],
   })
 
   const raw = message.content[0]
@@ -159,6 +182,10 @@ export interface ProductSpecs {
   titulo_amazon?: string
   descricao_ml: string
   descricao_shopee: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
   bullet_point1?: string
   bullet_point2?: string
   bullet_point3?: string

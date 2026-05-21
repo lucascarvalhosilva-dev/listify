@@ -33,7 +33,12 @@ interface ProdutoRevisao {
   titulo_ml: string
   titulo_shopee: string
   titulo_amazon?: string
-  descricao: string
+  descricao_ml?: string
+  descricao_shopee?: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
   bullet_point1?: string
   bullet_point2?: string
   bullet_point3?: string
@@ -44,7 +49,7 @@ interface ProdutoRevisao {
 }
 
 type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'preco_tiktok' | 'preco_bling' | 'preco_magalu' | 'preco_amazon' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
-type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'titulo_amazon' | 'descricao' | 'bullet_point1' | 'bullet_point2' | 'bullet_point3' | 'bullet_point4' | 'bullet_point5' | 'ncm' | 'gtin'
+type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'titulo_amazon' | 'descricao_ml' | 'descricao_shopee' | 'descricao_tiktok' | 'descricao_magalu' | 'descricao_bling' | 'descricao_amazon' | 'bullet_point1' | 'bullet_point2' | 'bullet_point3' | 'bullet_point4' | 'bullet_point5' | 'ncm' | 'gtin'
 
 interface ApiResultado {
   status: string
@@ -971,12 +976,17 @@ function TextosSection({
   }
 
   const campos: { campo: CampoTexto; label: string; max?: number; softMax?: number; rows?: number }[] = [
-    ...(canais.includes('mercado_livre') ? [{ campo: 'titulo_ml'    as CampoTexto, label: 'Título ML',       max: 60  }] : []),
-    ...(canais.includes('shopee')        ? [{ campo: 'titulo_shopee' as CampoTexto, label: 'Título Shopee',   max: 120 }] : []),
-    ...(canais.includes('amazon')        ? [{ campo: 'titulo_amazon' as CampoTexto, label: 'Título Amazon',   max: 200 }] : []),
-    { campo: 'descricao' as CampoTexto, label: 'Descrição', softMax: 3000, rows: 3 },
-    { campo: 'ncm'       as CampoTexto, label: 'NCM (8 dígitos)' },
-    { campo: 'gtin'      as CampoTexto, label: 'GTIN / EAN' },
+    ...(canais.includes('mercado_livre') ? [{ campo: 'titulo_ml'        as CampoTexto, label: 'Título ML',             max: 60   }] : []),
+    ...(canais.includes('shopee')        ? [{ campo: 'titulo_shopee'    as CampoTexto, label: 'Título Shopee',         max: 120  }] : []),
+    ...(canais.includes('amazon')        ? [{ campo: 'titulo_amazon'    as CampoTexto, label: 'Título Amazon',         max: 200  }] : []),
+    ...(canais.includes('mercado_livre') ? [{ campo: 'descricao_ml'     as CampoTexto, label: 'Descrição ML',          softMax: 3000, rows: 3 }] : []),
+    ...(canais.includes('shopee')        ? [{ campo: 'descricao_shopee' as CampoTexto, label: 'Descrição Shopee',      softMax: 3000, rows: 3 }] : []),
+    ...(canais.includes('tiktok_shop')   ? [{ campo: 'descricao_tiktok' as CampoTexto, label: 'Descrição TikTok',      softMax: 500,  rows: 2 }] : []),
+    ...(canais.includes('magalu')        ? [{ campo: 'descricao_magalu' as CampoTexto, label: 'Descrição Magalu',      softMax: 4000, rows: 3 }] : []),
+    ...(canais.includes('bling')         ? [{ campo: 'descricao_bling'  as CampoTexto, label: 'Descrição Bling (ERP)', softMax: 2000, rows: 3 }] : []),
+    ...(canais.includes('amazon')        ? [{ campo: 'descricao_amazon' as CampoTexto, label: 'Descrição Amazon',      softMax: 2000, rows: 3 }] : []),
+    { campo: 'ncm'  as CampoTexto, label: 'NCM (8 dígitos)' },
+    { campo: 'gtin' as CampoTexto, label: 'GTIN / EAN' },
   ]
 
   return (

@@ -14,6 +14,7 @@ const HEADERS = [
   'Altura',
   'GTIN/EAN',
   'Categoria',
+  'Observações',
   'URL Imagem 1',
   'URL Imagem 2',
 ]
@@ -41,6 +42,7 @@ export function gerarCSVBling(produtos: ProdutoProcessado[]): ArrayBuffer {
       altura_cm,
       p.specs.ean || '',
       detectarCategoriaBling(p.nome),
+      p.specs.descricao_bling ?? p.specs.descricao_ml,
       p.foto_capa_url,
       p.foto_capa_url,
     ]

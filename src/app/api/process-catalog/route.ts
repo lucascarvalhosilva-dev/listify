@@ -32,7 +32,13 @@ interface CacheRow {
   titulo_ml: string
   titulo_shopee: string
   titulo_amazon?: string
-  descricao: string
+  descricao?: string
+  descricao_ml?: string
+  descricao_shopee?: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
   bullet_point1?: string
   bullet_point2?: string
   bullet_point3?: string
@@ -71,8 +77,12 @@ function batchSpecToProductSpecs(spec: BatchProductSpec): ProductSpecs {
     titulo_ml: spec.titulo_ml,
     titulo_shopee: spec.titulo_shopee,
     titulo_amazon: spec.titulo_amazon,
-    descricao_ml: spec.descricao,
-    descricao_shopee: spec.descricao,
+    descricao_ml: spec.descricao_ml ?? '',
+    descricao_shopee: spec.descricao_shopee ?? '',
+    descricao_tiktok: spec.descricao_tiktok,
+    descricao_magalu: spec.descricao_magalu,
+    descricao_bling: spec.descricao_bling,
+    descricao_amazon: spec.descricao_amazon,
     bullet_point1: spec.bullet_point1,
     bullet_point2: spec.bullet_point2,
     bullet_point3: spec.bullet_point3,
@@ -84,12 +94,18 @@ function batchSpecToProductSpecs(spec: BatchProductSpec): ProductSpecs {
 }
 
 function cacheRowToBatchSpec(row: CacheRow, sku: string): BatchProductSpec {
+  const fallback = row.descricao ?? ''
   return {
     sku,
     titulo_ml: row.titulo_ml,
     titulo_shopee: row.titulo_shopee,
     titulo_amazon: row.titulo_amazon,
-    descricao: row.descricao,
+    descricao_ml: row.descricao_ml ?? fallback,
+    descricao_shopee: row.descricao_shopee ?? fallback,
+    descricao_tiktok: row.descricao_tiktok ?? fallback,
+    descricao_magalu: row.descricao_magalu ?? fallback,
+    descricao_bling: row.descricao_bling ?? fallback,
+    descricao_amazon: row.descricao_amazon ?? fallback,
     bullet_point1: row.bullet_point1,
     bullet_point2: row.bullet_point2,
     bullet_point3: row.bullet_point3,
@@ -199,7 +215,8 @@ export async function POST(request: NextRequest) {
         try {
           const specs = await inferProductSpecsBatch(
             chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo })),
-            regime
+            regime,
+            canais
           )
           for (const spec of specs) {
             specsMap.set(spec.sku, spec)
@@ -225,7 +242,12 @@ export async function POST(request: NextRequest) {
           titulo_ml: spec.titulo_ml,
           titulo_shopee: spec.titulo_shopee,
           titulo_amazon: spec.titulo_amazon,
-          descricao: spec.descricao,
+          descricao_ml: spec.descricao_ml,
+          descricao_shopee: spec.descricao_shopee,
+          descricao_tiktok: spec.descricao_tiktok,
+          descricao_magalu: spec.descricao_magalu,
+          descricao_bling: spec.descricao_bling,
+          descricao_amazon: spec.descricao_amazon,
           bullet_point1: spec.bullet_point1,
           bullet_point2: spec.bullet_point2,
           bullet_point3: spec.bullet_point3,
@@ -337,7 +359,12 @@ export async function POST(request: NextRequest) {
         titulo_ml: p.specs.titulo_ml,
         titulo_shopee: p.specs.titulo_shopee,
         titulo_amazon: p.specs.titulo_amazon,
-        descricao: p.specs.descricao_ml,
+        descricao_ml: p.specs.descricao_ml,
+        descricao_shopee: p.specs.descricao_shopee,
+        descricao_tiktok: p.specs.descricao_tiktok,
+        descricao_magalu: p.specs.descricao_magalu,
+        descricao_bling: p.specs.descricao_bling,
+        descricao_amazon: p.specs.descricao_amazon,
         bullet_point1: p.specs.bullet_point1,
         bullet_point2: p.specs.bullet_point2,
         bullet_point3: p.specs.bullet_point3,

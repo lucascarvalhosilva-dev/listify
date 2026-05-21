@@ -34,7 +34,7 @@ function sanitizarSku(sku: string): string {
 export function gerarCSVMagalu(produtos: ProdutoProcessado[]): ArrayBuffer {
   const rows = produtos.map(p => [
     sanitizarTitulo(p.specs.titulo_shopee || p.nome),
-    sanitizarDescricao(p.specs.descricao_shopee),
+    sanitizarDescricao(p.specs.descricao_magalu ?? p.specs.descricao_ml),
     sanitizarSku(p.sku),
     p.precos.preco_magalu,
     p.estoque,

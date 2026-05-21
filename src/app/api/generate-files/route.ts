@@ -30,7 +30,12 @@ interface ProdutoRevisao {
   titulo_ml: string
   titulo_shopee: string
   titulo_amazon?: string
-  descricao: string
+  descricao_ml?: string
+  descricao_shopee?: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
   bullet_point1?: string
   bullet_point2?: string
   bullet_point3?: string
@@ -108,8 +113,12 @@ export async function POST(request: NextRequest) {
         titulo_ml: p.titulo_ml,
         titulo_shopee: p.titulo_shopee,
         titulo_amazon: p.titulo_amazon,
-        descricao_ml: p.descricao,
-        descricao_shopee: p.descricao,
+        descricao_ml: p.descricao_ml ?? '',
+        descricao_shopee: p.descricao_shopee ?? '',
+        descricao_tiktok: p.descricao_tiktok,
+        descricao_magalu: p.descricao_magalu,
+        descricao_bling: p.descricao_bling,
+        descricao_amazon: p.descricao_amazon,
         bullet_point1: p.bullet_point1,
         bullet_point2: p.bullet_point2,
         bullet_point3: p.bullet_point3,

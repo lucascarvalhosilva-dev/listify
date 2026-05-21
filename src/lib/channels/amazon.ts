@@ -36,7 +36,7 @@ export function gerarCSVAmazon(produtos: ProdutoProcessado[]): ArrayBuffer {
     p.sku,
     (p.specs.titulo_amazon ?? p.specs.titulo_ml).slice(0, 200),
     'Sem Marca',
-    p.specs.descricao_ml,
+    p.specs.descricao_amazon ?? p.specs.descricao_ml,
     p.specs.bullet_point1 ?? '',
     p.specs.bullet_point2 ?? '',
     p.specs.bullet_point3 ?? '',

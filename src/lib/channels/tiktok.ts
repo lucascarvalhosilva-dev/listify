@@ -38,7 +38,7 @@ export function gerarCSVTikTok(produtos: ProdutoProcessado[]): ArrayBuffer {
       capDim(altura_cm),
       'Sem marca',
       'Esportes ao ar livre > Acessórios esportivos',
-      p.specs.descricao_shopee,
+      p.specs.descricao_tiktok ?? p.specs.descricao_ml,
     ]
   })
 
