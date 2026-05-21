@@ -292,6 +292,11 @@ export async function POST(request: NextRequest) {
         largura_cm: p.specs.dimensoes.largura_cm,
         altura_cm: p.specs.dimensoes.altura_cm,
         confianca_dimensoes: p.specs.confianca_dimensoes,
+        titulo_ml: p.specs.titulo_ml,
+        titulo_shopee: p.specs.titulo_shopee,
+        descricao: p.specs.descricao_ml,
+        ncm: p.specs.ncm,
+        gtin: p.specs.ean,
       })),
     })
   } catch (err) {

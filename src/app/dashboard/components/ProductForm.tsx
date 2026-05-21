@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { downloadTemplate } from '../utils/templateGenerator'
 
@@ -24,9 +24,15 @@ interface ProdutoRevisao {
   largura_cm: number
   altura_cm: number
   confianca_dimensoes: 'alta' | 'media'
+  titulo_ml: string
+  titulo_shopee: string
+  descricao: string
+  ncm: string
+  gtin: string
 }
 
 type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm'
+type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'descricao' | 'ncm' | 'gtin'
 
 interface ApiResultado {
   status: string
@@ -860,6 +866,79 @@ function PriceTooltipIcon({
   )
 }
 
+// ─── Textos section ───────────────────────────────────────────────────────────
+
+function TextosSection({
+  produto,
+  canais,
+  onUpdate,
+}: {
+  produto: ProdutoRevisao
+  canais: string[]
+  onUpdate: (campo: CampoTexto, valor: string) => void
+}) {
+  const baseInput: React.CSSProperties = {
+    width: '100%',
+    background: 'var(--navy)',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontSize: 13,
+    color: 'var(--white)',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    fontFamily: 'inherit',
+  }
+
+  const campos: { campo: CampoTexto; label: string; max?: number; softMax?: number; rows?: number }[] = [
+    ...(canais.includes('mercado_livre') ? [{ campo: 'titulo_ml'    as CampoTexto, label: 'Título ML',       max: 60  }] : []),
+    ...(canais.includes('shopee')        ? [{ campo: 'titulo_shopee' as CampoTexto, label: 'Título Shopee',   max: 120 }] : []),
+    { campo: 'descricao' as CampoTexto, label: 'Descrição', softMax: 3000, rows: 3 },
+    { campo: 'ncm'       as CampoTexto, label: 'NCM (8 dígitos)' },
+    { campo: 'gtin'      as CampoTexto, label: 'GTIN / EAN' },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {campos.map(c => {
+        const rawVal = produto[c.campo]
+        const val = c.campo === 'gtin' && (rawVal === '0' || rawVal === '') ? '' : rawVal
+        const over = c.max !== undefined && val.length > c.max
+        const borderColor = over ? 'rgba(248,113,113,0.6)' : 'var(--border)'
+        const bg         = over ? 'rgba(248,113,113,0.05)' : 'var(--navy)'
+        const counter = c.max ?? c.softMax
+        return (
+          <div key={c.campo}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{c.label}</span>
+              {counter !== undefined && (
+                <span style={{ fontSize: 11, color: over ? '#f87171' : 'var(--muted)', opacity: over ? 1 : 0.65 }}>
+                  {val.length}/{counter}
+                </span>
+              )}
+            </div>
+            {c.rows ? (
+              <textarea
+                value={val}
+                rows={c.rows}
+                onChange={e => onUpdate(c.campo, e.target.value)}
+                style={{ ...baseInput, border: `1px solid var(--border)`, background: 'var(--navy)', resize: 'vertical' }}
+              />
+            ) : (
+              <input
+                type="text"
+                value={val}
+                onChange={e => onUpdate(c.campo, e.target.value)}
+                style={{ ...baseInput, border: `1px solid ${borderColor}`, background: bg }}
+              />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Resultado screen ─────────────────────────────────────────────────────────
 
 const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
@@ -1034,6 +1113,10 @@ function RevisaoScreen({
     setEditados(prev => prev.map((p, j) => j === i ? { ...p, [campo]: num } : p))
   }
 
+  function updateTexto(i: number, campo: CampoTexto, valor: string) {
+    setEditados(prev => prev.map((p, j) => j === i ? { ...p, [campo]: valor } : p))
+  }
+
   function aplicarAjuste() {
     const pct = parseFloat(ajustePct)
     if (isNaN(pct) || pct <= 0) return
@@ -1124,9 +1207,9 @@ function RevisaoScreen({
         )}
 
         {unico ? (
-          <CardUnico key={resetKey} produto={editados[0]} canais={canais} regime={regime} onUpdate={(campo, val) => update(0, campo, val)} />
+          <CardUnico key={resetKey} produto={editados[0]} canais={canais} regime={regime} onUpdate={(campo, val) => update(0, campo, val)} onUpdateTexto={(campo, val) => updateTexto(0, campo, val)} />
         ) : (
-          <TabelaProdutos key={resetKey} produtos={editados} canais={canais} regime={regime} onUpdate={update} />
+          <TabelaProdutos key={resetKey} produtos={editados} canais={canais} regime={regime} onUpdate={update} onUpdateTexto={updateTexto} />
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
@@ -1159,12 +1242,15 @@ function CardUnico({
   canais,
   regime,
   onUpdate,
+  onUpdateTexto,
 }: {
   produto: ProdutoRevisao
   canais: string[]
   regime: 'MEI' | 'SN'
   onUpdate: (campo: CampoNumerico, valor: string) => void
+  onUpdateTexto: (campo: CampoTexto, valor: string) => void
 }) {
+  const [textosAbertos, setTextosAbertos] = useState(false)
   const warn = produto.confianca_dimensoes === 'media'
 
   const precos: [CampoNumerico, string, 'ml' | 'shopee'][] = [
@@ -1240,6 +1326,22 @@ function CardUnico({
           </div>
         ))}
       </div>
+
+      <div style={collapsibleBoxStyle}>
+        <button type="button" onClick={() => setTextosAbertos(o => !o)} style={collapsibleTriggerStyle}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue-glow)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ✏️ Textos gerados pela IA
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+            {textosAbertos ? 'Fechar ▲' : 'Ver e editar ▼'}
+          </span>
+        </button>
+        {textosAbertos && (
+          <div style={{ padding: '4px 16px 20px' }}>
+            <TextosSection produto={produto} canais={canais} onUpdate={onUpdateTexto} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1263,12 +1365,24 @@ function TabelaProdutos({
   canais,
   regime,
   onUpdate,
+  onUpdateTexto,
 }: {
   produtos: ProdutoRevisao[]
   canais: string[]
   regime: 'MEI' | 'SN'
   onUpdate: (i: number, campo: CampoNumerico, valor: string) => void
+  onUpdateTexto: (i: number, campo: CampoTexto, valor: string) => void
 }) {
+  const [abertos, setAbertos] = useState<Set<string>>(new Set())
+
+  function toggleTextos(sku: string) {
+    setAbertos(prev => {
+      const next = new Set(prev)
+      next.has(sku) ? next.delete(sku) : next.add(sku)
+      return next
+    })
+  }
+
   const allCols: { campo: CampoNumerico; label: string; step: string; width: number; canal?: 'ml' | 'shopee'; onlyIf?: boolean }[] = [
     { campo: 'preco_ml',       label: 'Preço ML',    step: '0.01', width: 90,  canal: 'ml',     onlyIf: canais.includes('mercado_livre') },
     { campo: 'preco_shopee',   label: 'Preço Shopee',step: '0.01', width: 105, canal: 'shopee', onlyIf: canais.includes('shopee') },
@@ -1295,44 +1409,73 @@ function TabelaProdutos({
         <tbody>
           {produtos.map((p, i) => {
             const warn = p.confianca_dimensoes === 'media'
+            const expanded = abertos.has(p.sku)
+            const isLast = i === produtos.length - 1
             return (
-              <tr
-                key={p.sku}
-                style={{ borderBottom: i < produtos.length - 1 ? '1px solid var(--border)' : 'none' }}
-              >
-                <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
-                </td>
-                {cols.map(c => {
-                  const isDim = dimCampos.has(c.campo)
-                  const estilo = isDim && warn ? numInputWarn : numInputBase
-                  return (
-                    <td key={c.campo} style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
-                      <div style={{ position: 'relative' }}>
-                        {isDim && warn && (
-                          <span
-                            title="Confiança média"
-                            style={{ position: 'absolute', left: -18, top: '50%', transform: 'translateY(-50%)', fontSize: 11 }}
-                          >⚠️</span>
-                        )}
-                        <input
-                          type="number"
-                          step={c.step}
-                          defaultValue={p[c.campo]}
-                          onChange={e => onUpdate(i, c.campo, e.target.value)}
-                          style={estilo}
-                        />
-                        {c.canal && (
-                          <div style={{ position: 'absolute', top: 2, right: 2 }}>
-                            <PriceTooltipIcon preco={p[c.campo]} custo={p.custo} canal={c.canal} regime={regime} />
-                          </div>
-                        )}
-                      </div>
+              <Fragment key={p.sku}>
+                <tr style={{ borderBottom: (!expanded && !isLast) ? '1px solid var(--border)' : 'none' }}>
+                  <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
+                    <button
+                      type="button"
+                      onClick={() => toggleTextos(p.sku)}
+                      style={{
+                        marginTop: 6, background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: 11, color: 'var(--blue-glow)', padding: 0,
+                        display: 'flex', alignItems: 'center', gap: 3,
+                      }}
+                    >
+                      {expanded ? '▲ Fechar textos' : '▼ Ver textos'}
+                    </button>
+                  </td>
+                  {cols.map(c => {
+                    const isDim = dimCampos.has(c.campo)
+                    const estilo = isDim && warn ? numInputWarn : numInputBase
+                    return (
+                      <td key={c.campo} style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ position: 'relative' }}>
+                          {isDim && warn && (
+                            <span
+                              title="Confiança média"
+                              style={{ position: 'absolute', left: -18, top: '50%', transform: 'translateY(-50%)', fontSize: 11 }}
+                            >⚠️</span>
+                          )}
+                          <input
+                            type="number"
+                            step={c.step}
+                            defaultValue={p[c.campo]}
+                            onChange={e => onUpdate(i, c.campo, e.target.value)}
+                            style={estilo}
+                          />
+                          {c.canal && (
+                            <div style={{ position: 'absolute', top: 2, right: 2 }}>
+                              <PriceTooltipIcon preco={p[c.campo]} custo={p.custo} canal={c.canal} regime={regime} />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )
+                  })}
+                </tr>
+                {expanded && (
+                  <tr style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none' }}>
+                    <td
+                      colSpan={cols.length + 1}
+                      style={{
+                        padding: '16px 20px 20px',
+                        background: 'rgba(37,99,235,0.03)',
+                        borderTop: '1px solid var(--border)',
+                      }}
+                    >
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        ✏️ Textos gerados pela IA — {p.nome}
+                      </p>
+                      <TextosSection produto={p} canais={canais} onUpdate={(campo, val) => onUpdateTexto(i, campo, val)} />
                     </td>
-                  )
-                })}
-              </tr>
+                  </tr>
+                )}
+              </Fragment>
             )
           })}
         </tbody>
