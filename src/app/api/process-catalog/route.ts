@@ -5,6 +5,9 @@ import { inferProductSpecsBatch, type BatchProductSpec } from '@/lib/claude-clie
 import { calcularPrecos } from '@/lib/pricing'
 import { gerarPlanilhaShopee, type ProdutoProcessado } from '@/lib/channels/shopee'
 import { gerarPlanilhaML } from '@/lib/channels/ml'
+import { gerarCSVTikTok } from '@/lib/channels/tiktok'
+import { gerarCSVBling } from '@/lib/channels/bling'
+import { gerarCSVMagalu } from '@/lib/channels/magalu'
 import { type ProductSpecs } from '@/lib/claude-client'
 
 const BATCH_SIZE = 20
@@ -260,19 +263,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 6. Gera planilhas ───────────────────────────────────────────────────
-    const arquivos: { shopee: string | null; ml: string | null } = {
-      shopee: null,
-      ml: null,
+    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null } = {
+      shopee: null, ml: null, tiktok: null, bling: null, magalu: null,
     }
 
     if (produtosProcessados.length > 0) {
       if (canais.includes('shopee')) {
-        const buffer = gerarPlanilhaShopee(produtosProcessados, drive_folder_url)
-        arquivos.shopee = arrayBufferToBase64(buffer)
+        arquivos.shopee = arrayBufferToBase64(gerarPlanilhaShopee(produtosProcessados, drive_folder_url))
       }
       if (canais.includes('ml')) {
-        const buffer = gerarPlanilhaML(produtosProcessados)
-        arquivos.ml = arrayBufferToBase64(buffer)
+        arquivos.ml = arrayBufferToBase64(gerarPlanilhaML(produtosProcessados))
+      }
+      if (canais.includes('tiktok_shop')) {
+        arquivos.tiktok = arrayBufferToBase64(gerarCSVTikTok(produtosProcessados))
+      }
+      if (canais.includes('bling')) {
+        arquivos.bling = arrayBufferToBase64(gerarCSVBling(produtosProcessados))
+      }
+      if (canais.includes('magalu')) {
+        arquivos.magalu = arrayBufferToBase64(gerarCSVMagalu(produtosProcessados))
       }
     }
 
@@ -287,6 +296,9 @@ export async function POST(request: NextRequest) {
         custo: p.custo,
         preco_ml: p.precos.preco_ml,
         preco_shopee: p.precos.preco_shopee,
+        preco_tiktok: p.precos.preco_tiktok_promo,
+        preco_bling: p.precos.preco_bling,
+        preco_magalu: p.precos.preco_magalu,
         peso_g: p.specs.dimensoes.peso_g,
         comprimento_cm: p.specs.dimensoes.comprimento_cm,
         largura_cm: p.specs.dimensoes.largura_cm,

@@ -4,6 +4,8 @@ export interface Precos {
   preco_tiktok_promo: number
   preco_tiktok_normal: number
   preco_amazon: number
+  preco_bling: number
+  preco_magalu: number
   tipo_frete: 'mercado_envios' | 'a_combinar'
 }
 
@@ -47,6 +49,8 @@ export function calcularPrecos(
   const preco_tiktok_promo = round2((custo + 4.0) / (1 - 0.04 - 0.0299))
   const preco_tiktok_normal = round2((custo + 4.0) / (1 - 0.06 - 0.04 - 0.0299))
   const preco_amazon = round2((custo + 5.5) / (1 - 0.15 - imposto))
+  const preco_bling = calcularML(custo, imposto)
+  const preco_magalu = round2((custo + 5.5) / (1 - 0.14 - imposto))
 
   return {
     preco_ml,
@@ -54,6 +58,8 @@ export function calcularPrecos(
     preco_tiktok_promo,
     preco_tiktok_normal,
     preco_amazon,
+    preco_bling,
+    preco_magalu,
     tipo_frete: detectarFrete(comprimento_cm),
   }
 }

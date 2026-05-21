@@ -21,6 +21,9 @@ interface ProdutoRevisao {
   embalagem: number
   preco_ml: number
   preco_shopee: number
+  preco_tiktok?: number
+  preco_bling?: number
+  preco_magalu?: number
   peso_g: number
   comprimento_cm: number
   largura_cm: number
@@ -33,7 +36,7 @@ interface ProdutoRevisao {
   gtin: string
 }
 
-type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
+type CampoNumerico = 'preco_ml' | 'preco_shopee' | 'preco_tiktok' | 'preco_bling' | 'preco_magalu' | 'peso_g' | 'comprimento_cm' | 'largura_cm' | 'altura_cm' | 'embalagem'
 type CampoTexto = 'titulo_ml' | 'titulo_shopee' | 'descricao' | 'ncm' | 'gtin'
 
 interface ApiResultado {
@@ -43,6 +46,9 @@ interface ApiResultado {
   arquivos: {
     shopee: string | null
     ml: string | null
+    tiktok?: string | null
+    bling?: string | null
+    magalu?: string | null
   }
   produtos_revisao: ProdutoRevisao[]
 }
@@ -89,9 +95,10 @@ function downloadBase64(base64: string, filename: string) {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i)
   }
-  const blob = new Blob([bytes], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })
+  const mimeType = filename.endsWith('.csv')
+    ? 'text/csv'
+    : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  const blob = new Blob([bytes], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -1007,8 +1014,11 @@ function TextosSection({
 // ─── Resultado screen ─────────────────────────────────────────────────────────
 
 const ARQUIVO_INFO: Record<string, { label: string; filename: string }> = {
-  shopee: { label: 'Shopee',        filename: 'listify-shopee.xlsx' },
-  ml:     { label: 'Mercado Livre', filename: 'listify-ml.xlsx' },
+  shopee:  { label: 'Shopee',          filename: 'listify-shopee.xlsx' },
+  ml:      { label: 'Mercado Livre',   filename: 'listify-ml.xlsx' },
+  tiktok:  { label: 'TikTok Shop',     filename: 'listify-tiktok.csv' },
+  bling:   { label: 'Bling (ERP)',     filename: 'listify-bling.csv' },
+  magalu:  { label: 'Magazine Luiza',  filename: 'listify-magalu.csv' },
 }
 
 function ResultadoScreen({
@@ -1088,7 +1098,7 @@ function ResultadoScreen({
                       flexShrink: 0,
                     }}
                   >
-                    ⬇ Baixar .xlsx
+                    ⬇ Baixar {info.filename.endsWith('.csv') ? '.csv' : '.xlsx'}
                   </button>
                 </div>
               )
@@ -1207,9 +1217,15 @@ function RevisaoPrecosScreen({
 
   const temML = canais.includes('mercado_livre')
   const temShopee = canais.includes('shopee')
+  const temTikTok = canais.includes('tiktok_shop')
+  const temBling = canais.includes('bling')
+  const temMagalu = canais.includes('magalu')
 
   const comissaoML = 0.115
   const comissaoShopee = 0.14
+  const comissaoTikTok = 0.06
+  const platfeeTikTok = 0.0299
+  const comissaoMagalu = 0.14
   const imposto = regime === 'SN' ? 0.04 : 0
 
   const indicesFiltrados = (() => {
@@ -1264,13 +1280,16 @@ function RevisaoPrecosScreen({
     const indices = selecionados.size > 0 ? [...selecionados] : prodsFiltrados()
     setProds(prev => {
       const next = prev.map(p => ({ ...p }))
-      if (modo === 'pct') {
+      if (modo === 'pct' || modo === 'filtro') {
         const pct = parseFloat(ajustePct)
         if (isNaN(pct) || pct <= 0) return next
         const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
         for (const i of indices) {
           next[i].preco_ml = Math.round(next[i].preco_ml * factor * 100) / 100
           next[i].preco_shopee = Math.round(next[i].preco_shopee * factor * 100) / 100
+          if (temTikTok && next[i].preco_tiktok !== undefined) next[i].preco_tiktok = Math.round((next[i].preco_tiktok ?? 0) * factor * 100) / 100
+          if (temBling && next[i].preco_bling !== undefined) next[i].preco_bling = Math.round((next[i].preco_bling ?? 0) * factor * 100) / 100
+          if (temMagalu && next[i].preco_magalu !== undefined) next[i].preco_magalu = Math.round((next[i].preco_magalu ?? 0) * factor * 100) / 100
         }
       } else if (modo === 'margem') {
         const m = parseFloat(margemAlvo)
@@ -1279,14 +1298,9 @@ function RevisaoPrecosScreen({
           const p = next[i]
           if (temML) next[i].preco_ml = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
           if (temShopee) next[i].preco_shopee = precoParaMargem(p.custo, p.embalagem, comissaoShopee, imposto, m)
-        }
-      } else {
-        const pct = parseFloat(ajustePct)
-        if (isNaN(pct) || pct <= 0) return next
-        const factor = ajusteDir === '+' ? 1 + pct / 100 : 1 - pct / 100
-        for (const i of indices) {
-          next[i].preco_ml = Math.round(next[i].preco_ml * factor * 100) / 100
-          next[i].preco_shopee = Math.round(next[i].preco_shopee * factor * 100) / 100
+          if (temTikTok) next[i].preco_tiktok = precoParaMargem(p.custo, p.embalagem, platfeeTikTok, imposto, m)
+          if (temBling) next[i].preco_bling = precoParaMargem(p.custo, p.embalagem, comissaoML, imposto, m)
+          if (temMagalu) next[i].preco_magalu = precoParaMargem(p.custo, p.embalagem, comissaoMagalu, imposto, m)
         }
       }
       return next
@@ -1424,7 +1438,7 @@ function RevisaoPrecosScreen({
 
         {/* Price table */}
         <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: temML && temShopee ? 1160 : 760 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 356 + (temML ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temShopee ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temTikTok ? (6 + (imposto > 0 ? 1 : 0)) * 80 : 0) + (temBling ? 320 : 0) + (temMagalu ? (5 + (imposto > 0 ? 1 : 0)) * 80 : 0) }}>
             <thead>
               <tr style={{ background: 'var(--navy-3)' }}>
                 <th rowSpan={2} style={{ ...TH_STYLE, width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
@@ -1475,6 +1489,60 @@ function RevisaoPrecosScreen({
                     }}
                   >Shopee</th>
                 )}
+                {temTikTok && (
+                  <th
+                    colSpan={6 + (imposto > 0 ? 1 : 0)}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#fb7185',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(244,63,94,0.08)',
+                      borderBottom: '2px solid rgba(244,63,94,0.5)',
+                      borderLeft: '1px solid rgba(244,63,94,0.3)',
+                      borderRight: '1px solid rgba(244,63,94,0.3)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >TikTok Shop</th>
+                )}
+                {temBling && (
+                  <th
+                    colSpan={4}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#94a3b8',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(148,163,184,0.06)',
+                      borderBottom: '2px solid rgba(148,163,184,0.4)',
+                      borderLeft: '1px solid rgba(148,163,184,0.25)',
+                      borderRight: '1px solid rgba(148,163,184,0.25)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >Bling (ERP)</th>
+                )}
+                {temMagalu && (
+                  <th
+                    colSpan={5 + (imposto > 0 ? 1 : 0)}
+                    style={{
+                      padding: '7px 10px',
+                      fontSize: 10, fontWeight: 700,
+                      color: '#38bdf8',
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.08em',
+                      textAlign: 'center' as const,
+                      background: 'rgba(14,165,233,0.08)',
+                      borderBottom: '2px solid rgba(14,165,233,0.5)',
+                      borderLeft: '1px solid rgba(14,165,233,0.25)',
+                      borderRight: '1px solid rgba(14,165,233,0.25)',
+                      whiteSpace: 'nowrap' as const,
+                    }}
+                  >Magazine Luiza</th>
+                )}
               </tr>
               <tr style={{ background: 'var(--navy-3)' }}>
                 {temML && <th title="Preço de venda no Mercado Livre" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th>}
@@ -1489,6 +1557,23 @@ function RevisaoPrecosScreen({
                 {temShopee && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
                 {temShopee && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
                 {temShopee && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(249,115,22,0.25)' }}>Margem</th>}
+                {temTikTok && <th title="Preço de venda no TikTok Shop (modo promo)" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(244,63,94,0.3)' }}>Preço Promo</th>}
+                {temTikTok && <th title="Comissão do TikTok Shop no modo promo: 0%" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
+                {temTikTok && <th title="Taxa de pagamento TikTok: 2,99% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Taxa Pgto</th>}
+                {temTikTok && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
+                {temTikTok && <th title="Custo total = Custo + Embalagem + Taxa Pgto + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temTikTok && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temTikTok && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(244,63,94,0.3)' }}>Margem</th>}
+                {temBling && <th title="Preço de venda cadastrado no Bling" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(148,163,184,0.25)' }}>Preço</th>}
+                {temBling && <th title="Custo total = Custo + Embalagem (Bling não cobra comissão)" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temBling && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temBling && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(148,163,184,0.25)' }}>Margem</th>}
+                {temMagalu && <th title="Preço de venda no Magazine Luiza" style={{ ...TH_STYLE, width: 80, borderLeft: '1px solid rgba(14,165,233,0.25)' }}>Preço</th>}
+                {temMagalu && <th title="Comissão do Magazine Luiza: 14% do preço de venda" style={{ ...TH_STYLE, width: 78 }}>Comissão</th>}
+                {temMagalu && imposto > 0 && <th title="Imposto sobre faturamento: 4% (Simples Nacional)" style={{ ...TH_STYLE, width: 72 }}>Imposto</th>}
+                {temMagalu && <th title="Custo total = Custo + Embalagem + Comissão + Imposto" style={{ ...TH_STYLE, width: 84 }}>Custo Total</th>}
+                {temMagalu && <th title="Lucro líquido = Preço − Custo Total" style={{ ...TH_STYLE, width: 78 }}>Lucro</th>}
+                {temMagalu && <th title="Margem de lucro = Lucro ÷ Preço × 100" style={{ ...TH_STYLE, width: 70, borderRight: '1px solid rgba(14,165,233,0.25)' }}>Margem</th>}
               </tr>
             </thead>
             <tbody>
@@ -1507,6 +1592,25 @@ function RevisaoPrecosScreen({
                 const isLast = rowIdx === indicesFiltrados.length - 1
                 const mcML = margemML >= 15 ? '#4ade80' : margemML >= 5 ? '#fbbf24' : '#f87171'
                 const mcSh = margemSh >= 15 ? '#4ade80' : margemSh >= 5 ? '#fbbf24' : '#f87171'
+                const precoTT = p.preco_tiktok ?? 0
+                const taxaTT = precoTT * platfeeTikTok
+                const impostTT = precoTT * imposto
+                const custoTotalTT = p.custo + p.embalagem + taxaTT + impostTT
+                const lucroTT = precoTT - custoTotalTT
+                const margemTT = precoTT > 0 ? (lucroTT / precoTT) * 100 : 0
+                const mcTT = margemTT >= 15 ? '#4ade80' : margemTT >= 5 ? '#fbbf24' : '#f87171'
+                const precoBL = p.preco_bling ?? 0
+                const custoTotalBL = p.custo + p.embalagem
+                const lucroBL = precoBL - custoTotalBL
+                const margemBL = precoBL > 0 ? (lucroBL / precoBL) * 100 : 0
+                const mcBL = margemBL >= 15 ? '#4ade80' : margemBL >= 5 ? '#fbbf24' : '#f87171'
+                const precoMG = p.preco_magalu ?? 0
+                const comisMG = precoMG * comissaoMagalu
+                const impostMG = precoMG * imposto
+                const custoTotalMG = p.custo + p.embalagem + comisMG + impostMG
+                const lucroMG = precoMG - custoTotalMG
+                const margemMG = precoMG > 0 ? (lucroMG / precoMG) * 100 : 0
+                const mcMG = margemMG >= 15 ? '#4ade80' : margemMG >= 5 ? '#fbbf24' : '#f87171'
                 const isSel = selecionados.has(idx)
                 return (
                   <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: isSel ? 'rgba(37,99,235,0.06)' : undefined }}>
@@ -1611,6 +1715,121 @@ function RevisaoPrecosScreen({
                       <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
                         <span style={{ fontSize: 13, color: mcSh, fontWeight: 600 }}>
                           {margemSh.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={precoTT.toFixed(2)}
+                            onChange={e => update(idx, 'preco_tiktok', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(0)}</span>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(taxaTT)}</span>
+                      </td>
+                    )}
+                    {temTikTok && imposto > 0 && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostTT)}</span>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalTT)}</span>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroTT >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroTT)}
+                        </span>
+                      </td>
+                    )}
+                    {temTikTok && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcTT, fontWeight: 600 }}>
+                          {margemTT.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
+                    {temBling && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={precoBL.toFixed(2)}
+                            onChange={e => update(idx, 'preco_bling', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
+                      </td>
+                    )}
+                    {temBling && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalBL)}</span>
+                      </td>
+                    )}
+                    {temBling && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroBL >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroBL)}
+                        </span>
+                      </td>
+                    )}
+                    {temBling && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcBL, fontWeight: 600 }}>
+                          {margemBL.toFixed(1)}%
+                        </span>
+                      </td>
+                    )}
+                    {temMagalu && (
+                      <td style={{ padding: '8px 8px', verticalAlign: 'middle' }}>
+                        <div style={{ position: 'relative', width: 80 }}>
+                          <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                          <input type="number" step="0.01" defaultValue={precoMG.toFixed(2)}
+                            onChange={e => update(idx, 'preco_magalu', e.target.value)}
+                            onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
+                            style={{ ...numInputBase, width: '100%', paddingLeft: 26 }} />
+                        </div>
+                      </td>
+                    )}
+                    {temMagalu && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(comisMG)}</span>
+                      </td>
+                    )}
+                    {temMagalu && imposto > 0 && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(impostMG)}</span>
+                      </td>
+                    )}
+                    {temMagalu && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(custoTotalMG)}</span>
+                      </td>
+                    )}
+                    {temMagalu && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: lucroMG >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                          R$ {fmt(lucroMG)}
+                        </span>
+                      </td>
+                    )}
+                    {temMagalu && (
+                      <td style={{ padding: '8px 6px', verticalAlign: 'middle', textAlign: 'right' }}>
+                        <span style={{ fontSize: 13, color: mcMG, fontWeight: 600 }}>
+                          {margemMG.toFixed(1)}%
                         </span>
                       </td>
                     )}

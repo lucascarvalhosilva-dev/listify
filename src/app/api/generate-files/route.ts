@@ -4,6 +4,9 @@ import { cookies } from 'next/headers'
 import { calcularPrecos, detectarFrete } from '@/lib/pricing'
 import { gerarPlanilhaShopee, type ProdutoProcessado } from '@/lib/channels/shopee'
 import { gerarPlanilhaML } from '@/lib/channels/ml'
+import { gerarCSVTikTok } from '@/lib/channels/tiktok'
+import { gerarCSVBling } from '@/lib/channels/bling'
+import { gerarCSVMagalu } from '@/lib/channels/magalu'
 import type { ProductSpecs } from '@/lib/claude-client'
 
 interface ProdutoRevisao {
@@ -14,6 +17,9 @@ interface ProdutoRevisao {
   embalagem?: number
   preco_ml: number
   preco_shopee: number
+  preco_tiktok?: number
+  preco_bling?: number
+  preco_magalu?: number
   peso_g: number
   comprimento_cm: number
   largura_cm: number
@@ -73,6 +79,9 @@ export async function POST(request: NextRequest) {
         ...basePrecos,
         preco_ml: p.preco_ml,
         preco_shopee: p.preco_shopee,
+        preco_tiktok_promo: p.preco_tiktok ?? basePrecos.preco_tiktok_promo,
+        preco_bling: p.preco_bling ?? basePrecos.preco_bling,
+        preco_magalu: p.preco_magalu ?? basePrecos.preco_magalu,
         tipo_frete: detectarFrete(p.comprimento_cm),
       }
 
@@ -98,13 +107,24 @@ export async function POST(request: NextRequest) {
       return { sku: p.sku, nome: p.nome, custo: p.custo, estoque: p.estoque, regime, specs, precos, foto_capa_url: drive_folder_url }
     })
 
-    const arquivos: { shopee: string | null; ml: string | null } = { shopee: null, ml: null }
+    const arquivos: { shopee: string | null; ml: string | null; tiktok: string | null; bling: string | null; magalu: string | null } = {
+      shopee: null, ml: null, tiktok: null, bling: null, magalu: null,
+    }
 
     if (canais.includes('shopee')) {
       arquivos.shopee = arrayBufferToBase64(gerarPlanilhaShopee(produtosProcessados, drive_folder_url))
     }
     if (canais.includes('ml')) {
       arquivos.ml = arrayBufferToBase64(gerarPlanilhaML(produtosProcessados))
+    }
+    if (canais.includes('tiktok_shop')) {
+      arquivos.tiktok = arrayBufferToBase64(gerarCSVTikTok(produtosProcessados))
+    }
+    if (canais.includes('bling')) {
+      arquivos.bling = arrayBufferToBase64(gerarCSVBling(produtosProcessados))
+    }
+    if (canais.includes('magalu')) {
+      arquivos.magalu = arrayBufferToBase64(gerarCSVMagalu(produtosProcessados))
     }
 
     return NextResponse.json({
