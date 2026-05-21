@@ -1711,6 +1711,7 @@ function RevisaoDimensoesScreen({
 }) {
   const [editados, setEditados] = useState<ProdutoRevisao[]>(() => editadosInit.map(p => ({ ...p })))
   const [ocultarAlertas, setOcultarAlertas] = useState(false)
+  const [ocultarPainelGrandes, setOcultarPainelGrandes] = useState(false)
   const [resetKey, setResetKey] = useState(0)
 
   function update(i: number, campo: CampoNumerico, valor: string) {
@@ -1725,6 +1726,20 @@ function RevisaoDimensoesScreen({
 
   const unico = editados.length === 1
   const temAlertas = editados.some(p => p.confianca_dimensoes === 'media')
+
+  const produtosGrandes = editados.filter(p => p.comprimento_cm > 105)
+
+  const impactosFrete: string[] = []
+  if (canais.includes('mercado_livre') || canais.includes('ml'))
+    impactosFrete.push("Mercado Livre: configurado como 'A combinar' — sem Mercado Envios")
+  if (canais.includes('shopee'))
+    impactosFrete.push('Shopee: removido do canal Correios — frete a combinar')
+  if (canais.includes('tiktok_shop'))
+    impactosFrete.push('TikTok Shop: comprimento ajustado automaticamente para 99cm')
+  if (canais.includes('amazon'))
+    impactosFrete.push('Amazon: sem restrição — aceita embalagens maiores')
+  if (canais.includes('magalu'))
+    impactosFrete.push('Magazine Luiza: sem restrição — aceita embalagens maiores')
 
   return (
     <div style={{ width: '100%', maxWidth: unico ? 560 : 820 }}>
@@ -1767,6 +1782,57 @@ function RevisaoDimensoesScreen({
             </button>
           )}
         </div>
+
+        {!ocultarPainelGrandes && produtosGrandes.length > 0 && (
+          <div style={{
+            background: 'rgba(234,179,8,0.07)',
+            border: '1px solid rgba(234,179,8,0.3)',
+            borderRadius: 12,
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fbbf24' }}>
+                ⚠️ {produtosGrandes.length} produto{produtosGrandes.length !== 1 ? 's' : ''} com comprimento acima de 105cm
+              </p>
+              <button
+                type="button"
+                onClick={() => setOcultarPainelGrandes(true)}
+                style={{
+                  padding: '4px 12px', borderRadius: 20, flexShrink: 0,
+                  border: '1.5px solid rgba(234,179,8,0.4)',
+                  background: 'transparent',
+                  color: '#fbbf24',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Entendi
+              </button>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {produtosGrandes.map(p => (
+                <li key={p.sku} style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  <span style={{ color: 'var(--white)', fontWeight: 500 }}>{p.nome}</span>
+                  {' — SKU '}{p.sku}{' '}
+                  <span style={{ color: '#fbbf24' }}>({p.comprimento_cm}cm)</span>
+                </li>
+              ))}
+            </ul>
+            {impactosFrete.length > 0 && (
+              <div>
+                <p style={{ margin: '4px 0 6px', fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Impacto por canal:</p>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {impactosFrete.map(imp => (
+                    <li key={imp} style={{ fontSize: 12, color: 'var(--muted)' }}>{imp}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {unico ? (
           <CardUnico
