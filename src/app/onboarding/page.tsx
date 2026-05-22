@@ -90,7 +90,7 @@ export default function OnboardingPage() {
               </svg>
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              Bem-vindo à Listify
+              Bem-vindo à Guiamos
             </h1>
             <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
               Em poucos minutos você vai ter arquivos prontos para publicar seus produtos em qualquer marketplace. Deixa a gente te mostrar como funciona.

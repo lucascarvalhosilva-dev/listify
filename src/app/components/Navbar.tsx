@@ -48,7 +48,7 @@ export default function Navbar() {
       <style>{`
         .navbar { background: #fff; border-bottom: 1px solid #e8eaed; position: sticky; top: 0; z-index: 50; }
         .navbar-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-        .navbar-logo { font-size: 22px; font-weight: 700; text-decoration: none; flex-shrink: 0; display: flex; align-items: baseline; gap: 0; }
+        .navbar-logo { font-size: 26px; font-weight: 800; text-decoration: none; flex-shrink: 0; display: flex; align-items: baseline; gap: 0; }
         .navbar-tabs { display: flex; align-items: center; gap: 2px; flex: 1; }
         .navbar-tab { font-size: 14px; font-weight: 500; color: #5f6368; text-decoration: none; padding: 6px 14px; border-radius: 8px; white-space: nowrap; transition: background .15s, color .15s; }
         .navbar-tab:hover { background: #f8f9fa; color: #202124; }
@@ -74,7 +74,7 @@ export default function Navbar() {
 
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link href="/painel" style={{textDecoration:'none',display:'flex',alignItems:'baseline',gap:'8px'}}><span style={{fontWeight:800,fontSize:'32px',letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></Link>
+          <Link href="/painel" className="navbar-logo"><span style={{letterSpacing:'-0.5px'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></Link>
 
           <div className="navbar-tabs">
             {tabs.map(tab => (

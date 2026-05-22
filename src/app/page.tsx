@@ -20,8 +20,8 @@ export default function Home() {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f8f9fa; color: #202124; }
         .nav { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-        .nav-logo { text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
-        .nav-logo span { font-size: 11px; font-weight: 400; color: #5f6368; }
+        .nav-logo { font-size: 26px; font-weight: 1200; text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
+        .nav-logo .tagline { font-size: 11px; font-weight: 400; color: #5f6368; }
         .nav-links { display: flex; gap: 32px; list-style: none; }
         .nav-links a { font-size: 14px; color: #5f6368; text-decoration: none; }
         .nav-links a:hover { color: #202124; }
@@ -108,7 +108,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav className="nav">
-        <a href="/" className="nav-logo"><span style={{fontWeight:800,fontSize:'32px',letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span><span style={{fontSize:'11px',fontWeight:400,color:'#5f6368',marginLeft:'10px',letterSpacing:'.02em'}}>by Anthropic Claude</span></a>
+        <a href="/" className="nav-logo"><span style={{fontWeight:800,letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span><span className="tagline" style={{marginLeft:'10px',letterSpacing:'.02em'}}>by Anthropic Claude</span></a>
         <ul className="nav-links">
           <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#precos">Preços</a></li>
