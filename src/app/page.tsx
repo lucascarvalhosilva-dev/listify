@@ -1,341 +1,273 @@
 'use client'
-
 import { useState } from 'react'
 import Link from 'next/link'
 
-const STEPS = [
-  {
-    n: '01',
-    title: 'Informe o produto',
-    desc: 'Nome, fotos, estoque, custo e regime tributário. Nada mais.',
-  },
-  {
-    n: '02',
-    title: 'A IA faz o resto',
-    desc: 'Pesquisa specs, infere dimensões, calcula preços, cria títulos SEO e descrições para cada canal.',
-  },
-  {
-    n: '03',
-    title: 'Baixe e publique',
-    desc: 'Arquivo pronto para upload. Guia passo a passo embutido. Correção automática de erros.',
-  },
-]
-
-const FEATURES = [
-  {
-    title: '5 inputs. A IA infere o resto',
-    desc: 'Dimensões, NCM, EAN, categoria e descrições gerados automaticamente a partir do nome do produto.',
-  },
-  {
-    title: 'Todos os canais principais',
-    desc: 'ML, Shopee, Amazon, Magalu, TikTok Shop e Bling. Um catálogo, seis formatos prontos.',
-  },
-  {
-    title: 'Templates internos',
-    desc: 'Você nunca baixa template de canal nenhum. Recebe só o arquivo preenchido e pronto para upload.',
-  },
-  {
-    title: 'Banco de erros embutido',
-    desc: '16+ erros documentados com diagnóstico e autocorreção automática.',
-  },
-  {
-    title: 'Preços calculados por canal',
-    desc: 'Fórmula específica por canal e regime tributário. Margem sempre positiva.',
-  },
-  {
-    title: 'SEO automatizado',
-    desc: 'Título otimizado por canal com palavra-chave no início. Estrutura certa para cada marketplace.',
-  },
-]
-
-const TIME_ROWS = [
-  { canal: 'Shopee',        listify: '~60 min', manual: '~5 horas' },
-  { canal: 'Mercado Livre', listify: '~90 min', manual: '~6 horas' },
-  { canal: 'TikTok Shop',   listify: '~30 min', manual: '~3 horas' },
-  { canal: 'Bling',         listify: '~40 min', manual: '~4 horas' },
-]
-
-const PLANS = [
-  {
-    name: 'Starter',
-    price: 'R$29',
-    popular: false,
-    features: ['100 produtos/mês', '2 canais simultâneos', '5 catálogos salvos', 'Correção automática de erros'],
-    cta: 'Começar agora',
-    href: '/cadastro',
-  },
-  {
-    name: 'Profissional',
-    price: 'R$59',
-    popular: true,
-    features: ['500 produtos/mês', '4 canais simultâneos', '30 catálogos salvos', 'Tudo do Starter'],
-    cta: 'Começar agora',
-    href: '/cadastro',
-  },
-  {
-    name: 'Agência',
-    price: 'R$127',
-    popular: false,
-    features: ['Produtos ilimitados', '6 canais simultâneos', 'Catálogos ilimitados', '3 usuários', 'Tudo do Profissional'],
-    cta: 'Falar com a equipe',
-    href: '/cadastro',
-  },
-]
-
-const FAQ_ITEMS = [
-  {
-    q: 'Preciso saber programar para usar?',
-    a: 'Não. A Listify é uma plataforma web. Você usa pelo navegador, sem instalar nada.',
-  },
-  {
-    q: 'Funciona para qualquer tipo de produto?',
-    a: 'Sim. O sistema infere especificações a partir do nome do produto. Funciona para qualquer categoria.',
-  },
-  {
-    q: 'O que acontece se o upload der erro?',
-    a: 'Você envia o arquivo de resultado para a Listify e recebe uma versão corrigida automaticamente.',
-  },
-  {
-    q: 'Preciso baixar algum template dos marketplaces?',
-    a: 'Não. Os templates estão armazenados internamente e são mantidos atualizados. Você recebe só o arquivo preenchido.',
-  },
-  {
-    q: 'Funciona para MEI e Simples Nacional?',
-    a: 'Sim. O preço é calculado com a fórmula correta para cada regime tributário.',
-  },
-]
-
 export default function Home() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [faqOpen, setFaqOpen] = useState<number | null>(null)
+
+  const faqs = [
+    { q: 'Preciso saber programar para usar?', r: 'Não. A Listify é uma plataforma web. Você usa pelo navegador, sem instalar nada.' },
+    { q: 'Funciona para qualquer tipo de produto?', r: 'Sim. O sistema infere specs pelo nome do produto. Funciona para qualquer categoria.' },
+    { q: 'O que acontece se o upload der erro?', r: 'Você envia o arquivo de resultado para a Listify e recebe uma versão corrigida automaticamente.' },
+    { q: 'Preciso baixar algum template dos marketplaces?', r: 'Não. Os templates estão armazenados internamente. Você recebe só o arquivo preenchido.' },
+    { q: 'Funciona para MEI e Simples Nacional?', r: 'Sim. O preço é calculado com a fórmula correta para cada regime tributário.' },
+  ]
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#202124] font-sans">
+    <>
+      <style>{`
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f8f9fa; color: #202124; }
+        .nav { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+        .nav-logo { font-size: 20px; font-weight: 700; color: #1a73e8; text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
+        .nav-logo span { font-size: 11px; font-weight: 400; color: #5f6368; }
+        .nav-links { display: flex; gap: 32px; list-style: none; }
+        .nav-links a { font-size: 14px; color: #5f6368; text-decoration: none; }
+        .nav-links a:hover { color: #202124; }
+        .nav-cta { background: #1a73e8; color: #fff; font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 24px; text-decoration: none; }
+        .nav-cta:hover { background: #1557b0; }
+        .hero { background: #fff; padding: 96px 40px 80px; text-align: center; }
+        .hero-badge { display: inline-block; border: 1px solid #e8eaed; font-size: 12px; color: #5f6368; padding: 6px 16px; border-radius: 24px; margin-bottom: 28px; }
+        .hero h1 { font-size: 52px; font-weight: 700; color: #202124; line-height: 1.12; max-width: 680px; margin: 0 auto 20px; }
+        .hero h1 em { color: #1a73e8; font-style: normal; }
+        .hero p { font-size: 18px; color: #5f6368; max-width: 540px; margin: 0 auto 36px; line-height: 1.65; }
+        .hero-btns { display: flex; gap: 14px; justify-content: center; }
+        .btn-primary { background: #1a73e8; color: #fff; padding: 14px 32px; border-radius: 28px; font-size: 15px; font-weight: 500; text-decoration: none; }
+        .btn-primary:hover { background: #1557b0; }
+        .btn-outline { border: 1.5px solid #1a73e8; color: #1a73e8; padding: 14px 32px; border-radius: 28px; font-size: 15px; font-weight: 500; text-decoration: none; }
+        .btn-outline:hover { background: #f0f4ff; }
+        .channels { background: #f8f9fa; border-top: 1px solid #e8eaed; border-bottom: 1px solid #e8eaed; padding: 24px 40px; text-align: center; }
+        .channels-label { font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+        .channels-list { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; }
+        .channels-list span { font-size: 15px; font-weight: 500; color: #202124; }
+        .section { padding: 80px 40px; }
+        .section-white { background: #fff; }
+        .section-gray { background: #f8f9fa; }
+        .section-title { font-size: 32px; font-weight: 700; color: #202124; text-align: center; margin-bottom: 10px; }
+        .section-sub { font-size: 15px; color: #5f6368; text-align: center; margin-bottom: 48px; }
+        .container { max-width: 960px; margin: 0 auto; }
+        .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .card { background: #fff; border: 1px solid #e8eaed; border-radius: 20px; padding: 32px; }
+        .card-num { font-size: 52px; font-weight: 700; color: #1a73e8; line-height: 1; margin-bottom: 16px; }
+        .card-title { font-size: 16px; font-weight: 600; color: #202124; margin-bottom: 10px; }
+        .card-desc { font-size: 14px; color: #5f6368; line-height: 1.65; }
+        .grid6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .card-sm { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; padding: 24px; }
+        .card-sm .card-title { font-size: 14px; margin-bottom: 8px; }
+        .card-sm .card-desc { font-size: 13px; }
+        .table-wrap { max-width: 580px; margin: 0 auto; border: 1px solid #e8eaed; border-radius: 20px; overflow: hidden; }
+        .table-head { background: #f8f9fa; display: grid; grid-template-columns: 1.5fr 1fr 1fr; padding: 14px 28px; font-size: 11px; font-weight: 600; color: #5f6368; text-transform: uppercase; letter-spacing: .06em; }
+        .table-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; padding: 16px 28px; border-top: 1px solid #e8eaed; align-items: center; }
+        .t-canal { font-size: 15px; font-weight: 500; color: #202124; }
+        .t-listify { font-size: 15px; font-weight: 600; color: #1a73e8; }
+        .t-manual { font-size: 15px; color: #9aa0a6; text-decoration: line-through; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .plan { background: #fff; border: 1px solid #e8eaed; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; }
+        .plan.featured { border: 2px solid #1a73e8; position: relative; }
+        .plan-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #1a73e8; color: #fff; font-size: 11px; font-weight: 500; padding: 5px 16px; border-radius: 12px; white-space: nowrap; }
+        .plan-name { font-size: 11px; font-weight: 600; color: #5f6368; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+        .plan-price { font-size: 40px; font-weight: 700; color: #202124; line-height: 1; }
+        .plan-period { font-size: 14px; color: #5f6368; margin-top: 4px; margin-bottom: 24px; }
+        .plan-features { list-style: none; flex: 1; display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+        .plan-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #202124; }
+        .plan-features li::before { content: '✓'; color: #1a73e8; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+        .btn-plan { width: 100%; padding: 12px; border-radius: 24px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1.5px solid #1a73e8; color: #1a73e8; background: transparent; transition: background .15s; }
+        .btn-plan:hover { background: #f0f4ff; }
+        .btn-plan.featured-btn { background: #1a73e8; color: #fff; }
+        .btn-plan.featured-btn:hover { background: #1557b0; }
+        .faq-list { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+        .faq-item { border: 1px solid #e8eaed; border-radius: 14px; overflow: hidden; }
+        .faq-q { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; text-align: left; font-size: 15px; font-weight: 500; color: #202124; background: transparent; border: none; cursor: pointer; }
+        .faq-q:hover { background: #f8f9fa; }
+        .faq-icon { font-size: 22px; color: #5f6368; line-height: 1; flex-shrink: 0; }
+        .faq-a { padding: 14px 22px 18px; font-size: 14px; color: #5f6368; line-height: 1.65; border-top: 1px solid #e8eaed; }
+        .cta-section { background: #1a73e8; padding: 80px 40px; text-align: center; }
+        .cta-section h2 { font-size: 40px; font-weight: 700; color: #fff; max-width: 540px; margin: 0 auto 32px; line-height: 1.2; }
+        .cta-note { font-size: 13px; color: rgba(255,255,255,.7); margin-top: 16px; }
+        .btn-white { background: #fff; color: #1a73e8; padding: 15px 36px; border-radius: 28px; font-size: 15px; font-weight: 600; text-decoration: none; display: inline-block; }
+        .btn-white:hover { background: #e8f0fe; }
+        .footer { background: #202124; padding: 48px 40px; }
+        .footer-inner { max-width: 960px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .footer-logo { font-size: 17px; font-weight: 700; color: #fff; }
+        .footer-tagline { font-size: 12px; color: #9aa0a6; margin-top: 4px; }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-links a { font-size: 13px; color: #9aa0a6; text-decoration: none; }
+        .footer-links a:hover { color: #fff; }
+        .footer-copy { font-size: 12px; color: #9aa0a6; }
+        @media (max-width: 768px) {
+          .hero h1 { font-size: 34px; }
+          .hero-btns { flex-direction: column; align-items: center; }
+          .grid3 { grid-template-columns: 1fr; }
+          .grid6 { grid-template-columns: 1fr 1fr; }
+          .pricing-grid { grid-template-columns: 1fr; }
+          .nav-links { display: none; }
+          .footer-inner { flex-direction: column; text-align: center; }
+        }
+      `}</style>
 
-      {/* ── Navbar ──────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#e8eaed]">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <span className="text-xl font-bold text-[#1a73e8]">Listify</span>
-            <span className="text-xs text-[#5f6368] ml-2 hidden sm:inline">by Anthropic Claude</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-[#5f6368]">
-            <a href="#como-funciona" className="hover:text-[#202124] transition-colors">Funcionalidades</a>
-            <a href="#precos" className="hover:text-[#202124] transition-colors">Preços</a>
-            <Link href="/login" className="hover:text-[#202124] transition-colors">Entrar</Link>
-          </nav>
-          <Link
-            href="/cadastro"
-            className="bg-[#1a73e8] text-white text-sm px-5 py-2 rounded-full hover:bg-blue-700 transition-colors font-medium"
-          >
-            Começar grátis
-          </Link>
-        </div>
-      </header>
+      {/* NAV */}
+      <nav className="nav">
+        <Link href="/" className="nav-logo">Listify <span>by Anthropic Claude</span></Link>
+        <ul className="nav-links">
+          <li><a href="#funcionalidades">Funcionalidades</a></li>
+          <li><a href="#precos">Preços</a></li>
+          <li><Link href="/login">Entrar</Link></li>
+        </ul>
+        <Link href="/cadastro" className="nav-cta">Começar grátis</Link>
+      </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────── */}
-      <section className="min-h-[85vh] flex flex-col items-center justify-center text-center bg-white px-6 pt-24 pb-20">
-        <div className="inline-flex border border-[#e8eaed] text-xs text-[#5f6368] px-4 py-1.5 rounded-full mb-8">
-          Powered by Claude AI — Anthropic
-        </div>
-        <h1 className="text-5xl md:text-6xl font-bold text-[#202124] leading-tight max-w-3xl mx-auto mb-6 tracking-tight">
-          Cadastre produtos em marketplaces em minutos, não em horas
-        </h1>
-        <p className="text-lg text-[#5f6368] max-w-2xl mx-auto mb-10 leading-relaxed">
-          Você informa o produto, as fotos e o custo. A Listify gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/cadastro"
-            className="bg-[#1a73e8] text-white px-8 py-3.5 rounded-full text-base font-medium hover:bg-blue-700 transition-colors"
-          >
-            Começar grátis
-          </Link>
-          <a
-            href="#como-funciona"
-            className="border border-[#1a73e8] text-[#1a73e8] px-8 py-3.5 rounded-full text-base font-medium hover:bg-blue-50 transition-colors"
-          >
-            Ver como funciona
-          </a>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-badge">Powered by Claude AI — Anthropic</div>
+        <h1>Cadastre produtos em marketplaces em <em>minutos</em>, não em horas</h1>
+        <p>Você informa o produto, as fotos e o custo. A Listify gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.</p>
+        <div className="hero-btns">
+          <Link href="/cadastro" className="btn-primary">Começar grátis</Link>
+          <a href="#como-funciona" className="btn-outline">Ver como funciona</a>
         </div>
       </section>
 
-      {/* ── Canais ──────────────────────────────────────────────── */}
-      <section className="bg-[#f8f9fa] py-10 border-y border-[#e8eaed]">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm text-[#5f6368] mb-4 uppercase tracking-wide">Gera arquivos prontos para:</p>
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2">
-            {['Mercado Livre', 'Shopee', 'Amazon', 'Magazine Luiza', 'TikTok Shop', 'Bling'].map(c => (
-              <span key={c} className="text-base font-medium text-[#202124]">{c}</span>
-            ))}
+      {/* CANAIS */}
+      <div className="channels">
+        <div className="channels-label">Gera arquivos prontos para:</div>
+        <div className="channels-list">
+          <span>Mercado Livre</span><span>Shopee</span><span>Amazon</span><span>Magazine Luiza</span><span>TikTok Shop</span><span>Bling</span>
+        </div>
+      </div>
+
+      {/* COMO FUNCIONA */}
+      <section className="section section-white" id="como-funciona">
+        <div className="container">
+          <div className="section-title">Como funciona</div>
+          <div className="section-sub">Três passos. Produto publicado.</div>
+          <div className="grid3">
+            <div className="card"><div className="card-num">01</div><div className="card-title">Informe o produto</div><div className="card-desc">Nome, fotos, estoque, custo e regime tributário. Nada mais.</div></div>
+            <div className="card"><div className="card-num">02</div><div className="card-title">A IA faz o resto</div><div className="card-desc">Pesquisa specs, infere dimensões, calcula preços e cria títulos SEO para cada canal.</div></div>
+            <div className="card"><div className="card-num">03</div><div className="card-title">Baixe e publique</div><div className="card-desc">Arquivo pronto para upload. Guia embutido. Correção automática de erros.</div></div>
           </div>
         </div>
       </section>
 
-      {/* ── Como funciona ───────────────────────────────────────── */}
-      <section id="como-funciona" className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-[#202124] mb-4 tracking-tight">Como funciona</h2>
-          <p className="text-base text-[#5f6368] text-center mb-16">Três passos. Produto publicado.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {STEPS.map(step => (
-              <div key={step.n} className="bg-[#f8f9fa] rounded-2xl p-8 border border-[#e8eaed]">
-                <div className="text-5xl font-bold text-[#1a73e8] mb-4">{step.n}</div>
-                <h3 className="text-lg font-semibold text-[#202124] mb-3">{step.title}</h3>
-                <p className="text-sm text-[#5f6368] leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
+      {/* DIFERENCIAIS */}
+      <section className="section section-gray" id="funcionalidades">
+        <div className="container">
+          <div className="section-title">Por que a Listify</div>
+          <div className="section-sub" style={{marginBottom: '32px'}}></div>
+          <div className="grid6">
+            <div className="card-sm"><div className="card-title">5 inputs. A IA infere o resto</div><div className="card-desc">Dimensões, NCM, EAN, categoria e descrições gerados automaticamente.</div></div>
+            <div className="card-sm"><div className="card-title">Todos os canais principais</div><div className="card-desc">ML, Shopee, Amazon, Magalu, TikTok Shop e Bling em um catálogo.</div></div>
+            <div className="card-sm"><div className="card-title">Templates internos</div><div className="card-desc">Você nunca baixa template. Recebe só o arquivo preenchido e pronto.</div></div>
+            <div className="card-sm"><div className="card-title">Banco de erros embutido</div><div className="card-desc">16+ erros documentados com diagnóstico e autocorreção automática.</div></div>
+            <div className="card-sm"><div className="card-title">Preços calculados por canal</div><div className="card-desc">Fórmula por canal e regime tributário. Margem sempre positiva.</div></div>
+            <div className="card-sm"><div className="card-title">SEO automatizado</div><div className="card-desc">Título otimizado por canal com palavra-chave no início.</div></div>
           </div>
         </div>
       </section>
 
-      {/* ── Por que a Listify ────────────────────────────────────── */}
-      <section className="bg-[#f8f9fa] py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-16 tracking-tight">Por que a Listify</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURES.map(f => (
-              <div key={f.title} className="bg-white rounded-2xl p-7 border border-[#e8eaed]">
-                <h3 className="text-base font-semibold text-[#202124] mb-2">{f.title}</h3>
-                <p className="text-sm text-[#5f6368] leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
+      {/* TEMPO */}
+      <section className="section section-white">
+        <div className="container">
+          <div className="section-title">Quanto tempo você economiza</div>
+          <div className="section-sub">Baseado em sessões reais com catálogos de 10–15 produtos</div>
+          <div className="table-wrap">
+            <div className="table-head"><span>Canal</span><span>Com Listify</span><span>Manual</span></div>
+            <div className="table-row"><span className="t-canal">Shopee</span><span className="t-listify">~60 min</span><span className="t-manual">~5 horas</span></div>
+            <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~90 min</span><span className="t-manual">~6 horas</span></div>
+            <div className="table-row"><span className="t-canal">TikTok Shop</span><span className="t-listify">~30 min</span><span className="t-manual">~3 horas</span></div>
+            <div className="table-row"><span className="t-canal">Bling</span><span className="t-listify">~40 min</span><span className="t-manual">~4 horas</span></div>
           </div>
         </div>
       </section>
 
-      {/* ── Comparativo de tempo ─────────────────────────────────── */}
-      <section className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-4 tracking-tight">Quanto tempo você economiza</h2>
-          <p className="text-sm text-[#5f6368] text-center mb-12">
-            Baseado em sessões reais com catálogos de 10–15 produtos
-          </p>
-          <div className="max-w-2xl mx-auto rounded-2xl overflow-hidden border border-[#e8eaed]">
-            <div className="bg-[#f8f9fa] grid grid-cols-3 px-8 py-4">
-              <span className="text-sm font-semibold text-[#5f6368] uppercase tracking-wide">Canal</span>
-              <span className="text-sm font-semibold text-[#5f6368] uppercase tracking-wide text-center">Com Listify</span>
-              <span className="text-sm font-semibold text-[#5f6368] uppercase tracking-wide text-right">Manual</span>
+      {/* PREÇOS */}
+      <section className="section section-gray" id="precos">
+        <div className="container">
+          <div className="section-title">Planos simples, sem surpresa</div>
+          <div className="section-sub" style={{marginBottom: '48px'}}></div>
+          <div className="pricing-grid">
+            <div className="plan">
+              <div className="plan-name">Starter</div>
+              <div className="plan-price">R$29</div>
+              <div className="plan-period">/mês</div>
+              <ul className="plan-features">
+                <li>100 produtos/mês</li>
+                <li>2 canais simultâneos</li>
+                <li>5 catálogos salvos</li>
+                <li>Correção automática de erros</li>
+              </ul>
+              <Link href="/cadastro"><button className="btn-plan">Começar agora</button></Link>
             </div>
-            {TIME_ROWS.map(row => (
-              <div key={row.canal} className="grid grid-cols-3 px-8 py-5 border-t border-[#e8eaed] items-center">
-                <span className="text-base font-medium text-[#202124]">{row.canal}</span>
-                <span className="text-base font-semibold text-[#1a73e8] text-center">{row.listify}</span>
-                <span className="text-base text-[#5f6368] text-right line-through">{row.manual}</span>
-              </div>
-            ))}
+            <div className="plan featured">
+              <div className="plan-badge">Mais popular</div>
+              <div className="plan-name">Profissional</div>
+              <div className="plan-price">R$59</div>
+              <div className="plan-period">/mês</div>
+              <ul className="plan-features">
+                <li>500 produtos/mês</li>
+                <li>4 canais simultâneos</li>
+                <li>30 catálogos salvos</li>
+                <li>Tudo do Starter</li>
+              </ul>
+              <Link href="/cadastro"><button className="btn-plan featured-btn">Começar agora</button></Link>
+            </div>
+            <div className="plan">
+              <div className="plan-name">Agência</div>
+              <div className="plan-price">R$127</div>
+              <div className="plan-period">/mês</div>
+              <ul className="plan-features">
+                <li>Produtos ilimitados</li>
+                <li>6 canais simultâneos</li>
+                <li>Catálogos ilimitados</li>
+                <li>3 usuários</li>
+                <li>Tudo do Profissional</li>
+              </ul>
+              <button className="btn-plan">Falar com a equipe</button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Preços ──────────────────────────────────────────────── */}
-      <section id="precos" className="bg-[#f8f9fa] py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-4 tracking-tight">Planos simples, sem surpresa</h2>
-          <p className="text-sm text-[#5f6368] text-center mb-16">Cancele quando quiser. Sem taxa de setup.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {PLANS.map(plan => (
-              <div
-                key={plan.name}
-                className={`bg-white rounded-2xl p-8 flex flex-col relative ${
-                  plan.popular
-                    ? 'border-2 border-[#1a73e8]'
-                    : 'border border-[#e8eaed]'
-                }`}
-              >
-                {plan.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#1a73e8] text-white text-xs px-4 py-1 rounded-full whitespace-nowrap font-medium">
-                    Mais popular
-                  </span>
-                )}
-                <p className="text-sm font-medium text-[#5f6368] uppercase tracking-wide mb-2">{plan.name}</p>
-                <p className="text-4xl font-bold text-[#202124] mb-1">{plan.price}</p>
-                <p className="text-sm text-[#5f6368] mb-8">/mês</p>
-                <ul className="space-y-3 mb-10 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-[#202124]">
-                      <span className="text-[#1a73e8] font-bold shrink-0">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={plan.href}
-                  className={`w-full py-3 rounded-full text-sm font-medium text-center transition-colors mt-auto ${
-                    plan.popular
-                      ? 'bg-[#1a73e8] text-white border border-[#1a73e8] hover:bg-blue-700'
-                      : 'border border-[#1a73e8] text-[#1a73e8] hover:bg-blue-50'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ─────────────────────────────────────────────────── */}
-      <section className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-16 tracking-tight">Perguntas frequentes</h2>
-          <div className="max-w-2xl mx-auto space-y-4">
-            {FAQ_ITEMS.map((item, i) => (
-              <div key={i} className="border border-[#e8eaed] rounded-xl overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex justify-between items-center px-6 py-5 text-left text-base font-medium text-[#202124] hover:bg-[#f8f9fa] transition-colors cursor-pointer"
-                >
-                  <span>{item.q}</span>
-                  <span className={`text-[#5f6368] text-xl ml-4 shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-45' : ''}`}>
-                    +
-                  </span>
+      {/* FAQ */}
+      <section className="section section-white">
+        <div className="container">
+          <div className="section-title">Perguntas frequentes</div>
+          <div className="section-sub" style={{marginBottom: '40px'}}></div>
+          <div className="faq-list">
+            {faqs.map((f, i) => (
+              <div key={i} className="faq-item">
+                <button className="faq-q" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                  <span>{f.q}</span>
+                  <span className="faq-icon">{faqOpen === i ? '−' : '+'}</span>
                 </button>
-                {openFaq === i && (
-                  <div className="px-6 pb-5 text-sm text-[#5f6368] leading-relaxed border-t border-[#e8eaed] pt-4">
-                    {item.a}
-                  </div>
-                )}
+                {faqOpen === i && <div className="faq-a">{f.r}</div>}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── CTA final ───────────────────────────────────────────── */}
-      <section className="bg-[#1a73e8] py-24 text-center">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-4xl font-bold text-white mb-4 max-w-2xl mx-auto leading-tight tracking-tight">
-            Comece agora. Seu primeiro catálogo em menos de 10 minutos.
-          </h2>
-          <p className="text-blue-100 mb-10 text-base">Sem cartão de crédito. Cancele quando quiser.</p>
-          <Link
-            href="/cadastro"
-            className="inline-block bg-white text-[#1a73e8] px-10 py-4 rounded-full text-base font-semibold hover:bg-blue-50 transition-colors"
-          >
-            Criar conta grátis
-          </Link>
-        </div>
+      {/* CTA */}
+      <section className="cta-section">
+        <h2>Comece agora. Seu primeiro catálogo em menos de 10 minutos.</h2>
+        <Link href="/cadastro" className="btn-white">Criar conta grátis</Link>
+        <div className="cta-note">Sem cartão de crédito. Cancele quando quiser.</div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer className="bg-[#202124] py-12">
-        <div className="max-w-6xl mx-auto px-6 flex flex-wrap justify-between items-center gap-6">
+      {/* FOOTER */}
+      <footer className="footer">
+        <div className="footer-inner">
           <div>
-            <p className="text-white font-bold mb-1">Listify</p>
-            <p className="text-sm text-[#9aa0a6]">Plataforma de cadastro automatizado para marketplaces</p>
+            <div className="footer-logo">Listify</div>
+            <div className="footer-tagline">Plataforma de cadastro automatizado para marketplaces</div>
           </div>
-          <div className="flex gap-6 text-sm text-[#9aa0a6]">
-            <a href="#" className="hover:text-white transition-colors">Termos de Uso</a>
-            <a href="#" className="hover:text-white transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-white transition-colors">Suporte</a>
+          <div className="footer-links">
+            <a href="#">Termos de Uso</a>
+            <a href="#">Privacidade</a>
+            <a href="#">Suporte</a>
           </div>
-          <p className="text-sm text-[#9aa0a6] w-full sm:w-auto">
-            © 2026 Listify. Powered by Claude AI — Anthropic
-          </p>
+          <div className="footer-copy">© 2026 Listify. Powered by Claude AI — Anthropic</div>
         </div>
       </footer>
-
-    </div>
+    </>
   )
 }
