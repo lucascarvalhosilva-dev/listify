@@ -1,253 +1,120 @@
 'use client'
-
 import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export type SectionId = 'cat' | 'hist' | 'plan'
-
-interface NavbarProps {
-  onNovaGeracao?: () => void
-  activeSection?: SectionId
-  onSectionChange?: (section: SectionId) => void
-}
-
-interface Tab {
-  id: string
-  label: string
-  href: string
-}
-
-const TABS: Tab[] = [
-  { id: 'nova', label: 'Nova Geração',    href: '/painel' },
-  { id: 'cat',  label: 'Meus Catálogos', href: '/painel' },
-  { id: 'hist', label: 'Histórico',       href: '/painel' },
-  { id: 'plan', label: 'Meu Plano',       href: '/painel' },
-]
-
-const SECTION_IDS: SectionId[] = ['cat', 'hist', 'plan']
-
-export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }: NavbarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
+export default function Navbar() {
   const [userEmail, setUserEmail] = useState('')
   const [nomeExibicao, setNomeExibicao] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
-    createClient().auth.getSession().then(async ({ data: { session } }) => {
-      setUserEmail(session?.user?.email ?? '')
-      const perfilRes = await fetch('/api/get-profile')
-      if (perfilRes.ok) {
-        const perfil = await perfilRes.json()
-        if (perfil.nome) setNomeExibicao(perfil.nome)
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email) {
+        setUserEmail(session.user.email)
+        const perfilRes = await fetch('/api/get-profile')
+        if (perfilRes.ok) {
+          const perfil = await perfilRes.json()
+          if (perfil.nome) setNomeExibicao(perfil.nome)
+        }
       }
-    })
+    }
+    fetchUser()
   }, [])
 
-  const activeId: string = activeSection ?? 'nova'
-
-  async function signOut() {
-    await createClient().auth.signOut()
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     router.push('/login')
-    router.refresh()
-  }
-
-  function handleTabClick(tab: Tab) {
-    setMenuOpen(false)
-
-    if (tab.id === 'nova') {
-      onNovaGeracao ? onNovaGeracao() : router.push('/painel')
-      return
-    }
-
-    if ((SECTION_IDS as string[]).includes(tab.id)) {
-      if (pathname === '/painel' && onSectionChange) {
-        onSectionChange(tab.id as SectionId)
-      } else {
-        router.push('/painel')
-      }
-      return
-    }
-
-    router.push(tab.href)
   }
 
   const displayName = nomeExibicao || (userEmail ? userEmail.split('@')[0] : '')
+  const inicial = displayName ? displayName[0].toUpperCase() : '?'
+
+  const tabs = [
+    { label: 'Nova Geração', href: '/painel' },
+    { label: 'Meus Catálogos', href: '/painel?aba=catalogos' },
+    { label: 'Histórico', href: '/painel?aba=historico' },
+    { label: 'Meu Plano', href: '/painel?aba=plano' },
+  ]
 
   return (
     <>
       <style>{`
-        .lf-tabs { display: flex; align-items: center; gap: 2px; justify-content: center; }
-        .lf-user-name { display: inline; }
-        .lf-hamburger { display: none !important; align-items: center; justify-content: center; }
-        .lf-mobile-menu { display: none; flex-direction: column; }
-        .lf-tab-btn:hover { background: #f1f3f4 !important; }
-        .lf-signout:hover { background: #f1f3f4 !important; color: #202124 !important; }
-        @media (max-width: 680px) {
-          .lf-tabs { display: none !important; }
-          .lf-hamburger { display: flex !important; }
-          .lf-user-name { display: none; }
-          .lf-mobile-menu.lf-open { display: flex; }
+        .navbar { background: #fff; border-bottom: 1px solid #e8eaed; position: sticky; top: 0; z-index: 50; }
+        .navbar-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+        .navbar-logo { font-size: 18px; font-weight: 700; color: #1a73e8; text-decoration: none; flex-shrink: 0; }
+        .navbar-tabs { display: flex; align-items: center; gap: 2px; flex: 1; }
+        .navbar-tab { font-size: 14px; font-weight: 500; color: #5f6368; text-decoration: none; padding: 6px 14px; border-radius: 8px; white-space: nowrap; transition: background .15s, color .15s; }
+        .navbar-tab:hover { background: #f8f9fa; color: #202124; }
+        .navbar-tab.active { background: #e8f0fe; color: #1a73e8; }
+        .navbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; position: relative; }
+        .navbar-user { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; cursor: pointer; border: none; background: transparent; }
+        .navbar-user:hover { background: #f8f9fa; }
+        .navbar-avatar { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .navbar-username { font-size: 14px; font-weight: 500; color: #202124; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .navbar-chevron { font-size: 10px; color: #5f6368; }
+        .navbar-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid #e8eaed; border-radius: 14px; padding: 8px; min-width: 200px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); z-index: 100; }
+        .dropdown-email { font-size: 12px; color: #5f6368; padding: 8px 12px 12px; border-bottom: 1px solid #e8eaed; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dropdown-link { display: block; font-size: 14px; color: #202124; text-decoration: none; padding: 9px 12px; border-radius: 8px; }
+        .dropdown-link:hover { background: #f8f9fa; }
+        .dropdown-divider { height: 1px; background: #e8eaed; margin: 8px 0; }
+        .dropdown-logout { display: block; width: 100%; text-align: left; font-size: 14px; color: #ea4335; padding: 9px 12px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-family: inherit; }
+        .dropdown-logout:hover { background: #fce8e6; }
+        @media (max-width: 768px) {
+          .navbar-tabs { display: none; }
+          .navbar-username { display: none; }
         }
       `}</style>
 
-      <header style={{
-        borderBottom: '1px solid #e8eaed',
-        background: '#ffffff',
-        position: 'sticky', top: 0, zIndex: 50,
-      }}>
-        <div style={{
-          maxWidth: 1100, margin: '0 auto', padding: '0 20px',
-          height: 56,
-          display: 'grid',
-          gridTemplateColumns: 'auto 1fr auto',
-          alignItems: 'center',
-        }}>
-          {/* Logo */}
-          <Link href="/painel" style={{
-            display: 'flex', alignItems: 'center',
-            textDecoration: 'none', paddingRight: 24,
-          }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: '#202124' }}>Listify</span>
-          </Link>
+      <nav className="navbar">
+        <div className="navbar-inner">
+          <Link href="/painel" className="navbar-logo">Listify</Link>
 
-          {/* Tabs — desktop */}
-          <nav className="lf-tabs">
-            {TABS.map(tab => {
-              const active = activeId === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className="lf-tab-btn"
-                  onClick={() => handleTabClick(tab)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '6px 12px',
-                    background: active ? '#e8f0fe' : 'none',
-                    border: 'none',
-                    borderRadius: 8,
-                    color: active ? '#1a73e8' : '#5f6368',
-                    fontSize: 13, fontWeight: active ? 600 : 500,
-                    cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              )
-            })}
-          </nav>
-
-          {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 20 }}>
-            {displayName && (
-              <span className="lf-user-name" style={{
-                fontSize: 13, color: '#5f6368',
-                maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {displayName}
-              </span>
-            )}
-            <Link
-              href="/configuracoes"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 13, color: '#5f6368',
-                padding: '6px 12px', borderRadius: 8,
-                textDecoration: 'none', whiteSpace: 'nowrap',
-              }}
-            >
-              Configurações
-            </Link>
-            <button
-              onClick={signOut}
-              className="lf-signout"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 13, color: '#5f6368',
-                padding: '6px 12px', borderRadius: 8,
-                transition: 'background 0.15s, color 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Sair
-            </button>
-
-            {/* Hamburger */}
-            <button
-              type="button"
-              className="lf-hamburger"
-              onClick={() => setMenuOpen(o => !o)}
-              style={{
-                background: 'none', border: '1px solid #e8eaed', borderRadius: 8,
-                width: 36, height: 36, cursor: 'pointer',
-                color: '#5f6368', fontSize: 16,
-              }}
-            >
-              {menuOpen ? '✕' : '☰'}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile dropdown */}
-        <div className={`lf-mobile-menu${menuOpen ? ' lf-open' : ''}`} style={{
-          borderTop: '1px solid #e8eaed',
-          background: '#ffffff',
-        }}>
-          {TABS.map(tab => {
-            const active = activeId === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabClick(tab)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '13px 24px', width: '100%',
-                  background: active ? '#e8f0fe' : 'none',
-                  border: 'none',
-                  borderLeft: active ? '3px solid #1a73e8' : '3px solid transparent',
-                  color: active ? '#1a73e8' : '#5f6368',
-                  fontSize: 14, fontWeight: active ? 600 : 400,
-                  cursor: 'pointer', textAlign: 'left' as const,
-                }}
+          <div className="navbar-tabs">
+            {tabs.map(tab => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`navbar-tab ${pathname === tab.href || (tab.href === '/painel' && pathname === '/painel' && !tab.href.includes('?')) ? 'active' : ''}`}
               >
                 {tab.label}
-              </button>
-            )
-          })}
+              </Link>
+            ))}
+          </div>
 
-          <Link
-            href="/configuracoes"
-            onClick={() => setMenuOpen(false)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 24px', width: '100%',
-              background: 'none', border: 'none',
-              borderLeft: '3px solid transparent',
-              color: '#5f6368', fontSize: 14,
-              textDecoration: 'none',
-            }}
-          >
-            Configurações
-          </Link>
+          <div className="navbar-right">
+            <button
+              className="navbar-user"
+              onClick={() => setMenuAberto(!menuAberto)}
+            >
+              <div className="navbar-avatar">{inicial}</div>
+              <span className="navbar-username">{displayName}</span>
+              <span className="navbar-chevron">{menuAberto ? '▲' : '▼'}</span>
+            </button>
 
-          {userEmail && (
-            <div style={{
-              padding: '10px 24px',
-              borderTop: '1px solid #e8eaed',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <span style={{ fontSize: 12, color: '#5f6368', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {userEmail}
-              </span>
-            </div>
-          )}
+            {menuAberto && (
+              <div className="navbar-dropdown">
+                <div className="dropdown-email">{userEmail}</div>
+                <Link href="/configuracoes" className="dropdown-link" onClick={() => setMenuAberto(false)}>
+                  Configurações
+                </Link>
+                <Link href="/upgrade" className="dropdown-link" onClick={() => setMenuAberto(false)}>
+                  Fazer upgrade
+                </Link>
+                <div className="dropdown-divider" />
+                <button className="dropdown-logout" onClick={handleLogout}>
+                  Sair
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </header>
+      </nav>
     </>
   )
 }
