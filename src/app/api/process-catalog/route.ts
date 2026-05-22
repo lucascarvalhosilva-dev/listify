@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { checarLimiteProdutos, checarLimiteCanais } from '@/lib/planos'
+import { getCorrecoesPreventivas } from '@/lib/erros-aprendidos'
 import { inferProductSpecsBatch, type BatchProductSpec } from '@/lib/claude-client'
 import { calcularPrecos } from '@/lib/pricing'
 import { gerarPlanilhaShopee, type ProdutoProcessado } from '@/lib/channels/shopee'
@@ -215,6 +216,16 @@ export async function POST(request: NextRequest) {
       specsMap.set(p.sku, cacheRowToBatchSpec(cacheMap.get(p.nome)!, p.sku))
     }
 
+    // ── Camada 2: Correções preventivas ────────────────────────────────────
+    const correcoesPreventivas = (
+      await Promise.all(canais.map(c => getCorrecoesPreventivas(c)))
+    ).flat()
+    const instrucaoPreventiva = correcoesPreventivas.length > 0
+      ? `\n\nCORREÇÕES PREVENTIVAS OBRIGATÓRIAS para ${canais.join(', ')} (aplique sempre, sem exceção):\n` +
+        correcoesPreventivas.map(c => `- ${c.tipo_erro}: ${c.solucao} (ocorreu ${c.ocorrencias} vezes)`).join('\n')
+      : ''
+    console.log(`[PREVENÇÃO] ${correcoesPreventivas.length} correções preventivas carregadas para ${canais.join(', ')}`)
+
     // ── 3. Chama Claude só para produtos sem cache ──────────────────────────
     if (semCache.length > 0) {
       const chunks: ProdutoInput[][] = []
@@ -232,7 +243,8 @@ export async function POST(request: NextRequest) {
           const specs = await inferProductSpecsBatch(
             chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo })),
             regime,
-            canais
+            canais,
+            instrucaoPreventiva
           )
           for (const spec of specs) {
             specsMap.set(spec.sku, spec)
@@ -288,6 +300,17 @@ export async function POST(request: NextRequest) {
           console.log(`Cache: ${rowsParaUpsert.length} produto(s) salvos`)
         }
       }
+    }
+
+    // ── Camada 3: Alerta de erros críticos ────────────────────────────────────
+    const { data: errosCriticos } = await supabase
+      .from('erros_aprendidos')
+      .select('canal, tipo_erro, ocorrencias')
+      .gte('ocorrencias', 20)
+
+    if (errosCriticos && errosCriticos.length > 0) {
+      console.warn('[CAMADA 3] Erros críticos que devem virar regra fixa no código:',
+        errosCriticos.map(e => `${e.canal}: ${e.tipo_erro} (${e.ocorrencias}x)`).join(' | '))
     }
 
     // ── 5. Monta ProdutoProcessado[] (com_cache + sem_cache juntos) ─────────

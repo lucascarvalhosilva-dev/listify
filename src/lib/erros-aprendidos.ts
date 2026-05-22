@@ -47,6 +47,23 @@ export async function salvarErroAprendido({
   }
 }
 
+export async function getCorrecoesPreventivas(canal: string): Promise<Array<{tipo_erro: string, solucao: string, ocorrencias: number}>> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('erros_aprendidos')
+      .select('tipo_erro, solucao, ocorrencias')
+      .eq('canal', canal)
+      .gte('ocorrencias', 5)
+      .not('solucao', 'is', null)
+      .order('ocorrencias', { ascending: false })
+      .limit(20)
+    return data || []
+  } catch {
+    return []
+  }
+}
+
 export async function getErrosFrequentes(canal: string): Promise<string> {
   try {
     const supabase = await createClient()

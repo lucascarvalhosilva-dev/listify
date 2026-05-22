@@ -148,12 +148,13 @@ function parseArrayResponse(text: string): unknown[] {
 export async function inferProductSpecsBatch(
   produtos: ProdutoParaBatch[],
   regime: 'MEI' | 'SN',
-  canais: string[]
+  canais: string[],
+  systemSuffix?: string
 ): Promise<BatchProductSpec[]> {
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 16000,
-    system: BATCH_SYSTEM_PROMPT,
+    system: BATCH_SYSTEM_PROMPT + (systemSuffix ?? ''),
     messages: [{ role: 'user', content: buildBatchUserPrompt(produtos, regime, canais) }],
   })
 
