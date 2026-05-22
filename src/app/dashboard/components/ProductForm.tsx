@@ -811,21 +811,34 @@ function Step4({
   onBack,
   onConfirm,
   fromCatalogo,
+  numProdutos,
 }: {
   data: FormData
   onBack: () => void
   onConfirm: () => void
   fromCatalogo?: boolean
+  numProdutos?: number
 }) {
   const channelNames = data.channels
     .map(id => CHANNELS.find(c => c.id === id)?.name ?? id)
     .join(', ')
 
+  const totalProdutos = numProdutos || 0
+  const totalCanais = data.channels.length || 1
+  const minutos = Math.ceil(totalProdutos * totalCanais * 0.5)
+  const tempoEstimado = totalProdutos === 0
+    ? '—'
+    : minutos < 60
+      ? `~${minutos} minutos`
+      : `~${Math.ceil(minutos / 60)} hora${Math.ceil(minutos / 60) > 1 ? 's' : ''}`
+
   const rows: [string, string][] = [
     [fromCatalogo ? 'Produtos' : 'Planilha', fromCatalogo ? 'Catálogo salvo' : (data.file?.name ?? '—')],
+    ['Produtos detectados', totalProdutos > 0 ? `${totalProdutos} produto${totalProdutos !== 1 ? 's' : ''}` : '—'],
     ['Regime tributário', data.taxRegime],
     ['Google Drive',      data.driveLink],
     ['Canais',            channelNames || '—'],
+    ['Tempo estimado',    tempoEstimado],
   ]
 
   return (
@@ -856,6 +869,10 @@ function Step4({
           </div>
         ))}
       </div>
+
+      <p style={{ fontSize: '13px', color: '#5f6368', textAlign: 'center', margin: '16px 0 8px', lineHeight: '1.5' }}>
+        Não feche esta aba durante o processamento. Você receberá os arquivos ao final.
+      </p>
 
       <button
         onClick={onConfirm}
@@ -3248,7 +3265,7 @@ export default function ProductForm({
         {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} onCarregarCatalogo={handleCarregarCatalogo} />}
         {step === 2 && <Step2 data={data} onChange={patch} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
         {step === 3 && <Step3 data={data} onChange={patch} onNext={() => setStep(4)} onBack={() => fromCatalogo ? setStep(1) : setStep(2)} />}
-        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={fromCatalogo ? handleConfirmFromCatalogo : handleConfirm} fromCatalogo={fromCatalogo} />}
+        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={fromCatalogo ? handleConfirmFromCatalogo : handleConfirm} fromCatalogo={fromCatalogo} numProdutos={editados.length} />}
       </div>
     </div>
   )
