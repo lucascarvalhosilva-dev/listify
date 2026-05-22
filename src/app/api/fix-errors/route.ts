@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import * as XLSX from 'xlsx'
 import Anthropic from '@anthropic-ai/sdk'
 import { SHOPEE_ERROR_GUIDE, ML_ERROR_GUIDE } from '@/lib/errors/marketplace-errors'
+import { salvarErroAprendido, getErrosFrequentes } from '@/lib/erros-aprendidos'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -223,6 +224,7 @@ Inclua apenas os produtos que precisam de correção. Se nenhum precisar, retorn
     }
 
     // ── Mode B: marketplace error report (has error column) ────────────────────
+    const errosConhecidos = await getErrosFrequentes(canal)
     const errorColName = headers[errorColIdx]
 
     const rowsWithErrors = dataRows
@@ -271,18 +273,30 @@ Regras:
     const msgB = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4000,
-      system: 'Você é um especialista em marketplaces brasileiros. Responda APENAS com array JSON válido, sem markdown.',
+      system: `Você é um especialista em marketplaces brasileiros. Responda APENAS com array JSON válido, sem markdown.${errosConhecidos}`,
       messages: [{ role: 'user', content: promptB }],
     })
 
     const rawB = msgB.content[0]
     if (rawB.type !== 'text') throw new Error('Resposta inesperada da IA')
 
+    const correctionsB = parseArraySafe(rawB.text) as Correction[]
     const { correctedRows: correctedB, diagnosticos: diagB, corrigidos: corrigidosB } = applyCorrections(
-      parseArraySafe(rawB.text) as Correction[],
+      correctionsB,
       headers,
       dataRows
     )
+
+    for (const c of correctionsB) {
+      const primeiroCampo = Object.keys(c.correcoes ?? {})[0]
+      await salvarErroAprendido({
+        canal,
+        tipoErro: String(dataRows[c.linha]?.[errorColIdx] ?? 'erro desconhecido'),
+        causa: c.diagnostico || undefined,
+        exemploOriginal: primeiroCampo ? String(dataRows[c.linha]?.[headers.indexOf(primeiroCampo)] ?? '') : undefined,
+        exemploCorrigido: primeiroCampo ? c.correcoes[primeiroCampo] : undefined,
+      })
+    }
 
     const filteredHeaders = headers.filter((_, i) => i !== errorColIdx)
     const filteredRows = correctedB.map(row => row.filter((_, i) => i !== errorColIdx))
