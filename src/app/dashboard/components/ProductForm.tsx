@@ -843,12 +843,18 @@ function Step4({
 
   const totalProdutos = numProdutos || 0
   const totalCanais = data.channels.length || 1
-  const minutos = Math.ceil(totalProdutos * totalCanais * 0.5)
+  const BATCH_SIZE = 5
+  const SEGUNDOS_POR_BATCH = 18
+  const batches = Math.ceil(totalProdutos / BATCH_SIZE)
+  const segundosTotal = batches * SEGUNDOS_POR_BATCH * totalCanais
+  const minutos = Math.ceil(segundosTotal / 60)
   const tempoEstimado = totalProdutos === 0
     ? '—'
-    : minutos < 60
-      ? `~${minutos} minutos`
-      : `~${Math.ceil(minutos / 60)} hora${Math.ceil(minutos / 60) > 1 ? 's' : ''}`
+    : minutos < 2
+      ? '~1 minuto'
+      : minutos < 60
+        ? `~${minutos} minutos`
+        : `~${Math.ceil(minutos / 60)}h${minutos % 60 > 0 ? ` ${minutos % 60}min` : ''}`
 
   const rows: [string, string][] = [
     [fromCatalogo ? 'Produtos' : 'Planilha', fromCatalogo ? 'Catálogo salvo' : (data.file?.name ?? '—')],
