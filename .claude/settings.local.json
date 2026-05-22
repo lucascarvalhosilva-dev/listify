@@ -32,7 +32,9 @@
       "Bash(Read the *)",
       "Bash(python3 -)",
       "Bash(node -)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

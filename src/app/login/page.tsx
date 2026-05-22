@@ -39,15 +39,25 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
+    if (error || !data.user) {
       setError('Email ou senha inválidos.')
       setLoading(false)
       return
     }
 
-    router.push('/painel')
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completo')
+      .eq('id', data.user.id)
+      .maybeSingle()
+
+    if ((profile as { onboarding_completo?: boolean } | null)?.onboarding_completo) {
+      router.push('/painel')
+    } else {
+      router.push('/onboarding')
+    }
     router.refresh()
   }
 
