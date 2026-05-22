@@ -1,7 +1,25 @@
 'use client'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 export default function Upgrade() {
+  const searchParams = useSearchParams()
+  const motivo = searchParams.get('motivo')
+
+  const mensagensBloqueio: Record<string, { titulo: string; descricao: string }> = {
+    produtos: {
+      titulo: 'Você atingiu o limite de produtos do plano Free',
+      descricao: 'O plano Free permite processar até 5 produtos por mês. Faça upgrade para continuar cadastrando produtos.',
+    },
+    canais: {
+      titulo: 'Canal não disponível no plano Free',
+      descricao: 'O plano Free permite apenas Shopee e Mercado Livre. Faça upgrade para acessar Amazon, TikTok Shop, Magalu e Bling.',
+    },
+    catalogos: {
+      titulo: 'Você atingiu o limite de catálogos do plano Free',
+      descricao: 'O plano Free permite salvar apenas 1 catálogo. Faça upgrade para salvar mais catálogos.',
+    },
+  }
   const planos = [
     {
       nome: 'Starter',
@@ -78,6 +96,10 @@ export default function Upgrade() {
         .plano-atual-sub { font-size: 13px; color: #5f6368; margin-top: 2px; }
         .garantia { text-align: center; margin-top: 40px; font-size: 13px; color: #5f6368; }
         .garantia span { font-weight: 600; color: #202124; }
+        .bloqueio-banner { background: #fff8e1; border: 1px solid #ffe082; border-radius: 16px; padding: 20px 28px; max-width: 900px; margin: 0 auto 32px; display: flex; align-items: flex-start; gap: 16px; }
+        .bloqueio-icone { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+        .bloqueio-titulo { font-size: 15px; font-weight: 600; color: #202124; margin-bottom: 4px; }
+        .bloqueio-desc { font-size: 14px; color: #5f6368; line-height: 1.5; }
         @media (max-width: 768px) {
           .planos-grid { grid-template-columns: 1fr; }
           .upgrade-title { font-size: 28px; }
@@ -92,6 +114,16 @@ export default function Upgrade() {
           <h1 className="upgrade-title">Escolha seu plano</h1>
           <p className="upgrade-sub">Desbloqueie mais produtos, canais e funcionalidades para escalar suas vendas.</p>
         </div>
+
+        {motivo && mensagensBloqueio[motivo] && (
+          <div className="bloqueio-banner">
+            <div className="bloqueio-icone">⚠️</div>
+            <div>
+              <div className="bloqueio-titulo">{mensagensBloqueio[motivo].titulo}</div>
+              <div className="bloqueio-desc">{mensagensBloqueio[motivo].descricao}</div>
+            </div>
+          </div>
+        )}
 
         <div className="plano-atual" style={{maxWidth: '900px', margin: '0 auto 40px'}}>
           <div className="plano-atual-info">

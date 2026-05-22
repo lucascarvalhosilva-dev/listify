@@ -166,14 +166,14 @@ export async function POST(request: NextRequest) {
     // Checar limite de produtos
     const checkProdutos = await checarLimiteProdutos(produtos?.length || 0)
     if (!checkProdutos.ok) {
-      return NextResponse.json({ error: checkProdutos.mensagem, upgrade: true }, { status: 403 })
+      return NextResponse.json({ error: checkProdutos.mensagem, upgrade: true, motivo: 'produtos' }, { status: 403 })
     }
 
     // Checar limite de canais
     if (canais && canais.length > 0) {
       const checkCanais = await checarLimiteCanais(canais)
       if (!checkCanais.ok) {
-        return NextResponse.json({ error: checkCanais.mensagem, upgrade: true }, { status: 403 })
+        return NextResponse.json({ error: checkCanais.mensagem, upgrade: true, motivo: 'canais' }, { status: 403 })
       }
     }
 

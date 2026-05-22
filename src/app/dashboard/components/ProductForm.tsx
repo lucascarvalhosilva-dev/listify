@@ -970,7 +970,7 @@ function ProntoScreen({
       if (res.status === 403) {
         const data = await res.json()
         if (data.upgrade) {
-          window.location.href = '/upgrade'
+          window.location.href = '/upgrade?motivo=catalogos'
           return
         }
       }
@@ -3115,7 +3115,7 @@ export default function ProductForm({
         if (res.status === 403) {
           const data = await res.json()
           if (data.upgrade) {
-            window.location.href = '/upgrade'
+            window.location.href = `/upgrade?motivo=${data.motivo ?? 'produtos'}`
             return
           }
         }
