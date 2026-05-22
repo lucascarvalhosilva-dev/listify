@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '../components/Logo'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -109,7 +110,7 @@ export default function CadastroPage() {
       <div style={cardStyle}>
 
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 4 }}>Listify</h1>
+          <div style={{ marginBottom: 4 }}><Logo size="lg" /></div>
           <p style={{ fontSize: 14, color: '#5f6368' }}>
             Criar conta ·{' '}
             <Link href="/login" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 500 }}>Entrar</Link>

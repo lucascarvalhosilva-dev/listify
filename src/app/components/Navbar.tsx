@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Logo from './Logo'
 
 export default function Navbar() {
   const [userEmail, setUserEmail] = useState('')
@@ -73,7 +74,7 @@ export default function Navbar() {
 
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link href="/painel" className="navbar-logo">Listify</Link>
+          <Link href="/painel" className="navbar-logo"><Logo /></Link>
 
           <div className="navbar-tabs">
             {tabs.map(tab => (

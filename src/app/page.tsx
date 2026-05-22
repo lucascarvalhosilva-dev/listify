@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Logo from './components/Logo'
 
 export default function Home() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null)
@@ -107,7 +108,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav className="nav">
-        <Link href="/" className="nav-logo">Listify <span>by Anthropic Claude</span></Link>
+        <Link href="/" className="nav-logo"><Logo /> <span>by Anthropic Claude</span></Link>
         <ul className="nav-links">
           <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#precos">Preços</a></li>
@@ -120,7 +121,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-badge">Powered by Claude AI — Anthropic</div>
         <h1>Cadastre produtos em marketplaces em <em>minutos</em>, não em horas</h1>
-        <p>Você informa o produto, as fotos e o custo. A Listify gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.</p>
+        <p>Você informa o produto, as fotos e o custo. A Guiamos gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.</p>
         <div className="hero-btns">
           <Link href="/cadastro" className="btn-primary">Começar agora</Link>
           <a href="#como-funciona" className="btn-outline">Ver como funciona</a>
@@ -274,7 +275,7 @@ export default function Home() {
       <footer className="footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-logo">Listify</div>
+            <div className="footer-logo"><Logo size="md" /></div>
             <div className="footer-tagline">Plataforma de cadastro automatizado para marketplaces</div>
           </div>
           <div className="footer-links">
@@ -282,7 +283,7 @@ export default function Home() {
             <a href="#">Privacidade</a>
             <a href="#">Suporte</a>
           </div>
-          <div className="footer-copy">© 2026 Listify. Powered by Claude AI — Anthropic</div>
+          <div className="footer-copy">© 2026 Guiamos. Powered by Claude AI — Anthropic</div>
         </div>
       </footer>
     </>

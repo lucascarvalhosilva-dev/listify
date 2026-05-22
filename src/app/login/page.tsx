@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import Logo from '../components/Logo'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -66,7 +67,7 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: 420, background: '#ffffff', borderRadius: 20, border: '1px solid #e8eaed', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', padding: '40px 48px' }}>
 
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 4 }}>Listify</h1>
+          <div style={{ marginBottom: 4 }}><Logo size="lg" /></div>
           <p style={{ fontSize: 14, color: '#5f6368' }}>Acesse sua conta</p>
         </div>
 
