@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json() as { nome?: string; produtos?: unknown; drive_url?: string; regime_tributario?: string }
-    const { nome, produtos, drive_url, regime_tributario } = body
+    const body = await request.json() as { nome?: string; canal?: string | null; produtos?: unknown; drive_url?: string; regime_tributario?: string }
+    const { nome, canal, produtos, drive_url, regime_tributario } = body
 
     if (!nome?.trim() || !Array.isArray(produtos) || !regime_tributario) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         nome: nome.trim(),
+        canal: canal ?? null,
         produtos,
         drive_url: drive_url ?? '',
         regime_tributario,

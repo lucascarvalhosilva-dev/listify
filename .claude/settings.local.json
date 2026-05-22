@@ -23,7 +23,12 @@
       "Bash(Write-Output \"dir created\")",
       "PowerShell(New-Item *)",
       "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Lucas\\\\Desktop\\\\listify\\\\src\\\\app\\\\painel\")",
-      "Bash(Write-Host \"done\")"
+      "Bash(Write-Host \"done\")",
+      "Bash(Select-Object FullName)",
+      "Bash(npx shadcn@latest init --help)",
+      "Bash(npx shadcn@latest init -y --css-variables)",
+      "Bash(npx shadcn@latest init -y -b radix -d)",
+      "Bash(npx shadcn@latest add input label card badge separator sheet tabs avatar -y)"
     ]
   }
 }

@@ -82,6 +82,11 @@ const EMBALAGEM_PADRAO: Record<string, number> = {
   shopee: 2.5, mercado_livre: 5.5, tiktok_shop: 4.0, amazon: 5.5, magalu: 5.5, bling: 0,
 }
 
+const CANAL_NOME: Record<string, string> = {
+  shopee: 'Shopee', mercado_livre: 'Mercado Livre', tiktok_shop: 'TikTok Shop',
+  bling: 'Bling (ERP)', magalu: 'Magazine Luiza', amazon: 'Amazon Brasil', todos: 'Todos os canais',
+}
+
 // ── Guias de upload ────────────────────────────────────────────────────────────
 
 interface PassoGuia { texto: string; atencao?: boolean }
@@ -254,15 +259,16 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
 
 export default function AdicionarProdutosPage() {
   const router = useRouter()
-
   const [etapa, setEtapa] = useState<Etapa>(1)
   const [catalogos, setCatalogos] = useState<CatalogoItem[]>([])
   const [carregandoCatalogos, setCarregandoCatalogos] = useState(true)
   const [catalogoSelecionado, setCatalogoSelecionado] = useState<CatalogoItem | null>(null)
+  const [catIdParam, setCatIdParam] = useState<string | null>(null)
 
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [linhasArquivo, setLinhasArquivo] = useState<ProdutoLinha[]>([])
 
+  const [guiaAberto, setGuiaAberto] = useState(false)
   const [canal, setCanal] = useState('')
   const [regime, setRegime] = useState<'MEI' | 'Simples Nacional'>('MEI')
 
@@ -270,6 +276,22 @@ export default function AdicionarProdutosPage() {
   const [numProcessados, setNumProcessados] = useState(0)
   const [resultado, setResultado] = useState<{ produtos_processados: number; arquivos: Record<string, string | null> } | null>(null)
   const [erroMsg, setErroMsg] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const cat = params.get('cat')
+    if (!cat) {
+      router.push('/painel')
+      return
+    }
+    setCatIdParam(cat)
+  }, [router])
+
+  useEffect(() => {
+    if (!catIdParam || catalogos.length === 0) return
+    const cat = catalogos.find(c => c.id === catIdParam)
+    if (cat) setCatalogoSelecionado(cat)
+  }, [catIdParam, catalogos])
 
   useEffect(() => {
     fetch('/api/get-catalogs')
@@ -387,79 +409,128 @@ export default function AdicionarProdutosPage() {
 
           {/* ── Step 1: Selecionar catálogo ─────────────────────────────── */}
           {etapa === 1 && (
-            <div style={{
-              background: 'var(--navy-2)', border: '1px solid var(--border)',
-              borderRadius: 20, padding: '36px 32px',
-            }}>
-              <StepIndicator current={1} />
-              <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
-                Qual catálogo já está publicado?
-              </h2>
-              <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 24px', lineHeight: 1.6 }}>
-                Selecione o catálogo que você já publicou nesse canal. A Listify vai comparar os SKUs para identificar apenas os novos.
-              </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {carregandoCatalogos ? (
-                <p style={{ fontSize: 14, color: 'var(--muted)' }}>Carregando catálogos...</p>
-              ) : catalogos.length === 0 ? (
-                <div style={{
-                  background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)',
-                  borderRadius: 10, padding: '14px 16px', marginBottom: 24,
-                }}>
-                  <p style={{ fontSize: 13, color: '#fbbf24', margin: 0, lineHeight: 1.6 }}>
-                    Nenhum catálogo salvo. Crie e salve um catálogo primeiro.{' '}
-                    <Link href="/painel" style={{ color: '#fbbf24', fontWeight: 600 }}>Ir ao painel →</Link>
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                  {catalogos.map(cat => {
-                    const sel = catalogoSelecionado?.id === cat.id
-                    return (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setCatalogoSelecionado(cat)}
-                        style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '14px 16px', borderRadius: 10,
-                          border: `2px solid ${sel ? 'var(--blue)' : 'var(--border)'}`,
-                          background: sel ? 'rgba(37,99,235,0.1)' : 'var(--navy)',
-                          cursor: 'pointer', textAlign: 'left' as const, gap: 12, transition: 'all 0.15s',
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: sel ? 'var(--white)' : 'var(--muted)' }}>
-                            {cat.nome}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                            {cat.produtos.length} produto{cat.produtos.length !== 1 ? 's' : ''}{' '}
-                            · {cat.regime_tributario}{' '}
-                            · {new Date(cat.atualizado_em).toLocaleDateString('pt-BR')}
-                          </div>
+              {/* Banner "Como funciona?" */}
+              <div style={{
+                background: 'var(--navy-2)', border: '1px solid var(--border)',
+                borderRadius: 12, overflow: 'hidden',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setGuiaAberto(o => !o)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', background: 'none', border: 'none',
+                    cursor: 'pointer', gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>ℹ️</span>
+                    <span style={{ fontWeight: 500 }}>Como funciona?</span>
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)', transition: 'transform 0.2s', display: 'inline-block', transform: guiaAberto ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                </button>
+                {guiaAberto && (
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[
+                      'Selecione o catálogo que você já publicou em um canal',
+                      'Faça upload da planilha com TODOS os seus produtos (novos e antigos)',
+                      'A Listify identifica automaticamente quais SKUs são novos',
+                      'Escolha o canal de destino e gere a planilha só com os novos',
+                      'Faça upload no novo canal — os produtos existentes não são afetados',
+                    ].map((texto, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, color: 'var(--blue-glow)',
+                          background: 'rgba(37,99,235,0.15)', borderRadius: '50%',
+                          width: 20, height: 20, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{i + 1}</span>
+                        <span style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>{texto}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Card principal Step 1 */}
+              <div style={{
+                background: 'var(--navy-2)', border: '1px solid var(--border)',
+                borderRadius: 20, padding: '36px 32px',
+              }}>
+                <StepIndicator current={1} />
+                <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+                  Qual catálogo já está publicado?
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                  Selecione o catálogo que você já publicou nesse canal. A Listify vai comparar os SKUs para identificar apenas os novos.
+                </p>
+
+                {carregandoCatalogos ? (
+                  <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24 }}>Carregando catálogos...</p>
+                ) : !catIdParam ? (
+                  <div style={{
+                    background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)',
+                    borderRadius: 10, padding: '14px 16px', marginBottom: 24,
+                  }}>
+                    <p style={{ fontSize: 13, color: '#fbbf24', margin: 0, lineHeight: 1.6 }}>
+                      Para adicionar produtos, acesse <strong>Meus Catálogos</strong> e clique em <strong>✏️ Atualizar</strong> no catálogo que deseja expandir.{' '}
+                      <Link href="/painel" style={{ color: '#fbbf24', fontWeight: 600 }}>Ir aos catálogos →</Link>
+                    </p>
+                  </div>
+                ) : !catalogoSelecionado ? (
+                  <div style={{
+                    background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.2)',
+                    borderRadius: 10, padding: '14px 16px', marginBottom: 24,
+                  }}>
+                    <p style={{ fontSize: 13, color: '#f87171', margin: 0, lineHeight: 1.6 }}>
+                      Catálogo não encontrado.{' '}
+                      <Link href="/painel" style={{ color: '#f87171', fontWeight: 600 }}>Voltar aos catálogos →</Link>
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{
+                      padding: '14px 16px', borderRadius: 10,
+                      border: '2px solid var(--blue)',
+                      background: 'rgba(37,99,235,0.1)',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12,
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)' }}>
+                          {catalogoSelecionado.nome}
                         </div>
-                        {sel && (
-                          <div style={{
-                            width: 20, height: 20, borderRadius: '50%',
-                            background: 'var(--blue)', flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, color: 'white', fontWeight: 700,
-                          }}>✓</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                          {catalogoSelecionado.produtos.length} produto{catalogoSelecionado.produtos.length !== 1 ? 's' : ''}{' '}
+                          · {catalogoSelecionado.regime_tributario}{' '}
+                          · {new Date(catalogoSelecionado.atualizado_em).toLocaleDateString('pt-BR')}
+                        </div>
+                        {catalogoSelecionado.canal && (
+                          <div style={{ fontSize: 11, color: 'var(--blue-glow)', marginTop: 4 }}>
+                            📢 Canal: {CANAL_NOME[catalogoSelecionado.canal] ?? catalogoSelecionado.canal}
+                          </div>
                         )}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                      </div>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: 'var(--blue)', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, color: 'white', fontWeight: 700,
+                      }}>✓</div>
+                    </div>
+                  </div>
+                )}
 
-              <button
-                onClick={() => { if (catalogoSelecionado) setEtapa(2) }}
-                disabled={!catalogoSelecionado}
-                className="btn-primary"
-                style={{ width: '100%', justifyContent: 'center', opacity: catalogoSelecionado ? 1 : 0.5 }}
-              >
-                Próximo →
-              </button>
+                <button
+                  onClick={() => { if (catalogoSelecionado) setEtapa(2) }}
+                  disabled={!catalogoSelecionado}
+                  className="btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', opacity: catalogoSelecionado ? 1 : 0.5 }}
+                >
+                  Próximo →
+                </button>
+              </div>
             </div>
           )}
 
@@ -786,11 +857,11 @@ export default function AdicionarProdutosPage() {
               )}
 
               <button
-                onClick={() => router.push('/painel')}
+                onClick={() => setEtapa(1)}
                 className="btn-secondary"
                 style={{ width: '100%', justifyContent: 'center' }}
               >
-                ← Voltar ao painel
+                ← Adicionar outros produtos
               </button>
             </div>
           )}

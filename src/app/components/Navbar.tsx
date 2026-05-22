@@ -21,11 +21,10 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'nova', label: 'Nova Geração',       icon: '⚡', href: '/painel'             },
-  { id: 'add',  label: 'Adicionar Produtos', icon: '➕', href: '/adicionar-produtos'  },
-  { id: 'cat',  label: 'Meus Catálogos',    icon: '📁', href: '/painel'             },
-  { id: 'hist', label: 'Histórico',          icon: '🕐', href: '/painel'             },
-  { id: 'plan', label: 'Meu Plano',          icon: '👤', href: '/painel'             },
+  { id: 'nova', label: 'Nova Geração',    icon: '⚡', href: '/painel' },
+  { id: 'cat',  label: 'Meus Catálogos', icon: '📁', href: '/painel' },
+  { id: 'hist', label: 'Histórico',       icon: '🕐', href: '/painel' },
+  { id: 'plan', label: 'Meu Plano',       icon: '👤', href: '/painel' },
 ]
 
 const SECTION_IDS: SectionId[] = ['cat', 'hist', 'plan']
@@ -42,8 +41,7 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
     })
   }, [])
 
-  const activeId: string =
-    pathname === '/adicionar-produtos' ? 'add' : (activeSection ?? 'nova')
+  const activeId: string = activeSection ?? 'nova'
 
   async function signOut() {
     await createClient().auth.signOut()
@@ -76,10 +74,12 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
   return (
     <>
       <style>{`
-        .lf-tabs { display: flex; align-items: stretch; gap: 0; justify-content: center; }
+        .lf-tabs { display: flex; align-items: center; gap: 2px; justify-content: center; }
         .lf-user-name { display: inline; }
         .lf-hamburger { display: none !important; align-items: center; justify-content: center; }
         .lf-mobile-menu { display: none; flex-direction: column; }
+        .lf-tab-btn:hover { background: #f1f3f4 !important; }
+        .lf-signout:hover { background: #f1f3f4 !important; color: #202124 !important; }
         @media (max-width: 680px) {
           .lf-tabs { display: none !important; }
           .lf-hamburger { display: flex !important; }
@@ -89,31 +89,23 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
       `}</style>
 
       <header style={{
-        borderBottom: '1px solid var(--border)',
-        background: 'rgba(8,14,30,0.95)',
-        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid #e8eaed',
+        background: '#ffffff',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <div style={{
           maxWidth: 1100, margin: '0 auto', padding: '0 20px',
-          height: 58,
+          height: 56,
           display: 'grid',
           gridTemplateColumns: 'auto 1fr auto',
-          alignItems: 'stretch',
+          alignItems: 'center',
         }}>
           {/* Logo */}
           <Link href="/painel" style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            textDecoration: 'none', paddingRight: 20,
+            display: 'flex', alignItems: 'center',
+            textDecoration: 'none', paddingRight: 24,
           }}>
-            <div style={{
-              width: 30, height: 30, background: 'var(--blue)', borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
-              flexShrink: 0,
-            }}>⚡</div>
-            <span className="font-display" style={{ fontSize: 17, fontWeight: 700, color: 'var(--white)', whiteSpace: 'nowrap' }}>
-              Listify
-            </span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#202124' }}>Listify</span>
           </Link>
 
           {/* Tabs — desktop */}
@@ -124,20 +116,21 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
                 <button
                   key={tab.id}
                   type="button"
+                  className="lf-tab-btn"
                   onClick={() => handleTabClick(tab)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '0 13px',
-                    background: 'none', border: 'none',
-                    borderBottom: active ? '2px solid var(--blue)' : '2px solid transparent',
-                    borderTop: '2px solid transparent',
-                    color: active ? 'var(--white)' : 'var(--muted)',
-                    fontSize: 13, fontWeight: active ? 600 : 400,
-                    cursor: 'pointer', transition: 'color 0.15s, border-color 0.15s',
+                    padding: '6px 12px',
+                    background: active ? '#e8f0fe' : 'none',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: active ? '#1a73e8' : '#5f6368',
+                    fontSize: 13, fontWeight: active ? 600 : 500,
+                    cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>{tab.icon}</span>
+                  <span style={{ fontSize: 13 }}>{tab.icon}</span>
                   {tab.label}
                 </button>
               )
@@ -145,10 +138,10 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
           </nav>
 
           {/* Right side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 20 }}>
             {displayName && (
               <span className="lf-user-name" style={{
-                fontSize: 13, color: 'var(--muted)',
+                fontSize: 13, color: '#5f6368',
                 maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {displayName}
@@ -156,8 +149,14 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
             )}
             <button
               onClick={signOut}
-              className="btn-secondary"
-              style={{ padding: '7px 16px', fontSize: 13, whiteSpace: 'nowrap' }}
+              className="lf-signout"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 13, color: '#5f6368',
+                padding: '6px 12px', borderRadius: 8,
+                transition: 'background 0.15s, color 0.15s',
+                whiteSpace: 'nowrap',
+              }}
             >
               Sair
             </button>
@@ -168,9 +167,9 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
               className="lf-hamburger"
               onClick={() => setMenuOpen(o => !o)}
               style={{
-                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                background: 'none', border: '1px solid #e8eaed', borderRadius: 8,
                 width: 36, height: 36, cursor: 'pointer',
-                color: 'var(--white)', fontSize: 16,
+                color: '#5f6368', fontSize: 16,
               }}
             >
               {menuOpen ? '✕' : '☰'}
@@ -180,8 +179,8 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
 
         {/* Mobile dropdown */}
         <div className={`lf-mobile-menu${menuOpen ? ' lf-open' : ''}`} style={{
-          borderTop: '1px solid var(--border)',
-          background: 'rgba(6,10,24,0.98)',
+          borderTop: '1px solid #e8eaed',
+          background: '#ffffff',
         }}>
           {TABS.map(tab => {
             const active = activeId === tab.id
@@ -193,10 +192,10 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   padding: '13px 24px', width: '100%',
-                  background: active ? 'rgba(37,99,235,0.08)' : 'none',
+                  background: active ? '#e8f0fe' : 'none',
                   border: 'none',
-                  borderLeft: active ? '3px solid var(--blue)' : '3px solid transparent',
-                  color: active ? 'var(--white)' : 'var(--muted)',
+                  borderLeft: active ? '3px solid #1a73e8' : '3px solid transparent',
+                  color: active ? '#1a73e8' : '#5f6368',
                   fontSize: 14, fontWeight: active ? 600 : 400,
                   cursor: 'pointer', textAlign: 'left' as const,
                 }}
@@ -210,10 +209,10 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
           {userEmail && (
             <div style={{
               padding: '10px 24px',
-              borderTop: '1px solid var(--border)',
+              borderTop: '1px solid #e8eaed',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-              <span style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12, color: '#5f6368', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userEmail}
               </span>
             </div>

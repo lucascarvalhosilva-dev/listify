@@ -55,6 +55,7 @@ export interface CatalogoItem {
   atualizado_em: string
   regime_tributario: string
   drive_url: string
+  canal?: string | null
   produtos: ProdutoRevisao[]
 }
 
@@ -936,14 +937,18 @@ function ProntoScreen({
   produtos,
   driveUrl,
   regime,
+  channels,
 }: {
   numProdutos: number
   onContinuar: () => void
   produtos: ProdutoRevisao[]
   driveUrl: string
   regime: string
+  channels: string[]
 }) {
+  const canalAuto = channels.length === 1 ? channels[0] : channels.length > 1 ? 'todos' : ''
   const [catalogoNome, setCatalogoNome] = useState('')
+  const [catalogoCanal, setCatalogoCanal] = useState(canalAuto)
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(false)
   const [erroSalvar, setErroSalvar] = useState('')
@@ -956,7 +961,7 @@ function ProntoScreen({
       const res = await fetch('/api/save-catalog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: catalogoNome, produtos, drive_url: driveUrl, regime_tributario: regime }),
+        body: JSON.stringify({ nome: catalogoNome, canal: catalogoCanal || null, produtos, drive_url: driveUrl, regime_tributario: regime }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string }
@@ -1021,32 +1026,51 @@ function ProntoScreen({
           {salvo ? (
             <p style={{ fontSize: 13, color: '#4ade80', margin: 0 }}>✓ Catálogo salvo! Disponível na próxima geração.</p>
           ) : (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="text"
-                placeholder='"Tá pra Pesca — Mai/2026"'
-                value={catalogoNome}
-                onChange={e => setCatalogoNome(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') salvarCatalogo() }}
-                style={{ ...inputStyle, fontSize: 13, padding: '9px 12px', flex: 1, width: 'auto' }}
-              />
-              <button
-                type="button"
-                onClick={salvarCatalogo}
-                disabled={!catalogoNome.trim() || salvando}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  placeholder='"Tá pra Pesca — Mai/2026"'
+                  value={catalogoNome}
+                  onChange={e => setCatalogoNome(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') salvarCatalogo() }}
+                  style={{ ...inputStyle, fontSize: 13, padding: '9px 12px', flex: 1, width: 'auto' }}
+                />
+                <button
+                  type="button"
+                  onClick={salvarCatalogo}
+                  disabled={!catalogoNome.trim() || salvando}
+                  style={{
+                    padding: '9px 16px', borderRadius: 10,
+                    border: '1.5px solid var(--border)',
+                    background: 'var(--navy)',
+                    color: !catalogoNome.trim() || salvando ? 'var(--muted)' : 'var(--white)',
+                    fontSize: 13, fontWeight: 500,
+                    cursor: !catalogoNome.trim() || salvando ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap' as const, flexShrink: 0,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {salvando ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+              <select
+                value={catalogoCanal}
+                onChange={e => setCatalogoCanal(e.target.value)}
                 style={{
-                  padding: '9px 16px', borderRadius: 10,
-                  border: '1.5px solid var(--border)',
-                  background: 'var(--navy)',
-                  color: !catalogoNome.trim() || salvando ? 'var(--muted)' : 'var(--white)',
-                  fontSize: 13, fontWeight: 500,
-                  cursor: !catalogoNome.trim() || salvando ? 'not-allowed' : 'pointer',
-                  whiteSpace: 'nowrap' as const, flexShrink: 0,
-                  transition: 'all 0.15s',
+                  ...inputStyle, fontSize: 13, padding: '9px 12px',
+                  appearance: 'none' as const, cursor: 'pointer',
                 }}
               >
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
+                <option value="">Canal gerado (opcional)</option>
+                <option value="shopee">Shopee</option>
+                <option value="mercado_livre">Mercado Livre</option>
+                <option value="tiktok_shop">TikTok Shop</option>
+                <option value="bling">Bling (ERP)</option>
+                <option value="magalu">Magazine Luiza</option>
+                <option value="amazon">Amazon Brasil</option>
+                <option value="todos">Todos os canais</option>
+              </select>
             </div>
           )}
           {erroSalvar && <p style={{ fontSize: 12, color: '#f87171', margin: 0 }}>{erroSalvar}</p>}
@@ -2929,16 +2953,18 @@ function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void
 export default function ProductForm({
   onBack,
   catalogoInicial,
+  canaisIniciais,
 }: {
   onBack: () => void
   catalogoInicial?: CatalogoItem
+  canaisIniciais?: string[]
 }) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(catalogoInicial ? 3 : 1)
   const [data, setData] = useState<FormData>(catalogoInicial ? {
     ...INITIAL,
     driveLink: catalogoInicial.drive_url,
     taxRegime: catalogoInicial.regime_tributario === 'SN' ? 'Simples Nacional' : 'MEI',
-  } : INITIAL)
+  } : canaisIniciais ? { ...INITIAL, channels: canaisIniciais } : INITIAL)
   const [stage, setStage] = useState<Stage>('formulario')
   const [carregandoConcluido, setCarregandoConcluido] = useState(false)
   const [gerandoConcluido, setGerandoConcluido] = useState(false)
@@ -3119,6 +3145,7 @@ export default function ProductForm({
       produtos={editados}
       driveUrl={data.driveLink}
       regime={regime}
+      channels={data.channels}
     />
   )
   if (stage === 'revisao_precos' && resultado) return (
@@ -3160,18 +3187,6 @@ export default function ProductForm({
 
   return (
     <div style={{ width: '100%', maxWidth: 560 }}>
-      <button
-        onClick={onBack}
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--muted)', fontSize: 13,
-          display: 'flex', alignItems: 'center', gap: 6,
-          marginBottom: 24, padding: 0,
-        }}
-      >
-        ← Voltar ao início
-      </button>
-
       <div style={{
         background: 'var(--navy-2)',
         border: '1px solid var(--border)',
