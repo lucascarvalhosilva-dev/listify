@@ -48,7 +48,7 @@ export default function Navbar() {
       <style>{`
         .navbar { background: #fff; border-bottom: 1px solid #e8eaed; position: sticky; top: 0; z-index: 50; }
         .navbar-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-        .navbar-logo { font-size: 18px; font-weight: 700; color: #1a73e8; text-decoration: none; flex-shrink: 0; }
+        .navbar-logo { font-size: 24px; font-weight: 700; color: #1a73e8; text-decoration: none; flex-shrink: 0; }
         .navbar-tabs { display: flex; align-items: center; gap: 2px; flex: 1; }
         .navbar-tab { font-size: 14px; font-weight: 500; color: #5f6368; text-decoration: none; padding: 6px 14px; border-radius: 8px; white-space: nowrap; transition: background .15s, color .15s; }
         .navbar-tab:hover { background: #f8f9fa; color: #202124; }
