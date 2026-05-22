@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checarLimiteProdutos, checarLimiteCanais } from '@/lib/planos'
 import { inferProductSpecsBatch, type BatchProductSpec } from '@/lib/claude-client'
 import { calcularPrecos } from '@/lib/pricing'
 import { gerarPlanilhaShopee, type ProdutoProcessado } from '@/lib/channels/shopee'
@@ -160,6 +161,20 @@ export async function POST(request: NextRequest) {
 
     if (!produtos?.length || !regime || !canais?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Checar limite de produtos
+    const checkProdutos = await checarLimiteProdutos(produtos?.length || 0)
+    if (!checkProdutos.ok) {
+      return NextResponse.json({ error: checkProdutos.mensagem, upgrade: true }, { status: 403 })
+    }
+
+    // Checar limite de canais
+    if (canais && canais.length > 0) {
+      const checkCanais = await checarLimiteCanais(canais)
+      if (!checkCanais.ok) {
+        return NextResponse.json({ error: checkCanais.mensagem, upgrade: true }, { status: 403 })
+      }
     }
 
     const alertas: string[] = []

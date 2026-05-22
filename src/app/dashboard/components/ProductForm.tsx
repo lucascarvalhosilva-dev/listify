@@ -967,6 +967,13 @@ function ProntoScreen({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: catalogoNome, canal: catalogoCanal || null, produtos, drive_url: driveUrl, regime_tributario: regime }),
       })
+      if (res.status === 403) {
+        const data = await res.json()
+        if (data.upgrade) {
+          window.location.href = '/upgrade'
+          return
+        }
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string }
         throw new Error(err.error ?? `Erro ${res.status}`)
@@ -3104,6 +3111,13 @@ export default function ProductForm({
 
         if (res.status === 401) {
           throw new Error('Sessão expirada. Recarregue a página e faça login novamente.')
+        }
+        if (res.status === 403) {
+          const data = await res.json()
+          if (data.upgrade) {
+            window.location.href = '/upgrade'
+            return
+          }
         }
         if (!res.ok) {
           const err = await res.json().catch(() => ({})) as { error?: string }

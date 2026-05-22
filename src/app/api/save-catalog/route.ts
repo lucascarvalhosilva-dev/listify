@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { checarLimiteCatalogos } from '@/lib/planos'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,11 @@ export async function POST(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const checkCatalogos = await checarLimiteCatalogos()
+    if (!checkCatalogos.ok) {
+      return NextResponse.json({ error: checkCatalogos.mensagem, upgrade: true }, { status: 403 })
+    }
 
     const body = await request.json() as { nome?: string; canal?: string | null; produtos?: unknown; drive_url?: string; regime_tributario?: string }
     const { nome, canal, produtos, drive_url, regime_tributario } = body
