@@ -16,15 +16,14 @@ interface NavbarProps {
 interface Tab {
   id: string
   label: string
-  icon: string
   href: string
 }
 
 const TABS: Tab[] = [
-  { id: 'nova', label: 'Nova Geração',    icon: '⚡', href: '/painel' },
-  { id: 'cat',  label: 'Meus Catálogos', icon: '📁', href: '/painel' },
-  { id: 'hist', label: 'Histórico',       icon: '🕐', href: '/painel' },
-  { id: 'plan', label: 'Meu Plano',       icon: '👤', href: '/painel' },
+  { id: 'nova', label: 'Nova Geração',    href: '/painel' },
+  { id: 'cat',  label: 'Meus Catálogos', href: '/painel' },
+  { id: 'hist', label: 'Histórico',       href: '/painel' },
+  { id: 'plan', label: 'Meu Plano',       href: '/painel' },
 ]
 
 const SECTION_IDS: SectionId[] = ['cat', 'hist', 'plan']
@@ -130,7 +129,6 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <span style={{ fontSize: 13 }}>{tab.icon}</span>
                   {tab.label}
                 </button>
               )
@@ -200,7 +198,6 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
                   cursor: 'pointer', textAlign: 'left' as const,
                 }}
               >
-                <span style={{ fontSize: 15, width: 20 }}>{tab.icon}</span>
                 {tab.label}
               </button>
             )

@@ -38,6 +38,19 @@
   --radius: 0.75rem;
 }
 
+/* Legacy variables — used by the landing page (src/app/page.tsx) */
+:root {
+  --navy: #080E1E;
+  --navy-2: #0D1528;
+  --navy-3: #111D35;
+  --blue: #2563EB;
+  --blue-light: #3B82F6;
+  --blue-glow: #60A5FA;
+  --accent: #38BDF8;
+  --white: #F8FAFC;
+  --muted: #94A3B8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

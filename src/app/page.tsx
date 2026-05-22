@@ -1,3 +1,5 @@
+import styles from './page.module.css'
+
 export default function Home() {
   const features = [
     {
@@ -70,67 +72,67 @@ export default function Home() {
     <main style={{ background: 'var(--navy)', minHeight: '100vh' }}>
 
       {/* NAV */}
-      <nav>
+      <nav className={styles.landingNav}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, background: 'var(--blue)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>⚡</div>
-            <span className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)' }}>Listify</span>
+            <span className={styles.fontDisplay} style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)' }}>Listify</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <a href="#funciona" className="btn-secondary" style={{ padding: '10px 20px', fontSize: 14 }}>Como funciona</a>
-            <a href="#planos" className="btn-primary" style={{ padding: '10px 20px', fontSize: 14 }}>Começar grátis</a>
+            <a href="#funciona" className={styles.btnSecondary} style={{ padding: '10px 20px', fontSize: 14 }}>Como funciona</a>
+            <a href="#planos" className={styles.btnPrimary} style={{ padding: '10px 20px', fontSize: 14 }}>Começar grátis</a>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="grid-bg" style={{ paddingTop: 160, paddingBottom: 120, position: 'relative', overflow: 'hidden' }}>
+      <section className={styles.gridBg} style={{ paddingTop: 160, paddingBottom: 120, position: 'relative', overflow: 'hidden' }}>
         {/* Glow orbs */}
-        <div style={{ position: 'absolute', top: '10%', left: '15%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} className="animate-pulse-glow" />
-        <div style={{ position: 'absolute', top: '30%', right: '10%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} className="animate-pulse-glow" />
+        <div style={{ position: 'absolute', top: '10%', left: '15%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} className={styles.animatePulseGlow} />
+        <div style={{ position: 'absolute', top: '30%', right: '10%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} className={styles.animatePulseGlow} />
 
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px', textAlign: 'center', position: 'relative' }}>
-          <div className="animate-fade-up" style={{ marginBottom: 24 }}>
-            <span className="badge">
+          <div className={styles.animateFadeUp} style={{ marginBottom: 24 }}>
+            <span className={styles.badge}>
               <span>✦</span> Powered by Claude AI — Anthropic
             </span>
           </div>
 
-          <h1 className="font-display animate-fade-up-delay-1" style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 24 }}>
+          <h1 className={`${styles.fontDisplay} ${styles.animateFadeUpDelay1}`} style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 800, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 24 }}>
             Cadastre produtos em{' '}
-            <span style={{ color: 'var(--blue-glow)' }} className="glow-text">marketplaces</span>
+            <span style={{ color: 'var(--blue-glow)' }} className={styles.glowText}>marketplaces</span>
             <br />em minutos, não em horas.
           </h1>
 
-          <p className="animate-fade-up-delay-2" style={{ fontSize: 18, color: 'var(--muted)', lineHeight: 1.7, maxWidth: 580, margin: '0 auto 40px', fontWeight: 300 }}>
+          <p className={styles.animateFadeUpDelay2} style={{ fontSize: 18, color: 'var(--muted)', lineHeight: 1.7, maxWidth: 580, margin: '0 auto 40px', fontWeight: 300 }}>
             Informe o produto, as fotos, o estoque e o custo. A Listify gera título otimizado, descrição técnica, preço calculado e planilha pronta para upload — em qualquer marketplace.
           </p>
 
-          <div className="animate-fade-up-delay-3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="#planos" className="btn-primary">
+          <div className={styles.animateFadeUpDelay3} style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="#planos" className={styles.btnPrimary}>
               Começar agora <span>→</span>
             </a>
-            <a href="#funciona" className="btn-secondary">
+            <a href="#funciona" className={styles.btnSecondary}>
               Ver como funciona
             </a>
           </div>
 
           {/* Channels */}
-          <div className="animate-fade-up-delay-4" style={{ marginTop: 56, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className={styles.animateFadeUpDelay4} style={{ marginTop: 56, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: 'var(--muted)', marginRight: 8, lineHeight: '32px' }}>Compatível com</span>
             {channels.map(c => (
-              <span key={c} className="channel-badge">{c}</span>
+              <span key={c} className={styles.channelBadge}>{c}</span>
             ))}
           </div>
         </div>
       </section>
 
       {/* STATS */}
-      <section style={{ padding: '80px 24px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+      <section style={{ padding: '80px 24px', borderTop: '1px solid rgba(148,163,184,0.1)', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
           {stats.map(s => (
-            <div key={s.value} className="stat-card">
-              <div className="font-display" style={{ fontSize: 48, fontWeight: 800, color: 'var(--blue-glow)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
+            <div key={s.value} className={styles.statCard}>
+              <div className={styles.fontDisplay} style={{ fontSize: 48, fontWeight: 800, color: 'var(--blue-glow)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
               <div style={{ fontSize: 15, color: 'var(--white)', fontWeight: 500, marginBottom: 4 }}>{s.label}</div>
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>{s.sub}</div>
             </div>
@@ -142,16 +144,16 @@ export default function Home() {
       <section style={{ padding: '100px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <span className="badge" style={{ marginBottom: 16 }}>Funcionalidades</span>
-            <h2 className="font-display" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <span className={styles.badge} style={{ marginBottom: 16 }}>Funcionalidades</span>
+            <h2 className={styles.fontDisplay} style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Tudo que você precisa,<br />nada que você não precisa.
             </h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             {features.map(f => (
-              <div key={f.title} className="feature-card">
+              <div key={f.title} className={styles.featureCard}>
                 <div style={{ fontSize: 28, marginBottom: 16 }}>{f.icon}</div>
-                <h3 className="font-display" style={{ fontSize: 17, fontWeight: 700, marginBottom: 10, color: 'var(--white)' }}>{f.title}</h3>
+                <h3 className={styles.fontDisplay} style={{ fontSize: 17, fontWeight: 700, marginBottom: 10, color: 'var(--white)' }}>{f.title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>{f.desc}</p>
               </div>
             ))}
@@ -160,20 +162,20 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="funciona" style={{ padding: '100px 24px', background: 'var(--navy-2)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+      <section id="funciona" style={{ padding: '100px 24px', background: 'var(--navy-2)', borderTop: '1px solid rgba(148,163,184,0.1)', borderBottom: '1px solid rgba(148,163,184,0.1)' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <span className="badge" style={{ marginBottom: 16 }}>Como funciona</span>
-            <h2 className="font-display" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <span className={styles.badge} style={{ marginBottom: 16 }}>Como funciona</span>
+            <h2 className={styles.fontDisplay} style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
               4 passos.<br />Produto no ar.
             </h2>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-            {steps.map((s, i) => (
-              <div key={s.n} className="step-card">
-                <div className="step-number">{s.n}</div>
+            {steps.map((s) => (
+              <div key={s.n} className={styles.stepCard}>
+                <div className={styles.stepNumber}>{s.n}</div>
                 <div>
-                  <h3 className="font-display" style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: 'var(--white)' }}>{s.title}</h3>
+                  <h3 className={styles.fontDisplay} style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: 'var(--white)' }}>{s.title}</h3>
                   <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7 }}>{s.desc}</p>
                 </div>
               </div>
@@ -186,17 +188,17 @@ export default function Home() {
       <section id="planos" style={{ padding: '100px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <span className="badge" style={{ marginBottom: 16 }}>Planos</span>
-            <h2 className="font-display" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <span className={styles.badge} style={{ marginBottom: 16 }}>Planos</span>
+            <h2 className={styles.fontDisplay} style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Simples e transparente.
             </h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
 
             {/* Starter */}
-            <div className="feature-card" style={{ padding: 36 }}>
+            <div className={styles.featureCard} style={{ padding: 36 }}>
               <div style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 500, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Starter</div>
-              <div className="font-display" style={{ fontSize: 44, fontWeight: 800, marginBottom: 4 }}>R$97<span style={{ fontSize: 18, fontWeight: 400, color: 'var(--muted)' }}>/mês</span></div>
+              <div className={styles.fontDisplay} style={{ fontSize: 44, fontWeight: 800, marginBottom: 4 }}>R$97<span style={{ fontSize: 18, fontWeight: 400, color: 'var(--muted)' }}>/mês</span></div>
               <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>Para quem está começando em 1 marketplace.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
                 {['50 produtos/mês', '1 canal à escolha', 'Guia de upload incluído', 'Correção automática de erros'].map(item => (
@@ -205,16 +207,16 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <a href="#" className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>Começar</a>
+              <a href="#" className={`${styles.btnSecondary} w-full justify-center`} style={{ width: '100%', justifyContent: 'center' }}>Começar</a>
             </div>
 
             {/* Pro */}
-            <div className="gradient-border" style={{ padding: 36, borderRadius: 16, background: 'var(--navy-2)', position: 'relative' }}>
+            <div className={styles.gradientBorder} style={{ padding: 36, borderRadius: 16, position: 'relative' }}>
               <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)' }}>
-                <span className="badge">Mais popular</span>
+                <span className={styles.badge}>Mais popular</span>
               </div>
               <div style={{ fontSize: 13, color: 'var(--blue-glow)', fontWeight: 500, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Profissional</div>
-              <div className="font-display" style={{ fontSize: 44, fontWeight: 800, marginBottom: 4 }}>R$197<span style={{ fontSize: 18, fontWeight: 400, color: 'var(--muted)' }}>/mês</span></div>
+              <div className={styles.fontDisplay} style={{ fontSize: 44, fontWeight: 800, marginBottom: 4 }}>R$197<span style={{ fontSize: 18, fontWeight: 400, color: 'var(--muted)' }}>/mês</span></div>
               <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>Para lojas expandindo para múltiplos canais.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
                 {['250 produtos/mês', '3 canais', 'Todos os recursos do Starter', 'Catálogo salvo entre sessões', 'Calculadora de margem por canal'].map(item => (
@@ -223,7 +225,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <a href="#" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Começar</a>
+              <a href="#" className={styles.btnPrimary} style={{ width: '100%', justifyContent: 'center' }}>Começar</a>
             </div>
 
           </div>
@@ -231,27 +233,27 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '100px 24px', background: 'var(--navy-2)', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+      <section style={{ padding: '100px 24px', background: 'var(--navy-2)', borderTop: '1px solid rgba(148,163,184,0.1)', textAlign: 'center' }}>
         <div style={{ maxWidth: 600, margin: '0 auto' }}>
           <div style={{ width: 64, height: 64, background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 24px' }}>⚡</div>
-          <h2 className="font-display" style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 16 }}>
+          <h2 className={styles.fontDisplay} style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 16 }}>
             Pronto para publicar<br />seus primeiros produtos?
           </h2>
           <p style={{ fontSize: 17, color: 'var(--muted)', marginBottom: 36, lineHeight: 1.7 }}>
             O que levaria horas de trabalho manual, a Listify resolve em minutos. Comece agora.
           </p>
-          <a href="#planos" className="btn-primary" style={{ fontSize: 16, padding: '16px 36px' }}>
+          <a href="#planos" className={styles.btnPrimary} style={{ fontSize: 16, padding: '16px 36px' }}>
             Começar gratuitamente →
           </a>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{ padding: '32px 24px', borderTop: '1px solid var(--border)' }}>
+      <footer style={{ padding: '32px 24px', borderTop: '1px solid rgba(148,163,184,0.1)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 28, height: 28, background: 'var(--blue)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⚡</div>
-            <span className="font-display" style={{ fontSize: 16, fontWeight: 700 }}>Listify</span>
+            <span className={styles.fontDisplay} style={{ fontSize: 16, fontWeight: 700 }}>Listify</span>
           </div>
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>© 2026 Listify. Todos os direitos reservados.</p>
         </div>

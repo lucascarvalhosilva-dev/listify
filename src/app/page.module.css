@@ -1,0 +1,62 @@
+.fontDisplay { font-family: 'Syne', sans-serif; }
+.glowText { text-shadow: 0 0 60px rgba(96, 165, 250, 0.5); }
+.gridBg {
+  background-image: linear-gradient(rgba(37,99,235,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.gradientBorder {
+  position: relative;
+  background: linear-gradient(#0D1528, #0D1528) padding-box, linear-gradient(135deg, #2563EB, #38BDF8, #2563EB) border-box;
+  border: 1px solid transparent;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulseGlow { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+.animateFadeUp { animation: fadeUp 0.7s ease forwards; }
+.animateFadeUpDelay1 { opacity: 0; animation: fadeUp 0.7s ease 0.15s forwards; }
+.animateFadeUpDelay2 { opacity: 0; animation: fadeUp 0.7s ease 0.3s forwards; }
+.animateFadeUpDelay3 { opacity: 0; animation: fadeUp 0.7s ease 0.45s forwards; }
+.animateFadeUpDelay4 { opacity: 0; animation: fadeUp 0.7s ease 0.6s forwards; }
+.animatePulseGlow { animation: pulseGlow 3s ease-in-out infinite; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.3);
+  border-radius: 100px; font-size: 12px; font-weight: 500; color: #60A5FA; letter-spacing: 0.02em;
+}
+.btnPrimary {
+  display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
+  background: #2563EB; color: white; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; border-radius: 10px; border: none;
+  cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+  box-shadow: 0 0 24px rgba(37,99,235,0.4);
+}
+.btnPrimary:hover { background: #3B82F6; box-shadow: 0 0 36px rgba(37,99,235,0.6); transform: translateY(-1px); }
+.btnSecondary {
+  display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
+  background: transparent; color: #F8FAFC; font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 500; border-radius: 10px;
+  border: 1px solid rgba(148,163,184,0.1); cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+}
+.btnSecondary:hover { border-color: rgba(148,163,184,0.25); background: rgba(255,255,255,0.04); transform: translateY(-1px); }
+.featureCard {
+  padding: 28px; background: #0D1528; border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 16px; transition: all 0.25s ease;
+}
+.featureCard:hover { border-color: rgba(37,99,235,0.3); background: #111D35; transform: translateY(-3px); }
+.stepCard { display: flex; gap: 20px; align-items: flex-start; }
+.stepNumber {
+  flex-shrink: 0; width: 40px; height: 40px; background: rgba(37,99,235,0.15);
+  border: 1px solid rgba(37,99,235,0.3); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: #60A5FA;
+}
+.channelBadge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+  background: #111D35; border: 1px solid rgba(148,163,184,0.1);
+  border-radius: 100px; font-size: 13px; color: #94A3B8; font-weight: 400;
+}
+.statCard { text-align: center; padding: 32px 24px; background: #0D1528; border: 1px solid rgba(148,163,184,0.1); border-radius: 16px; }
+.landingNav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 0;
+  background: rgba(8,14,30,0.8); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148,163,184,0.1);
+}

@@ -44,7 +44,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 const API_TO_FRONTEND: Record<string, string> = { ml: 'mercado_livre' }
 
 export default function PainelPage() {
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(true)
   const [catalogoInicial, setCatalogoInicial] = useState<CatalogoItem | undefined>(undefined)
   const [canaisParaRepetir, setCanaisParaRepetir] = useState<string[] | undefined>(undefined)
   const [activeSection, setActiveSection] = useState<SectionId>('cat')
@@ -143,19 +143,17 @@ export default function PainelPage() {
               {carregando ? (
                 <p style={{ fontSize: 14, color: '#5f6368' }}>Carregando...</p>
               ) : catalogos.length === 0 ? (
-                <div style={{
-                  background: '#ffffff', border: '1px solid #e8eaed',
-                  borderRadius: 16, padding: '32px 24px', textAlign: 'center',
-                }}>
-                  <p style={{ fontSize: 14, color: '#5f6368', margin: 0 }}>
-                    Nenhum catálogo salvo ainda.{' '}
-                    <button
-                      onClick={handleNovaGeracao}
-                      style={{ background: 'none', border: 'none', color: '#1a73e8', cursor: 'pointer', fontSize: 14, padding: 0 }}
-                    >
-                      Crie sua primeira geração →
-                    </button>
-                  </p>
+                <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                  <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 6 }}>Nenhum catálogo ainda</p>
+                  <p style={{ fontSize: 13, color: '#5f6368', marginBottom: 20, lineHeight: 1.6 }}>Faça sua primeira geração para salvar um catálogo e reutilizá-lo em outros canais.</p>
+                  <button onClick={() => handleNovaGeracao()} style={{ background: '#1a73e8', color: 'white', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                    Fazer primeira geração →
+                  </button>
                 </div>
               ) : (
                 <div style={{
@@ -275,13 +273,15 @@ export default function PainelPage() {
             {carregando ? (
               <p style={{ fontSize: 14, color: '#5f6368' }}>Carregando...</p>
             ) : geracoes.length === 0 ? (
-              <div style={{
-                background: '#ffffff', border: '1px solid #e8eaed',
-                borderRadius: 16, padding: '24px', textAlign: 'center',
-              }}>
-                <p style={{ fontSize: 14, color: '#5f6368', margin: 0 }}>
-                  Nenhuma geração registrada ainda.
-                </p>
+              <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                <div style={{ width: 48, height: 48, background: '#f1f3f4', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 6 }}>Nenhuma geração ainda</p>
+                <p style={{ fontSize: 13, color: '#5f6368', lineHeight: 1.6 }}>Seu histórico de gerações aparecerá aqui após a primeira geração.</p>
               </div>
             ) : (
               <div style={{
@@ -340,45 +340,128 @@ export default function PainelPage() {
 
         {/* ── Meu Plano ───────────────────────────────────────────────── */}
         {!showForm && activeSection === 'plan' && (
-          <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
+          <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <SectionTitle>Meu Plano</SectionTitle>
 
+            {/* Section 1: Plano atual */}
             <div style={{
-              background: '#ffffff', border: '1px solid #e8eaed',
-              borderRadius: 16, padding: '20px 24px',
-              display: 'flex', flexDirection: 'column', gap: 16,
+              background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{
-                  background: '#e8f0fe', borderRadius: 8, padding: '4px 14px',
-                  fontSize: 12, fontWeight: 700, color: '#1a73e8',
-                }}>
-                  Free
-                </span>
-                <span style={{ fontSize: 13, color: '#5f6368' }}>Plano atual</span>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: '#202124' }}>Starter</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#34a853', background: '#e6f4ea', borderRadius: 6, padding: '2px 8px' }}>
+                    Plano atual
+                  </span>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: '#202124', lineHeight: 1.2 }}>
+                  R$29<span style={{ fontSize: 13, fontWeight: 400, color: '#9aa0a6' }}>/mês</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#5f6368' }}>Para vendedores começando nos marketplaces</div>
               </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: 10,
+              <button style={{
+                border: '1px solid #1a73e8', color: '#1a73e8', background: '#ffffff',
+                borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                whiteSpace: 'nowrap' as const,
               }}>
+                Fazer upgrade →
+              </button>
+            </div>
+
+            {/* Section 2: Uso do mês */}
+            <div style={{ background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 16 }}>
+                Uso em {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 14 }}>
                 {[
-                  { valor: catalogos.length,        label: 'catálogos salvos'     },
-                  { valor: geracoes.length,          label: 'gerações realizadas'  },
-                  { valor: totalProdutosProcessados, label: 'produtos processados' },
-                ].map(({ valor, label }) => (
+                  { label: 'Produtos gerados',      value: totalProdutosProcessados, limit: 100,  suffix: '/ 100'         },
+                  { label: 'Catálogos salvos',       value: catalogos.length,         limit: 5,    suffix: '/ 5'           },
+                  { label: 'Gerações realizadas',    value: geracoes.length,          limit: null, suffix: 'gerações'      },
+                ].map(({ label, value, limit, suffix }) => {
+                  const pct = limit ? Math.min((value / limit) * 100, 100) : 0
+                  const barColor = limit
+                    ? (value >= limit ? '#ea4335' : value / limit > 0.8 ? '#f9ab00' : '#1a73e8')
+                    : '#1a73e8'
+                  return (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 14, color: '#202124', minWidth: 180 }}>{label}</span>
+                      {limit !== null ? (
+                        <div style={{ flex: 1, height: 6, background: '#f1f3f4', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.3s' }} />
+                        </div>
+                      ) : (
+                        <div style={{ flex: 1 }} />
+                      )}
+                      <span style={{ fontSize: 13, color: '#5f6368', minWidth: 80, textAlign: 'right' as const }}>
+                        {value} {suffix}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Section 3: Comparativo de planos */}
+            <div style={{ background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 16 }}>Planos disponíveis</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                {[
+                  {
+                    nome: 'Starter', preco: 'R$29', atual: true,
+                    features: ['100 produtos/mês', '2 canais simultâneos', '5 catálogos salvos', 'Chat de suporte', 'Correção automática'],
+                  },
+                  {
+                    nome: 'Profissional', preco: 'R$59', atual: false,
+                    features: ['500 produtos/mês', '4 canais simultâneos', '30 catálogos salvos', 'Chat de suporte', 'Correção automática'],
+                  },
+                  {
+                    nome: 'Agência', preco: 'R$127', atual: false,
+                    features: ['Produtos ilimitados', '6 canais (todos)', 'Catálogos ilimitados', 'Chat de suporte', 'Correção automática', '3 usuários'],
+                  },
+                ].map(plan => (
                   <div
-                    key={label}
+                    key={plan.nome}
                     style={{
-                      background: '#ffffff', border: '1px solid #e8eaed',
-                      borderRadius: 12, padding: '16px', textAlign: 'center' as const,
+                      background: '#ffffff',
+                      border: plan.atual ? '2px solid #1a73e8' : '1px solid #e8eaed',
+                      borderRadius: 16, padding: 24,
+                      display: 'flex', flexDirection: 'column' as const, gap: 0,
                     }}
                   >
-                    <div style={{ fontSize: 26, fontWeight: 700, color: '#202124' }}>
-                      {valor}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: '#202124' }}>{plan.nome}</span>
+                      {plan.atual && (
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#34a853', background: '#e6f4ea', borderRadius: 6, padding: '2px 8px' }}>
+                          Plano atual
+                        </span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, color: '#5f6368', marginTop: 4 }}>{label}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 2 }}>
+                      {plan.preco}<span style={{ fontSize: 13, fontWeight: 400, color: '#9aa0a6' }}>/mês</span>
+                    </div>
+                    <div style={{ borderTop: '1px solid #e8eaed', margin: '16px 0' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 0, marginBottom: 20, flex: 1 }}>
+                      {plan.features.map(f => (
+                        <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
+                          <span style={{ fontSize: 13, color: '#1a73e8', flexShrink: 0, marginTop: 1 }}>✓</span>
+                          <span style={{ fontSize: 13, color: '#5f6368' }}>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      disabled={plan.atual}
+                      style={{
+                        width: '100%', padding: '10px 0', borderRadius: 10, border: 'none',
+                        background: plan.atual ? '#f1f3f4' : '#1a73e8',
+                        color: plan.atual ? '#9aa0a6' : '#ffffff',
+                        fontSize: 14, fontWeight: 600,
+                        cursor: plan.atual ? 'default' : 'pointer',
+                      }}
+                    >
+                      {plan.atual ? 'Plano atual' : 'Fazer upgrade →'}
+                    </button>
                   </div>
                 ))}
               </div>

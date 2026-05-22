@@ -28,7 +28,11 @@
       "Bash(npx shadcn@latest init --help)",
       "Bash(npx shadcn@latest init -y --css-variables)",
       "Bash(npx shadcn@latest init -y -b radix -d)",
-      "Bash(npx shadcn@latest add input label card badge separator sheet tabs avatar -y)"
+      "Bash(npx shadcn@latest add input label card badge separator sheet tabs avatar -y)",
+      "Bash(Read the *)",
+      "Bash(python3 -)",
+      "Bash(node -)",
+      "Bash(git add *)"
     ]
   }
 }

@@ -146,19 +146,19 @@ function fileToBase64(file: File): Promise<string> {
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'var(--navy)',
-  border: '1px solid var(--border)',
+  background: '#f8f9fa',
+  border: '1px solid #e8eaed',
   borderRadius: 10,
   padding: '11px 14px',
   fontSize: 15,
-  color: 'var(--white)',
+  color: '#202124',
   outline: 'none',
   boxSizing: 'border-box',
 }
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+    <label style={{ fontSize: 13, fontWeight: 500, color: '#5f6368', display: 'block', marginBottom: 6 }}>
       {children}
     </label>
   )
@@ -185,21 +185,21 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
                 width: 32, height: 32, borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, fontWeight: 700,
-                background: done ? 'var(--blue)' : active ? 'rgba(37,99,235,0.2)' : 'var(--navy-3)',
-                border: `2px solid ${done || active ? 'var(--blue)' : 'var(--border)'}`,
-                color: done || active ? 'var(--white)' : 'var(--muted)',
+                background: done ? 'var(--blue)' : active ? 'rgba(37,99,235,0.2)' : '#f1f3f4',
+                border: `2px solid ${done || active ? 'var(--blue)' : '#e8eaed'}`,
+                color: done || active ? '#202124' : '#5f6368',
                 transition: 'all 0.2s',
               }}>
                 {done ? '✓' : s.n}
               </div>
-              <span style={{ fontSize: 11, color: active ? 'var(--blue-glow)' : 'var(--muted)', fontWeight: active ? 600 : 400 }}>
+              <span style={{ fontSize: 11, color: active ? 'var(--blue-glow)' : '#5f6368', fontWeight: active ? 600 : 400 }}>
                 {s.label}
               </span>
             </div>
             {i < steps.length - 1 && (
               <div style={{
                 width: 56, height: 2, marginBottom: 18, margin: '0 6px 18px',
-                background: done ? 'var(--blue)' : 'var(--border)',
+                background: done ? 'var(--blue)' : '#e8eaed',
                 transition: 'background 0.2s',
               }} />
             )}
@@ -250,9 +250,9 @@ function FileUploadZone({ file, onFile }: { file: File | null; onFile: (f: File)
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         style={{
-          border: `2px dashed ${dragging ? 'var(--blue)' : file ? 'rgba(37,99,235,0.5)' : 'var(--border)'}`,
+          border: `2px dashed ${dragging ? 'var(--blue)' : file ? 'rgba(37,99,235,0.5)' : '#e8eaed'}`,
           borderRadius: 12,
-          background: dragging ? 'rgba(37,99,235,0.06)' : file ? 'rgba(37,99,235,0.04)' : 'var(--navy)',
+          background: dragging ? 'rgba(37,99,235,0.06)' : file ? 'rgba(37,99,235,0.04)' : '#f8f9fa',
           padding: '28px 20px',
           textAlign: 'center',
           cursor: 'pointer',
@@ -262,16 +262,20 @@ function FileUploadZone({ file, onFile }: { file: File | null; onFile: (f: File)
         {file ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 24 }}>📄</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--white)' }}>{file.name}</span>
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>Clique para trocar o arquivo</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#202124' }}>{file.name}</span>
+            <span style={{ fontSize: 12, color: '#5f6368' }}>Clique para trocar o arquivo</span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 28, opacity: 0.5 }}>⬆️</span>
-            <span style={{ fontSize: 14, color: 'var(--muted)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span style={{ fontSize: 14, color: '#5f6368' }}>
               Arraste o arquivo aqui ou <span style={{ color: 'var(--blue-glow)', fontWeight: 500 }}>clique para selecionar</span>
             </span>
-            <span style={{ fontSize: 12, color: 'var(--muted)', opacity: 0.6 }}>Aceita .xlsx ou .csv</span>
+            <span style={{ fontSize: 12, color: '#5f6368', opacity: 0.6 }}>Aceita .xlsx ou .csv</span>
           </div>
         )}
       </div>
@@ -333,7 +337,7 @@ function PhotoGuide() {
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue-glow)', display: 'flex', alignItems: 'center', gap: 8 }}>
           📸 Como preparar suas fotos
         </span>
-        <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 12, color: '#5f6368', whiteSpace: 'nowrap' }}>
           {open ? 'Fechar guia ▲' : 'Ver passo a passo com imagens ▼'}
         </span>
       </button>
@@ -352,7 +356,7 @@ function PhotoGuide() {
                 }}>
                   {i + 1}
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: 13, color: '#5f6368', lineHeight: 1.6, margin: 0 }}>
                   {s.desc}
                 </p>
               </div>
@@ -362,7 +366,7 @@ function PhotoGuide() {
                 style={{
                   width: '100%',
                   borderRadius: 8,
-                  border: '1px solid var(--border)',
+                  border: '1px solid #e8eaed',
                   display: 'block',
                 }}
               />
@@ -383,24 +387,24 @@ function SkuGuide() {
     <div style={collapsibleBoxStyle}>
       <button type="button" onClick={() => setOpen(o => !o)} style={collapsibleTriggerStyle}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue-glow)' }}>
-          ❓ O que é SKU?
+          O que é SKU?
         </span>
-        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+        <span style={{ fontSize: 12, color: '#5f6368' }}>
           {open ? '▲' : '▼'}
         </span>
       </button>
 
       {open && (
         <div style={{ padding: '4px 16px 16px' }}>
-          <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#5f6368', lineHeight: 1.7, margin: 0 }}>
             SKU é o código único que identifica cada produto no seu estoque. Você cria o código
             — pode ser qualquer número ou letra.
           </p>
-          <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, margin: '10px 0 0' }}>
-            <strong style={{ color: 'var(--white)' }}>Exemplos: </strong>
+          <p style={{ fontSize: 13, color: '#5f6368', lineHeight: 1.7, margin: '10px 0 0' }}>
+            <strong style={{ color: '#202124' }}>Exemplos: </strong>
             {['001', '002', 'CAM-P-PRETO'].map(ex => (
               <code key={ex} style={{
-                background: 'var(--navy-3)',
+                background: '#f1f3f4',
                 padding: '2px 7px', borderRadius: 4, fontSize: 12,
                 marginRight: 6, display: 'inline-block',
               }}>{ex}</code>
@@ -408,7 +412,7 @@ function SkuGuide() {
           </p>
           <p style={{ fontSize: 13, lineHeight: 1.7, margin: '10px 0 0' }}>
             <strong style={{ color: 'var(--blue-glow)' }}>Dica:</strong>{' '}
-            <span style={{ color: 'var(--muted)' }}>use números sequenciais simples como 001, 002, 003.</span>
+            <span style={{ color: '#5f6368' }}>use números sequenciais simples como 001, 002, 003.</span>
           </p>
         </div>
       )}
@@ -449,7 +453,7 @@ function Step1({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, margin: 0 }}>
+      <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, margin: 0 }}>
         Baixe o template, preencha com seus produtos e faça o upload.
       </p>
 
@@ -459,7 +463,7 @@ function Step1({
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           padding: '10px 18px',
-          background: 'rgba(37,99,235,0.1)',
+          background: '#e8f0fe',
           border: '1px solid rgba(37,99,235,0.3)',
           borderRadius: 10,
           color: 'var(--blue-glow)',
@@ -482,9 +486,9 @@ function Step1({
       {!carregandoCatalogos && catalogos.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>ou use um catálogo salvo</span>
-            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <div style={{ flex: 1, height: 1, background: '#e8eaed' }} />
+            <span style={{ fontSize: 12, color: '#5f6368' }}>ou use um catálogo salvo</span>
+            <div style={{ flex: 1, height: 1, background: '#e8eaed' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {catalogos.slice(0, 3).map(cat => (
@@ -498,14 +502,14 @@ function Step1({
                 style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: '12px 14px', borderRadius: 10,
-                  border: '1px solid var(--border)', background: 'var(--navy)',
+                  border: '1px solid #e8eaed', background: '#f8f9fa',
                   cursor: 'pointer', textAlign: 'left' as const, gap: 12,
                   transition: 'border-color 0.15s',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)' }}>{cat.nome}</div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#202124' }}>{cat.nome}</div>
+                  <div style={{ fontSize: 11, color: '#5f6368', marginTop: 2 }}>
                     {cat.produtos.length} produto{cat.produtos.length !== 1 ? 's' : ''} · {cat.regime_tributario} · {new Date(cat.atualizado_em).toLocaleDateString('pt-BR')}
                   </div>
                 </div>
@@ -596,9 +600,9 @@ function Step2({
                 style={{
                   padding: '12px 16px',
                   borderRadius: 10,
-                  border: `2px solid ${active ? 'var(--blue)' : 'var(--border)'}`,
-                  background: active ? 'rgba(37,99,235,0.12)' : 'var(--navy)',
-                  color: active ? 'var(--blue-glow)' : 'var(--muted)',
+                  border: `2px solid ${active ? 'var(--blue)' : '#e8eaed'}`,
+                  background: active ? 'rgba(37,99,235,0.12)' : '#f8f9fa',
+                  color: active ? 'var(--blue-glow)' : '#5f6368',
                   fontSize: 14, fontWeight: active ? 600 : 400,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
@@ -631,9 +635,9 @@ function Step2({
               padding: '0 16px',
               height: 44,
               borderRadius: 10,
-              border: '1.5px solid var(--border)',
-              background: 'var(--navy)',
-              color: driveStatus === 'checking' ? 'var(--muted)' : 'var(--white)',
+              border: '1.5px solid #e8eaed',
+              background: '#f8f9fa',
+              color: driveStatus === 'checking' ? '#5f6368' : '#202124',
               fontSize: 13,
               fontWeight: 500,
               cursor: driveStatus === 'checking' || !data.driveLink ? 'not-allowed' : 'pointer',
@@ -670,8 +674,8 @@ function Step2({
           </p>
         )}
 
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6 }}>
-          Nomeie os arquivos como <strong style={{ color: 'var(--white)' }}>SKU_01.jpg</strong>, <strong style={{ color: 'var(--white)' }}>SKU_02.jpg</strong>...
+        <p style={{ fontSize: 12, color: '#5f6368', marginTop: 8, lineHeight: 1.6 }}>
+          Nomeie os arquivos como <strong style={{ color: '#202124' }}>SKU_01.jpg</strong>, <strong style={{ color: '#202124' }}>SKU_02.jpg</strong>...
           A IA mapeia automaticamente.
         </p>
       </div>
@@ -730,8 +734,8 @@ function Step3({
               style={{
                 padding: '14px 16px',
                 borderRadius: 12,
-                border: `2px solid ${selected ? 'var(--blue)' : 'var(--border)'}`,
-                background: selected ? 'rgba(37,99,235,0.1)' : 'var(--navy)',
+                border: `2px solid ${selected ? 'var(--blue)' : '#e8eaed'}`,
+                background: selected ? 'rgba(37,99,235,0.1)' : '#f8f9fa',
                 cursor: 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.15s',
@@ -747,10 +751,10 @@ function Step3({
                   fontSize: 10, color: 'white', fontWeight: 700,
                 }}>✓</div>
               )}
-              <div style={{ fontSize: 14, fontWeight: 600, color: selected ? 'var(--white)' : 'var(--muted)', marginBottom: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: selected ? '#202124' : '#5f6368', marginBottom: 4 }}>
                 {ch.name}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: '#5f6368', lineHeight: 1.5 }}>
                 {ch.desc}
               </div>
             </button>
@@ -803,8 +807,8 @@ function Step4({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{
-        background: 'var(--navy)',
-        border: '1px solid var(--border)',
+        background: '#f8f9fa',
+        border: '1px solid #e8eaed',
         borderRadius: 12,
         overflow: 'hidden',
       }}>
@@ -817,12 +821,12 @@ function Step4({
               alignItems: 'flex-start',
               gap: 16,
               padding: '12px 16px',
-              borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
+              borderBottom: i < rows.length - 1 ? '1px solid #e8eaed' : 'none',
             }}
           >
-            <span style={{ fontSize: 13, color: 'var(--muted)', flexShrink: 0 }}>{label}</span>
+            <span style={{ fontSize: 13, color: '#5f6368', flexShrink: 0 }}>{label}</span>
             <span style={{
-              fontSize: 13, color: 'var(--white)', fontWeight: 500,
+              fontSize: 13, color: '#202124', fontWeight: 500,
               textAlign: 'right', wordBreak: 'break-all', maxWidth: '65%',
             }}>{value}</span>
           </div>
@@ -869,8 +873,8 @@ function LoadingScreen({ numProdutos, numProcessados, concluido }: { numProdutos
       `}</style>
       <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
-          background: 'var(--navy-2)',
-          border: '1px solid var(--border)',
+          background: '#ffffff',
+          border: '1px solid #e8eaed',
           borderRadius: 20,
           padding: '64px 40px',
           display: 'flex',
@@ -890,20 +894,20 @@ function LoadingScreen({ numProdutos, numProcessados, concluido }: { numProdutos
           ) : (
             <div style={{
               width: 52, height: 52,
-              border: '3px solid var(--border)',
+              border: '3px solid #e8eaed',
               borderTop: '3px solid var(--blue)',
               borderRadius: '50%',
               animation: 'listify-spin 0.8s linear infinite',
             }} />
           )}
           <div style={{ width: '100%' }}>
-            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 10, letterSpacing: '-0.01em' }}>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 10, letterSpacing: '-0.01em' }}>
               {mensagem}
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, margin: '0 0 24px' }}>
+            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, margin: '0 0 24px' }}>
               {concluido ? 'Redirecionando para revisão...' : 'Aguarde, isso pode levar alguns minutos'}
             </p>
-            <div style={{ position: 'relative', width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 8, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', width: '100%', background: '#f1f3f4', borderRadius: 8, height: 8, overflow: 'hidden' }}>
               {concluido ? (
                 <div style={{
                   position: 'absolute', top: 0, bottom: 0, left: 0,
@@ -978,8 +982,8 @@ function ProntoScreen({
   return (
     <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '48px 40px 36px',
         display: 'flex',
@@ -997,10 +1001,10 @@ function ProntoScreen({
           fontWeight: 700,
         }}>✓</div>
         <div>
-          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+          <h2 className="font-display" style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 8, letterSpacing: '-0.01em' }}>
             Seus produtos foram processados!
           </h2>
-          <p style={{ fontSize: 15, color: 'var(--muted)', margin: 0 }}>
+          <p style={{ fontSize: 15, color: '#5f6368', margin: 0 }}>
             {numProdutos} produto{numProdutos !== 1 ? 's' : ''} {numProdutos !== 1 ? 'prontos' : 'pronto'} para revisão
           </p>
         </div>
@@ -1019,8 +1023,8 @@ function ProntoScreen({
         </button>
 
         {/* Salvar catálogo */}
-        <div style={{ width: '100%', borderTop: '1px solid var(--border)', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
-          <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ width: '100%', borderTop: '1px solid #e8eaed', paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left' }}>
+          <p style={{ fontSize: 12, color: '#5f6368', margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             💾 Salvar este catálogo
           </p>
           {salvo ? (
@@ -1042,9 +1046,9 @@ function ProntoScreen({
                   disabled={!catalogoNome.trim() || salvando}
                   style={{
                     padding: '9px 16px', borderRadius: 10,
-                    border: '1.5px solid var(--border)',
-                    background: 'var(--navy)',
-                    color: !catalogoNome.trim() || salvando ? 'var(--muted)' : 'var(--white)',
+                    border: '1.5px solid #e8eaed',
+                    background: '#f8f9fa',
+                    color: !catalogoNome.trim() || salvando ? '#5f6368' : '#202124',
                     fontSize: 13, fontWeight: 500,
                     cursor: !catalogoNome.trim() || salvando ? 'not-allowed' : 'pointer',
                     whiteSpace: 'nowrap' as const, flexShrink: 0,
@@ -1125,8 +1129,8 @@ function GerandoScreen({ concluido }: { concluido: boolean }) {
       `}</style>
       <div style={{ width: '100%', maxWidth: 560, textAlign: 'center' }}>
         <div style={{
-          background: 'var(--navy-2)',
-          border: '1px solid var(--border)',
+          background: '#ffffff',
+          border: '1px solid #e8eaed',
           borderRadius: 20,
           padding: '64px 40px',
           display: 'flex',
@@ -1146,20 +1150,20 @@ function GerandoScreen({ concluido }: { concluido: boolean }) {
           ) : (
             <div style={{
               width: 48, height: 48,
-              border: '3px solid var(--border)',
+              border: '3px solid #e8eaed',
               borderTop: '3px solid #4ade80',
               borderRadius: '50%',
               animation: 'listify-spin 0.8s linear infinite',
             }} />
           )}
           <div style={{ width: '100%' }}>
-            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 8, letterSpacing: '-0.01em' }}>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 8, letterSpacing: '-0.01em' }}>
               {mensagem}
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--muted)', margin: '0 0 20px' }}>
+            <p style={{ fontSize: 14, color: '#5f6368', margin: '0 0 20px' }}>
               {concluido ? 'Arquivos prontos' : 'Processando...'}
             </p>
-            <div style={{ position: 'relative', width: '100%', background: 'var(--navy-3)', borderRadius: 8, height: 6, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', width: '100%', background: '#f1f3f4', borderRadius: 8, height: 6, overflow: 'hidden' }}>
               {concluido ? (
                 <div style={{
                   position: 'absolute', top: 0, bottom: 0, left: 0,
@@ -1199,12 +1203,12 @@ function TextosSection({
 }) {
   const baseInput: React.CSSProperties = {
     width: '100%',
-    background: 'var(--navy)',
-    border: '1px solid var(--border)',
+    background: '#f8f9fa',
+    border: '1px solid #e8eaed',
     borderRadius: 8,
     padding: '8px 10px',
     fontSize: 13,
-    color: 'var(--white)',
+    color: '#202124',
     outline: 'none',
     boxSizing: 'border-box' as const,
     fontFamily: 'inherit',
@@ -1230,15 +1234,15 @@ function TextosSection({
         const rawVal = produto[c.campo] ?? ''
         const val = c.campo === 'gtin' && (rawVal === '0' || rawVal === '') ? '' : rawVal
         const over = c.max !== undefined && val.length > c.max
-        const borderColor = over ? 'rgba(248,113,113,0.6)' : 'var(--border)'
-        const bg         = over ? 'rgba(248,113,113,0.05)' : 'var(--navy)'
+        const borderColor = over ? 'rgba(248,113,113,0.6)' : '#e8eaed'
+        const bg         = over ? 'rgba(248,113,113,0.05)' : '#f8f9fa'
         const counter = c.max ?? c.softMax
         return (
           <div key={c.campo}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-              <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{c.label}</span>
+              <span style={{ fontSize: 12, color: '#5f6368', fontWeight: 500 }}>{c.label}</span>
               {counter !== undefined && (
-                <span style={{ fontSize: 11, color: over ? '#f87171' : 'var(--muted)', opacity: over ? 1 : 0.65 }}>
+                <span style={{ fontSize: 11, color: over ? '#f87171' : '#5f6368', opacity: over ? 1 : 0.65 }}>
                   {val.length}/{counter}
                 </span>
               )}
@@ -1248,7 +1252,7 @@ function TextosSection({
                 value={val}
                 rows={c.rows}
                 onChange={e => onUpdate(c.campo, e.target.value)}
-                style={{ ...baseInput, border: `1px solid var(--border)`, background: 'var(--navy)', resize: 'vertical' }}
+                style={{ ...baseInput, border: `1px solid #e8eaed`, background: '#f8f9fa', resize: 'vertical' }}
               />
             ) : (
               <input
@@ -1338,7 +1342,7 @@ function GuiaUploadCanal({ canal }: { canal: string }) {
 
   return (
     <div style={{
-      border: '1px solid var(--border)',
+      border: '1px solid #e8eaed',
       borderRadius: 10,
       overflow: 'hidden',
     }}>
@@ -1351,9 +1355,9 @@ function GuiaUploadCanal({ canal }: { canal: string }) {
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '12px 16px',
-          background: 'var(--navy)',
+          background: '#f8f9fa',
           border: 'none',
-          color: 'var(--white)',
+          color: '#202124',
           fontSize: 13,
           fontWeight: 500,
           cursor: 'pointer',
@@ -1363,7 +1367,7 @@ function GuiaUploadCanal({ canal }: { canal: string }) {
       >
         <span>📋 {guia.titulo}</span>
         <span style={{
-          fontSize: 12, color: 'var(--muted)', flexShrink: 0,
+          fontSize: 12, color: '#5f6368', flexShrink: 0,
           transform: aberto ? 'rotate(180deg)' : 'none',
           transition: 'transform 0.2s',
           display: 'inline-block',
@@ -1373,7 +1377,7 @@ function GuiaUploadCanal({ canal }: { canal: string }) {
         <div style={{
           padding: '12px 16px 14px',
           background: 'rgba(0,0,0,0.15)',
-          borderTop: '1px solid var(--border)',
+          borderTop: '1px solid #e8eaed',
           display: 'flex',
           flexDirection: 'column',
           gap: 8,
@@ -1386,10 +1390,10 @@ function GuiaUploadCanal({ canal }: { canal: string }) {
                 <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1, color: passo.atencao ? '#fbbf24' : '#4ade80' }}>
                   {passo.atencao ? '⚠' : '✓'}
                 </span>
-                <p style={{ fontSize: 12, margin: 0, lineHeight: 1.6, color: passo.atencao ? '#fbbf24' : 'var(--muted)' }}>
+                <p style={{ fontSize: 12, margin: 0, lineHeight: 1.6, color: passo.atencao ? '#fbbf24' : '#5f6368' }}>
                   {passo.atencao
                     ? <><strong style={{ color: '#fbbf24' }}>Atenção:</strong>{' '}{passo.texto}</>
-                    : <><strong style={{ color: 'var(--white)' }}>Passo {num}:</strong>{' '}{passo.texto}</>
+                    : <><strong style={{ color: '#202124' }}>Passo {num}:</strong>{' '}{passo.texto}</>
                   }
                 </p>
               </div>
@@ -1426,8 +1430,8 @@ function ResultadoScreen({
   return (
     <div style={{ width: '100%', maxWidth: 560 }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '36px 32px',
         display: 'flex',
@@ -1445,10 +1449,10 @@ function ResultadoScreen({
             fontSize: 24,
             margin: '0 auto 16px',
           }}>✅</div>
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 6, letterSpacing: '-0.01em' }}>
             Arquivos prontos para download
           </h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+          <p style={{ fontSize: 13, color: '#5f6368', margin: 0 }}>
             {resultado.produtos_processados} produto{resultado.produtos_processados !== 1 ? 's' : ''} processado{resultado.produtos_processados !== 1 ? 's' : ''}
           </p>
         </div>
@@ -1461,12 +1465,12 @@ function ResultadoScreen({
               return (
                 <div key={canal} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  gap: 16, background: 'var(--navy)', border: '1px solid var(--border)',
+                  gap: 16, background: '#f8f9fa', border: '1px solid #e8eaed',
                   borderRadius: 12, padding: '14px 18px',
                 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--white)' }}>{info.label}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{info.filename}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#202124' }}>{info.label}</div>
+                    <div style={{ fontSize: 12, color: '#5f6368', marginTop: 2 }}>{info.filename}</div>
                   </div>
                   <button
                     onClick={() => downloadBase64(b64, info.filename)}
@@ -1518,14 +1522,14 @@ function ResultadoScreen({
 
         {/* Guia colapsado */}
         {arquivosGerados.length > 0 && (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ border: '1px solid #e8eaed', borderRadius: 10, overflow: 'hidden' }}>
             <button
               type="button"
               onClick={() => setGuiaAberto(o => !o)}
               style={{
                 width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '13px 16px', background: 'var(--navy)', border: 'none',
-                color: 'var(--muted)', fontSize: 13, fontWeight: 500,
+                padding: '13px 16px', background: '#f8f9fa', border: 'none',
+                color: '#5f6368', fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', textAlign: 'left' as const, gap: 8,
               }}
             >
@@ -1538,7 +1542,7 @@ function ResultadoScreen({
             </button>
             {guiaAberto && (
               <div style={{
-                borderTop: '1px solid var(--border)',
+                borderTop: '1px solid #e8eaed',
                 background: 'rgba(0,0,0,0.1)',
                 display: 'flex', flexDirection: 'column', gap: 1,
               }}>
@@ -1555,8 +1559,8 @@ function ResultadoScreen({
           onClick={onReset}
           style={{
             width: '100%', padding: '10px',
-            background: 'transparent', border: '1px solid var(--border)',
-            borderRadius: 8, color: 'var(--muted)', fontSize: 13,
+            background: 'transparent', border: '1px solid #e8eaed',
+            borderRadius: 8, color: '#5f6368', fontSize: 13,
             cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
@@ -1570,12 +1574,12 @@ function ResultadoScreen({
 // ─── Revisão screens ──────────────────────────────────────────────────────────
 
 const numInputBase: React.CSSProperties = {
-  background: 'var(--navy)',
-  border: '1px solid var(--border)',
+  background: '#f8f9fa',
+  border: '1px solid #e8eaed',
   borderRadius: 6,
   padding: '6px 8px',
   fontSize: 13,
-  color: 'var(--white)',
+  color: '#202124',
   outline: 'none',
   textAlign: 'right' as const,
   width: '100%',
@@ -1749,9 +1753,9 @@ function RevisaoPrecosScreen({
       style={{
         padding: '5px 14px',
         borderRadius: 20,
-        border: `1.5px solid ${modo === m ? 'var(--blue)' : 'var(--border)'}`,
+        border: `1.5px solid ${modo === m ? 'var(--blue)' : '#e8eaed'}`,
         background: modo === m ? 'rgba(37,99,235,0.12)' : 'transparent',
-        color: modo === m ? 'var(--blue-glow)' : 'var(--muted)',
+        color: modo === m ? 'var(--blue-glow)' : '#5f6368',
         fontSize: 12, fontWeight: modo === m ? 600 : 400,
         cursor: 'pointer',
         transition: 'all 0.15s',
@@ -1765,7 +1769,7 @@ function RevisaoPrecosScreen({
   const mc = (m: number) => m >= 15 ? '#4ade80' : m >= 5 ? '#fbbf24' : '#f87171'
 
   const sTH = (left: number, extra: React.CSSProperties = {}): React.CSSProperties => ({
-    position: 'sticky', left, zIndex: 4, background: 'var(--navy-3)', ...extra,
+    position: 'sticky', left, zIndex: 4, background: '#f1f3f4', ...extra,
   })
   const sTD = (left: number, bg: string): React.CSSProperties => ({
     position: 'sticky', left, zIndex: 2, background: bg,
@@ -1774,7 +1778,7 @@ function RevisaoPrecosScreen({
   const priceCell = (val: number, campo: CampoNumerico, idx: number) => (
     <td style={{ padding: '7px 6px', verticalAlign: 'middle', minWidth: 100 }}>
       <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#5f6368', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
         <input type="number" step="0.01" defaultValue={val.toFixed(2)}
           onChange={e => update(idx, campo, e.target.value)}
           onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
@@ -1785,7 +1789,7 @@ function RevisaoPrecosScreen({
 
   const valCell = (n: number, color?: string) => (
     <td style={{ padding: '7px 10px', verticalAlign: 'middle', textAlign: 'right' as const, minWidth: 90, whiteSpace: 'nowrap' as const }}>
-      <span style={{ fontSize: 12, color: color ?? 'var(--muted)', fontWeight: color ? 600 : 400 }}>R$ {fmt(n)}</span>
+      <span style={{ fontSize: 12, color: color ?? '#5f6368', fontWeight: color ? 600 : 400 }}>R$ {fmt(n)}</span>
     </td>
   )
 
@@ -1808,8 +1812,8 @@ function RevisaoPrecosScreen({
   return (
     <div style={{ width: '100%', maxWidth: 1100 }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '36px 32px',
         display: 'flex',
@@ -1817,11 +1821,11 @@ function RevisaoPrecosScreen({
         gap: 24,
       }}>
         <div>
-          <p style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 1 de 2</p>
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+          <p style={{ fontSize: 11, color: '#5f6368', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 1 de 2</p>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 6, letterSpacing: '-0.01em' }}>
             Revisar preços
           </h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: '#5f6368', margin: 0, lineHeight: 1.6 }}>
             Ajuste custos, embalagem e preços de venda. Lucro e margem são calculados automaticamente.
           </p>
         </div>
@@ -1835,7 +1839,7 @@ function RevisaoPrecosScreen({
           </div>
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>Canal:</span>
+            <span style={{ fontSize: 12, color: '#5f6368', whiteSpace: 'nowrap' as const }}>Canal:</span>
             <select value={canalAjuste} onChange={e => setCanalAjuste(e.target.value)}
               style={{ ...numInputBase, padding: '6px 8px', cursor: 'pointer', fontSize: 12 }}>
               {canaisOpcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -1856,16 +1860,16 @@ function RevisaoPrecosScreen({
                 <input type="number" min="0" step="0.5" placeholder="0" value={ajustePct}
                   onChange={e => setAjustePct(e.target.value)}
                   style={{ ...numInputBase, width: 72 }} />
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
+                <span style={{ fontSize: 13, color: '#5f6368' }}>%</span>
               </>
             )}
             {modo === 'margem' && (
               <>
-                <span style={{ fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>Margem:</span>
+                <span style={{ fontSize: 13, color: '#5f6368', whiteSpace: 'nowrap' as const }}>Margem:</span>
                 <input type="number" min="0" max="100" step="0.5" placeholder="20" value={margemAlvo}
                   onChange={e => setMargemAlvo(e.target.value)}
                   style={{ ...numInputBase, width: 80 }} />
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>%</span>
+                <span style={{ fontSize: 13, color: '#5f6368' }}>%</span>
               </>
             )}
             <button onClick={aplicar} style={{
@@ -1886,7 +1890,7 @@ function RevisaoPrecosScreen({
             style={{ ...numInputBase, textAlign: 'left' as const, flex: 1, maxWidth: 300 }}
           />
           {busca.trim() !== '' && (
-            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' as const }}>
+            <span style={{ fontSize: 12, color: '#5f6368', whiteSpace: 'nowrap' as const }}>
               {indicesFiltrados.length} resultado{indicesFiltrados.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -1898,10 +1902,10 @@ function RevisaoPrecosScreen({
         </div>
 
         {/* Price table */}
-        <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div key={resetKey} style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e8eaed' }}>
           <table style={{ borderCollapse: 'collapse', tableLayout: 'auto' as const }}>
             <thead>
-              <tr style={{ background: 'var(--navy-3)' }}>
+              <tr style={{ background: '#f1f3f4' }}>
                 <th rowSpan={2} style={{ ...TH_STYLE, ...sTH(0), width: 36, padding: '10px 8px', verticalAlign: 'bottom', textAlign: 'center' as const }}>
                   <input ref={checkAllRef} type="checkbox" checked={todosSelecionadosVisiveis} onChange={toggleTodos}
                     style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }} />
@@ -1916,7 +1920,7 @@ function RevisaoPrecosScreen({
                 {temMagalu && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#38bdf8', background: 'rgba(14,165,233,0.08)',   borderBottom: '2px solid rgba(14,165,233,0.5)',   borderLeft: '1px solid rgba(14,165,233,0.25)',   borderRight: '1px solid rgba(14,165,233,0.25)',   whiteSpace: 'nowrap' }}>Magazine Luiza</th>}
                 {temAmazon && <th colSpan={5 + (imposto > 0 ? 1 : 0)} style={{ ...TH_STYLE, textAlign: 'center', color: '#f59e0b', background: 'rgba(245,158,11,0.08)',   borderBottom: '2px solid rgba(245,158,11,0.5)',   borderLeft: '1px solid rgba(245,158,11,0.25)',   borderRight: '1px solid rgba(245,158,11,0.25)',   whiteSpace: 'nowrap' }}>Amazon Brasil</th>}
               </tr>
-              <tr style={{ background: 'var(--navy-3)' }}>
+              <tr style={{ background: '#f1f3f4' }}>
                 {temML && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(37,99,235,0.3)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(37,99,235,0.3)' }}>Margem</th></>}
                 {temShopee && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(249,115,22,0.25)' }}>Preço</th><th style={TH_STYLE}>Comissão</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(249,115,22,0.25)' }}>Margem</th></>}
                 {temTikTok && <><th style={{ ...TH_STYLE, borderLeft: '1px solid rgba(244,63,94,0.3)' }}>Preço Promo</th><th style={TH_STYLE}>Comissão</th><th style={TH_STYLE}>Taxa Pgto</th>{imposto > 0 && <th style={TH_STYLE}>Imposto</th>}<th style={TH_STYLE}>Custo Total</th><th style={TH_STYLE}>Lucro</th><th style={{ ...TH_STYLE, borderRight: '1px solid rgba(244,63,94,0.3)' }}>Margem</th></>}
@@ -1930,7 +1934,7 @@ function RevisaoPrecosScreen({
                 const p = prods[idx]
                 const isSel = selecionados.has(idx)
                 const isLast = rowIdx === indicesFiltrados.length - 1
-                const rowBg = isSel ? '#1a2744' : 'var(--navy-2)'
+                const rowBg = isSel ? '#1a2744' : '#ffffff'
 
                 const comisML = p.preco_ml * comissaoML
                 const impML   = p.preco_ml * imposto
@@ -1971,21 +1975,21 @@ function RevisaoPrecosScreen({
                 const mAZ     = precoAZ > 0 ? (lucroAZ / precoAZ) * 100 : 0
 
                 return (
-                  <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none', background: rowBg }}>
+                  <tr key={p.sku} style={{ borderBottom: !isLast ? '1px solid #e8eaed' : 'none', background: rowBg }}>
                     <td style={{ ...sTD(0, rowBg), padding: '10px 8px', textAlign: 'center' as const, verticalAlign: 'middle' }}>
                       <input type="checkbox" checked={isSel} onChange={() => toggleSelecionado(idx)}
                         style={{ cursor: 'pointer', accentColor: 'var(--blue)', width: 14, height: 14 }} />
                     </td>
                     <td style={{ ...sTD(36, rowBg), padding: '10px 14px', verticalAlign: 'middle' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.3 }}>{p.nome}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#202124', lineHeight: 1.3 }}>{p.nome}</div>
+                      <div style={{ fontSize: 11, color: '#5f6368', marginTop: 2 }}>SKU: {p.sku}</div>
                     </td>
                     <td style={{ ...sTD(216, rowBg), padding: '10px 10px', textAlign: 'right' as const, verticalAlign: 'middle', whiteSpace: 'nowrap' as const }}>
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>R$ {fmt(p.custo)}</span>
+                      <span style={{ fontSize: 12, color: '#5f6368' }}>R$ {fmt(p.custo)}</span>
                     </td>
                     <td style={{ ...sTD(306, rowBg), padding: '7px 6px', verticalAlign: 'middle' }}>
                       <div style={{ position: 'relative', minWidth: 90 }}>
-                        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--muted)', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
+                        <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#5f6368', pointerEvents: 'none', userSelect: 'none' as const }}>R$</span>
                         <input type="number" step="0.01" defaultValue={p.embalagem.toFixed(2)}
                           onChange={e => update(idx, 'embalagem', e.target.value)}
                           onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) e.target.value = n.toFixed(2) }}
@@ -2079,8 +2083,8 @@ function RevisaoDimensoesScreen({
   return (
     <div style={{ width: '100%', maxWidth: unico ? 560 : 820 }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '36px 32px',
         display: 'flex',
@@ -2089,11 +2093,11 @@ function RevisaoDimensoesScreen({
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
-            <p style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 2 de 2</p>
-            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+            <p style={{ fontSize: 11, color: '#5f6368', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>Etapa 2 de 2</p>
+            <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 6, letterSpacing: '-0.01em' }}>
               Revisar dimensões
             </h2>
-            <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: '#5f6368', margin: 0, lineHeight: 1.6 }}>
               Confira peso e dimensões antes de gerar os arquivos.
               {temAlertas && !ocultarAlertas && (
                 <span style={{ color: '#fbbf24' }}> Campos em amarelo têm confiança média.</span>
@@ -2106,9 +2110,9 @@ function RevisaoDimensoesScreen({
               onClick={() => setOcultarAlertas(o => !o)}
               style={{
                 padding: '6px 14px', borderRadius: 20, flexShrink: 0,
-                border: `1.5px solid ${ocultarAlertas ? 'var(--border)' : 'rgba(234,179,8,0.45)'}`,
+                border: `1.5px solid ${ocultarAlertas ? '#e8eaed' : 'rgba(234,179,8,0.45)'}`,
                 background: ocultarAlertas ? 'transparent' : 'rgba(234,179,8,0.07)',
-                color: ocultarAlertas ? 'var(--muted)' : '#fbbf24',
+                color: ocultarAlertas ? '#5f6368' : '#fbbf24',
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
@@ -2149,8 +2153,8 @@ function RevisaoDimensoesScreen({
             </div>
             <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
               {produtosGrandes.map(p => (
-                <li key={p.sku} style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  <span style={{ color: 'var(--white)', fontWeight: 500 }}>{p.nome}</span>
+                <li key={p.sku} style={{ fontSize: 12, color: '#5f6368' }}>
+                  <span style={{ color: '#202124', fontWeight: 500 }}>{p.nome}</span>
                   {' — SKU '}{p.sku}{' '}
                   <span style={{ color: '#fbbf24' }}>({p.comprimento_cm}cm)</span>
                 </li>
@@ -2158,10 +2162,10 @@ function RevisaoDimensoesScreen({
             </ul>
             {impactosFrete.length > 0 && (
               <div>
-                <p style={{ margin: '4px 0 6px', fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Impacto por canal:</p>
+                <p style={{ margin: '4px 0 6px', fontSize: 12, color: '#5f6368', fontWeight: 600 }}>Impacto por canal:</p>
                 <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {impactosFrete.map(imp => (
-                    <li key={imp} style={{ fontSize: 12, color: 'var(--muted)' }}>{imp}</li>
+                    <li key={imp} style={{ fontSize: 12, color: '#5f6368' }}>{imp}</li>
                   ))}
                 </ul>
               </div>
@@ -2227,12 +2231,12 @@ function BulletPointsSection({
 }) {
   const baseInput: React.CSSProperties = {
     width: '100%',
-    background: 'var(--navy)',
-    border: '1px solid var(--border)',
+    background: '#f8f9fa',
+    border: '1px solid #e8eaed',
     borderRadius: 8,
     padding: '8px 10px',
     fontSize: 13,
-    color: 'var(--white)',
+    color: '#202124',
     outline: 'none',
     boxSizing: 'border-box' as const,
     fontFamily: 'inherit',
@@ -2250,8 +2254,8 @@ function BulletPointsSection({
       {bullets.map(b => (
         <div key={b.campo}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{b.label}</span>
-            <span style={{ fontSize: 11, color: 'var(--muted)', opacity: 0.65 }}>
+            <span style={{ fontSize: 12, color: '#5f6368', fontWeight: 500 }}>{b.label}</span>
+            <span style={{ fontSize: 11, color: '#5f6368', opacity: 0.65 }}>
               {(produto[b.campo] ?? '').length}/500
             </span>
           </div>
@@ -2296,21 +2300,21 @@ function CardUnico({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{
-        background: 'var(--navy)',
-        border: '1px solid var(--border)',
+        background: '#f8f9fa',
+        border: '1px solid #e8eaed',
         borderRadius: 10,
         padding: '12px 14px',
       }}>
-        <p style={{ fontSize: 11, color: 'var(--muted)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</p>
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--white)', margin: 0 }}>{produto.nome}</p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 0' }}>SKU: {produto.sku}</p>
+        <p style={{ fontSize: 11, color: '#5f6368', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</p>
+        <p style={{ fontSize: 15, fontWeight: 600, color: '#202124', margin: 0 }}>{produto.nome}</p>
+        <p style={{ fontSize: 12, color: '#5f6368', margin: '4px 0 0' }}>SKU: {produto.sku}</p>
       </div>
 
       {showPrecos && precos.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: precos.length === 1 ? '1fr' : '1fr 1fr', gap: 12 }}>
           {precos.map(([campo, label, canal]) => (
             <div key={campo}>
-              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 6px' }}>
+              <p style={{ fontSize: 12, color: '#5f6368', margin: '0 0 6px' }}>
                 {label}
               </p>
               <input
@@ -2327,7 +2331,7 @@ function CardUnico({
 
       <div>
         <p style={{ fontSize: 12, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: warn ? '#fbbf24' : 'var(--muted)' }}>Peso (g)</span>
+          <span style={{ color: warn ? '#fbbf24' : '#5f6368' }}>Peso (g)</span>
           {warn && <span title="Confiança média">⚠️</span>}
         </p>
         <input
@@ -2347,7 +2351,7 @@ function CardUnico({
         ] as [CampoNumerico, string][]).map(([campo, label]) => (
           <div key={campo}>
             <p style={{ fontSize: 12, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: warn ? '#fbbf24' : 'var(--muted)' }}>{label}</span>
+              <span style={{ color: warn ? '#fbbf24' : '#5f6368' }}>{label}</span>
               {warn && <span title="Confiança média" style={{ fontSize: 11 }}>⚠️</span>}
             </p>
             <input
@@ -2366,7 +2370,7 @@ function CardUnico({
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--blue-glow)', display: 'flex', alignItems: 'center', gap: 6 }}>
             ✏️ Textos gerados pela IA
           </span>
-          <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 12, color: '#5f6368', whiteSpace: 'nowrap' }}>
             {textosAbertos ? 'Fechar ▲' : 'Ver e editar ▼'}
           </span>
         </button>
@@ -2382,7 +2386,7 @@ function CardUnico({
             <span style={{ fontSize: 13, fontWeight: 600, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 6 }}>
               📦 Bullet Points Amazon
             </span>
-            <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 12, color: '#5f6368', whiteSpace: 'nowrap' }}>
               {bulletsAbertos ? 'Fechar ▲' : 'Ver e editar ▼'}
             </span>
           </button>
@@ -2403,12 +2407,12 @@ const TH_STYLE: React.CSSProperties = {
   padding: '10px 10px',
   fontSize: 11,
   fontWeight: 600,
-  color: 'var(--muted)',
+  color: '#5f6368',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   textAlign: 'right',
   whiteSpace: 'nowrap',
-  borderBottom: '1px solid var(--border)',
+  borderBottom: '1px solid #e8eaed',
 }
 
 function TabelaProdutos({
@@ -2451,10 +2455,10 @@ function TabelaProdutos({
   const dimCampos = new Set<CampoNumerico>(['peso_g','comprimento_cm','largura_cm','altura_cm'])
 
   return (
-    <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
+    <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e8eaed' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
         <thead>
-          <tr style={{ background: 'var(--navy-3)' }}>
+          <tr style={{ background: '#f1f3f4' }}>
             <th style={{ ...TH_STYLE, textAlign: 'left', paddingLeft: 14, width: 180 }}>Produto</th>
             {cols.map(c => (
               <th key={c.campo} style={{ ...TH_STYLE, width: c.width }}>{c.label}</th>
@@ -2468,10 +2472,10 @@ function TabelaProdutos({
             const isLast = i === produtos.length - 1
             return (
               <Fragment key={p.sku}>
-                <tr style={{ borderBottom: (!expanded && !isLast) ? '1px solid var(--border)' : 'none' }}>
+                <tr style={{ borderBottom: (!expanded && !isLast) ? '1px solid #e8eaed' : 'none' }}>
                   <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--white)', lineHeight: 1.4 }}>{p.nome}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>SKU: {p.sku}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#202124', lineHeight: 1.4 }}>{p.nome}</div>
+                    <div style={{ fontSize: 11, color: '#5f6368', marginTop: 2 }}>SKU: {p.sku}</div>
                     <button
                       type="button"
                       onClick={() => toggleTextos(p.sku)}
@@ -2509,16 +2513,16 @@ function TabelaProdutos({
                   })}
                 </tr>
                 {expanded && (
-                  <tr style={{ borderBottom: !isLast ? '1px solid var(--border)' : 'none' }}>
+                  <tr style={{ borderBottom: !isLast ? '1px solid #e8eaed' : 'none' }}>
                     <td
                       colSpan={cols.length + 1}
                       style={{
                         padding: '16px 20px 20px',
                         background: 'rgba(37,99,235,0.03)',
-                        borderTop: '1px solid var(--border)',
+                        borderTop: '1px solid #e8eaed',
                       }}
                     >
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#5f6368', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         ✏️ Textos gerados pela IA — {p.nome}
                       </p>
                       <TextosSection produto={p} canais={canais} onUpdate={(campo, val) => onUpdateTexto(i, campo, val)} />
@@ -2672,7 +2676,7 @@ function CorrecaoScreen({
         onClick={onVoltar}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--muted)', fontSize: 13,
+          color: '#5f6368', fontSize: 13,
           display: 'flex', alignItems: 'center', gap: 6,
           marginBottom: 20, padding: 0,
         }}
@@ -2681,8 +2685,8 @@ function CorrecaoScreen({
       </button>
 
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '28px 28px 20px',
         display: 'flex',
@@ -2690,7 +2694,7 @@ function CorrecaoScreen({
         gap: 20,
       }}>
         <div>
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 6, letterSpacing: '-0.01em' }}>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 6, letterSpacing: '-0.01em' }}>
             O que aconteceu no upload?
           </h2>
           {canaisDisponiveis.length > 1 ? (
@@ -2703,9 +2707,9 @@ function CorrecaoScreen({
                   style={{
                     padding: '5px 14px',
                     borderRadius: 20,
-                    border: `1.5px solid ${canal === c.id ? 'var(--blue)' : 'var(--border)'}`,
+                    border: `1.5px solid ${canal === c.id ? 'var(--blue)' : '#e8eaed'}`,
                     background: canal === c.id ? 'rgba(37,99,235,0.12)' : 'transparent',
-                    color: canal === c.id ? 'var(--blue-glow)' : 'var(--muted)',
+                    color: canal === c.id ? 'var(--blue-glow)' : '#5f6368',
                     fontSize: 12, fontWeight: canal === c.id ? 600 : 400,
                     cursor: 'pointer',
                     transition: 'all 0.15s',
@@ -2714,7 +2718,7 @@ function CorrecaoScreen({
               ))}
             </div>
           ) : (
-            <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>
+            <p style={{ fontSize: 13, color: '#5f6368', margin: '4px 0 0' }}>
               Canal: {canaisDisponiveis[0]?.label ?? canal}
             </p>
           )}
@@ -2736,17 +2740,17 @@ function CorrecaoScreen({
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}>
               <div style={{
                 maxWidth: '85%',
-                background: m.role === 'user' ? 'rgba(37,99,235,0.15)' : 'var(--navy)',
-                border: `1px solid ${m.role === 'user' ? 'rgba(37,99,235,0.35)' : 'var(--border)'}`,
+                background: m.role === 'user' ? 'rgba(37,99,235,0.15)' : '#f8f9fa',
+                border: `1px solid ${m.role === 'user' ? 'rgba(37,99,235,0.35)' : '#e8eaed'}`,
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 padding: '10px 14px',
                 fontSize: 13,
-                color: 'var(--white)',
+                color: '#202124',
                 lineHeight: 1.65,
                 whiteSpace: 'pre-wrap',
               }}>
                 {m.arquivoNome && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'var(--muted)', fontSize: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: '#5f6368', fontSize: 12 }}>
                     📎 {m.arquivoNome}
                   </div>
                 )}
@@ -2776,10 +2780,10 @@ function CorrecaoScreen({
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '7px 13px',
-                    background: 'rgba(37,99,235,0.1)',
+                    background: '#e8f0fe',
                     border: '1px solid rgba(37,99,235,0.3)',
                     borderRadius: 8,
-                    color: enviando ? 'var(--muted)' : 'var(--blue-glow)',
+                    color: enviando ? '#5f6368' : 'var(--blue-glow)',
                     fontSize: 12, fontWeight: 600,
                     cursor: enviando ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s',
@@ -2793,12 +2797,12 @@ function CorrecaoScreen({
           {enviando && (
             <div style={{ display: 'flex', alignItems: 'flex-start' }}>
               <div style={{
-                background: 'var(--navy)',
-                border: '1px solid var(--border)',
+                background: '#f8f9fa',
+                border: '1px solid #e8eaed',
                 borderRadius: '16px 16px 16px 4px',
                 padding: '10px 14px',
                 fontSize: 13,
-                color: 'var(--muted)',
+                color: '#5f6368',
               }}>
                 Analisando...
               </div>
@@ -2821,7 +2825,7 @@ function CorrecaoScreen({
               <button
                 type="button"
                 onClick={() => setArquivo(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 16, padding: 0, lineHeight: 1 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5f6368', fontSize: 16, padding: 0, lineHeight: 1 }}
               >×</button>
             </div>
           )}
@@ -2840,9 +2844,9 @@ function CorrecaoScreen({
               style={{
                 width: 38, height: 38,
                 borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--navy)',
-                color: 'var(--muted)',
+                border: '1px solid #e8eaed',
+                background: '#f8f9fa',
+                color: '#5f6368',
                 fontSize: 16,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2857,12 +2861,12 @@ function CorrecaoScreen({
               rows={1}
               style={{
                 flex: 1,
-                background: 'var(--navy)',
-                border: '1px solid var(--border)',
+                background: '#f8f9fa',
+                border: '1px solid #e8eaed',
                 borderRadius: 10,
                 padding: '9px 12px',
                 fontSize: 13,
-                color: 'var(--white)',
+                color: '#202124',
                 outline: 'none',
                 resize: 'none',
                 fontFamily: 'inherit',
@@ -2875,8 +2879,8 @@ function CorrecaoScreen({
               style={{
                 width: 38, height: 38,
                 borderRadius: 8, border: 'none',
-                background: canSend ? 'var(--blue)' : 'var(--navy-3)',
-                color: canSend ? 'white' : 'var(--muted)',
+                background: canSend ? 'var(--blue)' : '#f1f3f4',
+                color: canSend ? 'white' : '#5f6368',
                 fontSize: 18,
                 cursor: canSend ? 'pointer' : 'not-allowed',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2885,7 +2889,7 @@ function CorrecaoScreen({
               }}
             >→</button>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, opacity: 0.6 }}>
+          <p style={{ fontSize: 11, color: '#5f6368', margin: 0, opacity: 0.6 }}>
             Enter para enviar · Shift+Enter para nova linha · Anexe o relatório de erros para correção automática
           </p>
         </div>
@@ -2900,8 +2904,8 @@ function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void
   return (
     <div style={{ width: '100%', maxWidth: 560 }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '48px 32px',
         display: 'flex',
@@ -2920,7 +2924,7 @@ function ErroScreen({ message, onRetry }: { message: string; onRetry: () => void
         }}>❌</div>
 
         <div>
-          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: 'var(--white)', marginBottom: 12, letterSpacing: '-0.01em' }}>
+          <h2 className="font-display" style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12, letterSpacing: '-0.01em' }}>
             Algo deu errado
           </h2>
           <p style={{
@@ -3188,8 +3192,8 @@ export default function ProductForm({
   return (
     <div style={{ width: '100%', maxWidth: 560 }}>
       <div style={{
-        background: 'var(--navy-2)',
-        border: '1px solid var(--border)',
+        background: '#ffffff',
+        border: '1px solid #e8eaed',
         borderRadius: 20,
         padding: '36px 32px',
       }}>
@@ -3197,7 +3201,7 @@ export default function ProductForm({
 
         <h2 className="font-display" style={{
           fontSize: 20, fontWeight: 700,
-          color: 'var(--white)', marginBottom: 24,
+          color: '#202124', marginBottom: 24,
           letterSpacing: '-0.01em',
         }}>
           {titles[step]}

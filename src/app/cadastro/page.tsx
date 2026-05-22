@@ -4,9 +4,37 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: 12,
+  border: '1px solid #e8eaed',
+  fontSize: 14,
+  color: '#202124',
+  marginBottom: 16,
+  outline: 'none',
+  background: '#ffffff',
+  boxSizing: 'border-box',
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 500,
+  color: '#5f6368',
+  marginBottom: 6,
+}
+
+const cardStyle: React.CSSProperties = {
+  width: '100%',
+  maxWidth: 420,
+  background: '#ffffff',
+  borderRadius: 20,
+  border: '1px solid #e8eaed',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+  padding: '40px 48px',
+}
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -43,7 +71,7 @@ export default function CadastroPage() {
     }
 
     if (data.user) {
-      await supabase.from('profiles').update({ regime_tributario: regimeTributario }).eq('id', data.user.id)
+      await supabase.from('profiles').upsert({ id: data.user.id, regime_tributario: regimeTributario })
     }
 
     if (data.session) {
@@ -57,17 +85,17 @@ export default function CadastroPage() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-[#e8eaed] shadow-sm p-8 text-center">
-          <div className="w-12 h-12 bg-[#e8f0fe] rounded-xl flex items-center justify-center text-2xl mx-auto mb-4">✉️</div>
-          <h2 className="font-semibold text-lg text-[#202124] mb-2">Verifique seu email</h2>
-          <p className="text-sm text-[#5f6368] leading-relaxed">
+      <main style={{ minHeight: '100vh', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div style={{ ...cardStyle, textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 16px' }}>✉️</div>
+          <h2 style={{ fontSize: 17, fontWeight: 600, color: '#202124', marginBottom: 8 }}>Verifique seu email</h2>
+          <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.6 }}>
             Enviamos um link de confirmação para{' '}
-            <strong className="text-[#202124]">{email}</strong>.{' '}
+            <strong style={{ color: '#202124' }}>{email}</strong>.{' '}
             Verifique sua caixa de entrada para confirmar o cadastro.
           </p>
-          <div className="mt-6">
-            <Link href="/login" className="text-sm text-[#1a73e8] font-medium">
+          <div style={{ marginTop: 24 }}>
+            <Link href="/login" style={{ fontSize: 13, color: '#1a73e8', fontWeight: 500, textDecoration: 'none' }}>
               ← Ir para o login
             </Link>
           </div>
@@ -77,94 +105,114 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f9fa] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-[#e8eaed] shadow-sm p-8">
-        <div className="mb-6">
-          <h1 className="font-bold text-xl text-[#202124]">Listify</h1>
-          <p className="text-sm text-[#5f6368] mt-1">
+    <main style={{ minHeight: '100vh', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div style={cardStyle}>
+
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 4 }}>Listify</h1>
+          <p style={{ fontSize: 14, color: '#5f6368' }}>
             Criar conta ·{' '}
-            <Link href="/login" className="text-[#1a73e8] font-medium">Entrar</Link>
+            <Link href="/login" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 500 }}>Entrar</Link>
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <Label htmlFor="email" className="text-[#5f6368]">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              className="mt-1"
-            />
-          </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+          <label htmlFor="email" style={labelStyle}>Email</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            style={inputStyle}
+            onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,115,232,0.12)')}
+            onBlur={e => (e.currentTarget.style.boxShadow = 'none')}
+          />
 
-          <div>
-            <Label htmlFor="password" className="text-[#5f6368]">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              className="mt-1"
-            />
-          </div>
+          <label htmlFor="password" style={labelStyle}>Senha</label>
+          <input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+            style={inputStyle}
+            onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,115,232,0.12)')}
+            onBlur={e => (e.currentTarget.style.boxShadow = 'none')}
+          />
 
-          <div>
-            <Label htmlFor="confirmPassword" className="text-[#5f6368]">Confirmar senha</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Repita a senha"
-              className="mt-1"
-            />
-          </div>
+          <label htmlFor="confirmPassword" style={labelStyle}>Confirmar senha</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Repita a senha"
+            style={inputStyle}
+            onFocus={e => (e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,115,232,0.12)')}
+            onBlur={e => (e.currentTarget.style.boxShadow = 'none')}
+          />
 
-          <div>
-            <Label className="text-[#5f6368]">Regime tributário</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1">
-              {(['MEI', 'Simples Nacional'] as const).map(r => {
-                const active = regimeTributario === r
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRegimeTributario(r)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      active
-                        ? 'bg-[#e8f0fe] border-[#1a73e8] text-[#1a73e8] font-semibold'
-                        : 'bg-[#f8f9fa] border-[#e8eaed] text-[#5f6368]'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{r}</div>
-                    <div className="text-xs mt-0.5 opacity-70">
-                      {r === 'MEI' ? 'Até R$81k/ano' : 'CNPJ com contabilidade'}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+          <label style={{ ...labelStyle, marginBottom: 8 }}>Regime tributário</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {(['MEI', 'Simples Nacional'] as const).map(r => {
+              const active = regimeTributario === r
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRegimeTributario(r)}
+                  style={{
+                    padding: 12,
+                    borderRadius: 12,
+                    border: active ? '1.5px solid #1a73e8' : '1px solid #e8eaed',
+                    background: active ? '#e8f0fe' : '#f8f9fa',
+                    color: active ? '#1a73e8' : '#5f6368',
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 400,
+                    textAlign: 'left' as const,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{ fontWeight: active ? 600 : 500 }}>{r}</div>
+                  <div style={{ fontSize: 11, marginTop: 3, opacity: 0.75 }}>
+                    {r === 'MEI' ? 'Até R$81k/ano' : 'CNPJ com contabilidade'}
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
           {error && (
-            <p className="text-sm text-red-500">{error}</p>
+            <p style={{ fontSize: 13, color: '#ea4335', marginBottom: 8 }}>{error}</p>
           )}
 
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-xl h-11 mt-2"
+            style={{
+              height: 48, borderRadius: 12,
+              background: '#1a73e8', color: '#ffffff', border: 'none',
+              fontSize: 15, fontWeight: 600, marginTop: 8,
+              cursor: loading ? 'default' : 'pointer',
+              opacity: loading ? 0.75 : 1,
+              transition: 'opacity 0.15s',
+            }}
           >
             {loading ? 'Criando conta…' : 'Criar conta'}
-          </Button>
+          </button>
         </form>
+
+        <p style={{ fontSize: 13, color: '#9aa0a6', textAlign: 'center', marginTop: 20 }}>
+          Já tem conta?{' '}
+          <Link href="/login" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 500 }}>
+            Entrar
+          </Link>
+        </p>
       </div>
     </main>
   )
