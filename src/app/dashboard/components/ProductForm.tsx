@@ -706,6 +706,25 @@ function Step3({
   onBack: () => void
 }) {
   const [error, setError] = useState('')
+  const [planoUsuario, setPlanoUsuario] = useState<string>('free')
+
+  useEffect(() => {
+    const fetchPlano = async () => {
+      const res = await fetch('/api/get-plano')
+      if (res.ok) {
+        const json = await res.json()
+        setPlanoUsuario(json.plano || 'free')
+      }
+    }
+    fetchPlano()
+  }, [])
+
+  const canaisLiberadosFree = ['shopee', 'ml', 'mercado livre', 'mercado_livre']
+
+  const canalBloqueado = (nomeCanal: string) => {
+    if (planoUsuario !== 'free') return false
+    return !canaisLiberadosFree.some(c => nomeCanal.toLowerCase().includes(c))
+  }
 
   function toggle(id: string) {
     const next = data.channels.includes(id)
@@ -726,23 +745,25 @@ function Step3({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {CHANNELS.map(ch => {
           const selected = data.channels.includes(ch.id)
+          const blocked = canalBloqueado(ch.name)
           return (
             <button
               key={ch.id}
               type="button"
-              onClick={() => toggle(ch.id)}
+              onClick={blocked ? () => { window.location.href = '/upgrade?motivo=canais' } : () => toggle(ch.id)}
+              title={blocked ? 'Disponível nos planos pagos — clique para fazer upgrade' : undefined}
               style={{
                 padding: '14px 16px',
                 borderRadius: 12,
-                border: `2px solid ${selected ? 'var(--blue)' : '#e8eaed'}`,
-                background: selected ? 'rgba(37,99,235,0.1)' : '#f8f9fa',
-                cursor: 'pointer',
+                border: blocked ? '1px solid #e8eaed' : `2px solid ${selected ? 'var(--blue)' : '#e8eaed'}`,
+                background: blocked ? '#f8f9fa' : selected ? 'rgba(37,99,235,0.1)' : '#f8f9fa',
+                cursor: blocked ? 'not-allowed' : 'pointer',
                 textAlign: 'left',
                 transition: 'all 0.15s',
                 position: 'relative',
               }}
             >
-              {selected && (
+              {!blocked && selected && (
                 <div style={{
                   position: 'absolute', top: 8, right: 10,
                   width: 18, height: 18, borderRadius: '50%',
@@ -751,10 +772,13 @@ function Step3({
                   fontSize: 10, color: 'white', fontWeight: 700,
                 }}>✓</div>
               )}
-              <div style={{ fontSize: 14, fontWeight: 600, color: selected ? '#202124' : '#5f6368', marginBottom: 4 }}>
+              {blocked && (
+                <div style={{ position: 'absolute', top: 10, right: 12, fontSize: 14 }}>🔒</div>
+              )}
+              <div style={{ fontSize: 14, fontWeight: 600, color: blocked ? '#9aa0a6' : selected ? '#202124' : '#5f6368', marginBottom: 4 }}>
                 {ch.name}
               </div>
-              <div style={{ fontSize: 12, color: '#5f6368', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: blocked ? '#9aa0a6' : '#5f6368', lineHeight: 1.5 }}>
                 {ch.desc}
               </div>
             </button>
