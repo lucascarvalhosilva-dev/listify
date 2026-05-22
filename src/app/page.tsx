@@ -172,7 +172,7 @@ export default function Home() {
           <div className="table-wrap">
             <div className="table-head"><span>Canal</span><span>Com Listify</span><span>Manual</span></div>
             <div className="table-row"><span className="t-canal">Shopee</span><span className="t-listify">~7 min</span><span className="t-manual">~8 horas</span></div>
-            <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~8 min</span><span className="t-manual">~10 horas</span></div>
+            <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~7 min</span><span className="t-manual">~10 horas</span></div>
             <div className="table-row"><span className="t-canal">TikTok Shop</span><span className="t-listify">~6 min</span><span className="t-manual">~6 horas</span></div>
             <div className="table-row"><span className="t-canal">Bling</span><span className="t-listify">~7 min</span><span className="t-manual">~8 horas</span></div>
           </div>
