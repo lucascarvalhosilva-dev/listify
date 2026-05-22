@@ -141,9 +141,9 @@ export default function Home() {
           <div className="section-title">Como funciona</div>
           <div className="section-sub">Três passos. Produto publicado.</div>
           <div className="grid3">
-            <div className="card"><div className="card-num">01</div><div className="card-title">Informe o produto</div><div className="card-desc">Nome, fotos, estoque, custo e regime tributário. Nada mais.</div></div>
-            <div className="card"><div className="card-num">02</div><div className="card-title">A IA faz o resto</div><div className="card-desc">Pesquisa specs, infere dimensões, calcula preços e cria títulos SEO para cada canal.</div></div>
-            <div className="card"><div className="card-num">03</div><div className="card-title">Baixe e publique</div><div className="card-desc">Arquivo pronto para upload. Guia embutido. Correção automática de erros.</div></div>
+            <div className="card"><div className="card-num">01</div><div className="card-title">Você só informa o básico</div><div className="card-desc">Nome do produto, fotos, custo e regime tributário. Em menos de 2 minutos. Sem planilha, sem manual, sem dor de cabeça.</div></div>
+            <div className="card"><div className="card-num">02</div><div className="card-title">A IA pesquisa, calcula e escreve tudo</div><div className="card-desc">Título SEO otimizado, descrição persuasiva, preço calculado com margem garantida, dimensões, NCM e EAN — gerados automaticamente seguindo as boas práticas de cada plataforma. Zero erro humano.</div></div>
+            <div className="card"><div className="card-num">03</div><div className="card-title">Anúncios de alta qualidade, prontos para publicar</div><div className="card-desc">Cada anúncio segue exatamente os requisitos do canal: formato correto, campos completos, sem rejeição. Do zero ao anúncio publicado em minutos — com qualidade de quem faz isso há anos.</div></div>
           </div>
         </div>
       </section>
@@ -168,14 +168,17 @@ export default function Home() {
       <section className="section section-white">
         <div className="container">
           <div className="section-title">Quanto tempo você economiza</div>
-          <div className="section-sub">Baseado em sessões reais com catálogos de 10–15 produtos</div>
+          <div className="section-sub">Horas de trabalho manual reduzidas a minutos com IA</div>
           <div className="table-wrap">
             <div className="table-head"><span>Canal</span><span>Com Listify</span><span>Manual</span></div>
-            <div className="table-row"><span className="t-canal">Shopee</span><span className="t-listify">~60 min</span><span className="t-manual">~5 horas</span></div>
-            <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~90 min</span><span className="t-manual">~6 horas</span></div>
-            <div className="table-row"><span className="t-canal">TikTok Shop</span><span className="t-listify">~30 min</span><span className="t-manual">~3 horas</span></div>
-            <div className="table-row"><span className="t-canal">Bling</span><span className="t-listify">~40 min</span><span className="t-manual">~4 horas</span></div>
+            <div className="table-row"><span className="t-canal">Shopee</span><span className="t-listify">~7 min</span><span className="t-manual">~8 horas</span></div>
+            <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~8 min</span><span className="t-manual">~10 horas</span></div>
+            <div className="table-row"><span className="t-canal">TikTok Shop</span><span className="t-listify">~6 min</span><span className="t-manual">~6 horas</span></div>
+            <div className="table-row"><span className="t-canal">Bling</span><span className="t-listify">~7 min</span><span className="t-manual">~8 horas</span></div>
           </div>
+          <p style={{fontSize: '12px', color: '#9aa0a6', textAlign: 'center', marginTop: '16px'}}>
+            * Tempos podem variar de acordo com a quantidade de produtos. Exemplo baseado em 100 produtos.
+          </p>
         </div>
       </section>
 
