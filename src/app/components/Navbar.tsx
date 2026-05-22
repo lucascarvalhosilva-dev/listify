@@ -74,7 +74,7 @@ export default function Navbar() {
 
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link href="/painel" className="navbar-logo"><span style={{fontWeight:700,fontSize:'22px',letterSpacing:'-0.5px'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></Link>
+          <Link href="/painel" style={{textDecoration:'none',display:'flex',alignItems:'baseline',gap:'8px'}}><span style={{fontWeight:800,fontSize:'32px',letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></Link>
 
           <div className="navbar-tabs">
             {tabs.map(tab => (
