@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Checar limite de produtos
+    console.log('[LIMITE CHECK] produtos recebidos:', produtos?.length, 'plano do usuário será verificado')
     const checkProdutos = await checarLimiteProdutos(produtos?.length || 0)
     if (!checkProdutos.ok) {
       return NextResponse.json({ error: checkProdutos.mensagem, upgrade: true, motivo: 'produtos' }, { status: 403 })

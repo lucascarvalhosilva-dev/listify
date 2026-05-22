@@ -19,7 +19,7 @@ export async function getPlanoUsuario(): Promise<Plano> {
     .from('profiles')
     .select('plano')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
   return (data?.plano as Plano) || 'free'
 }
 
@@ -53,6 +53,7 @@ export async function checarLimiteProdutos(qtdNovos: number): Promise<{ ok: bool
   const plano = await getPlanoUsuario()
   const limite = LIMITES[plano].produtos
   const usados = await getProdutosUsadosMes()
+  console.log('[PLANOS] usados no mês:', usados, '| tentando adicionar:', qtdNovos, '| limite:', limite)
   if (usados + qtdNovos > limite) {
     return {
       ok: false,
