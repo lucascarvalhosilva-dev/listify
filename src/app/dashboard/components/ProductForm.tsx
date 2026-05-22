@@ -427,11 +427,13 @@ function Step1({
   onChange,
   onNext,
   onCarregarCatalogo,
+  onNumProdutos,
 }: {
   data: FormData
   onChange: (p: Partial<FormData>) => void
   onNext: () => void
   onCarregarCatalogo: (produtos: ProdutoRevisao[], driveUrl: string, taxRegime: 'MEI' | 'Simples Nacional') => void
+  onNumProdutos?: (n: number) => void
 }) {
   const [error, setError] = useState('')
   const [catalogos, setCatalogos] = useState<CatalogoItem[]>([])
@@ -478,7 +480,23 @@ function Step1({
 
       <FileUploadZone
         file={data.file}
-        onFile={f => { onChange({ file: f }); setError('') }}
+        onFile={f => {
+          onChange({ file: f })
+          setError('')
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            try {
+              const buf = new Uint8Array(e.target?.result as ArrayBuffer)
+              const wb = XLSX.read(buf, { type: 'array' })
+              const ws = wb.Sheets[wb.SheetNames[0]]
+              const rows = XLSX.utils.sheet_to_json(ws)
+              onNumProdutos?.(rows.length)
+            } catch {
+              onNumProdutos?.(0)
+            }
+          }
+          reader.readAsArrayBuffer(f)
+        }}
       />
 
       <SkuGuide />
@@ -3025,6 +3043,7 @@ export default function ProductForm({
   const [erroMsg, setErroMsg] = useState('')
   const [numProdutos, setNumProdutos] = useState(0)
   const [numProdutosProcessados, setNumProdutosProcessados] = useState(0)
+  const [numProdutosArquivo, setNumProdutosArquivo] = useState(0)
   const [fromCatalogo, setFromCatalogo] = useState(!!catalogoInicial)
 
   function patch(update: Partial<FormData>) {
@@ -3057,6 +3076,7 @@ export default function ProductForm({
     setEditados([])
     setErroMsg('')
     setNumProdutos(0)
+    setNumProdutosArquivo(0)
     setFromCatalogo(false)
   }
 
@@ -3262,10 +3282,10 @@ export default function ProductForm({
           {titles[step]}
         </h2>
 
-        {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} onCarregarCatalogo={handleCarregarCatalogo} />}
+        {step === 1 && <Step1 data={data} onChange={patch} onNext={() => setStep(2)} onCarregarCatalogo={handleCarregarCatalogo} onNumProdutos={setNumProdutosArquivo} />}
         {step === 2 && <Step2 data={data} onChange={patch} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
         {step === 3 && <Step3 data={data} onChange={patch} onNext={() => setStep(4)} onBack={() => fromCatalogo ? setStep(1) : setStep(2)} />}
-        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={fromCatalogo ? handleConfirmFromCatalogo : handleConfirm} fromCatalogo={fromCatalogo} numProdutos={editados.length} />}
+        {step === 4 && <Step4 data={data} onBack={() => setStep(3)} onConfirm={fromCatalogo ? handleConfirmFromCatalogo : handleConfirm} fromCatalogo={fromCatalogo} numProdutos={editados.length > 0 ? editados.length : numProdutosArquivo} />}
       </div>
     </div>
   )
