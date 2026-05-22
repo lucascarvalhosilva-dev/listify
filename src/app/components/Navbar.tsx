@@ -145,6 +145,17 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
                 {displayName}
               </span>
             )}
+            <Link
+              href="/configuracoes"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 13, color: '#5f6368',
+                padding: '6px 12px', borderRadius: 8,
+                textDecoration: 'none', whiteSpace: 'nowrap',
+              }}
+            >
+              Configurações
+            </Link>
             <button
               onClick={signOut}
               className="lf-signout"
@@ -202,6 +213,21 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
               </button>
             )
           })}
+
+          <Link
+            href="/configuracoes"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '13px 24px', width: '100%',
+              background: 'none', border: 'none',
+              borderLeft: '3px solid transparent',
+              color: '#5f6368', fontSize: 14,
+              textDecoration: 'none',
+            }}
+          >
+            Configurações
+          </Link>
 
           {userEmail && (
             <div style={{
