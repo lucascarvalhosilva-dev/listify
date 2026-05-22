@@ -108,7 +108,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav className="nav">
-        <a href="/" className="nav-logo"><span style={{fontWeight:700,fontSize:'20px',letterSpacing:'-0.5px',lineHeight:'1'}}><span style={{color:'#202124',display:'inline'}}>Gu</span><span style={{color:'#1a73e8',display:'inline'}}>ia</span><span style={{color:'#202124',display:'inline'}}>mos</span></span></a>
+        <a href="/" className="nav-logo"><span style={{fontWeight:700,fontSize:'24px',letterSpacing:'-0.5px',lineHeight:'1'}}><span style={{color:'#202124',display:'inline'}}>Gu</span><span style={{color:'#1a73e8',display:'inline'}}>ia</span><span style={{color:'#202124',display:'inline'}}>mos</span></span></a>
         <ul className="nav-links">
           <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#precos">Preços</a></li>

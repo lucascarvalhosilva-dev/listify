@@ -75,7 +75,7 @@ export default function Navbar() {
       <nav className="navbar">
         <div className="navbar-inner">
           <Link href="/painel" className="navbar-logo">
-            <span style={{fontWeight:700,fontSize:'20px',letterSpacing:'-0.5px',lineHeight:'1'}}><span style={{color:'#202124',display:'inline'}}>Gu</span><span style={{color:'#1a73e8',display:'inline'}}>ia</span><span style={{color:'#202124',display:'inline'}}>mos</span></span>
+            <span style={{fontWeight:700,fontSize:'24px',letterSpacing:'-0.5px',lineHeight:'1'}}><span style={{color:'#202124',display:'inline'}}>Gu</span><span style={{color:'#1a73e8',display:'inline'}}>ia</span><span style={{color:'#202124',display:'inline'}}>mos</span></span>
           </Link>
 
           <div className="navbar-tabs">
