@@ -108,7 +108,7 @@ export default function Home() {
 
       {/* NAV */}
       <nav className="nav">
-        <Link href="/" className="nav-logo"><Logo /> <span>by Anthropic Claude</span></Link>
+        <Link href="/" className="nav-logo"><Logo size="lg" /> <span>by Anthropic Claude</span></Link>
         <ul className="nav-links">
           <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#precos">Preços</a></li>

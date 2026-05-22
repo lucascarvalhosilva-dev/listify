@@ -1,5 +1,5 @@
 export default function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const sizes = { sm: '16px', md: '20px', lg: '28px' }
+  const sizes = { sm: '18px', md: '20px', lg: '32px' }
   const fontSize = sizes[size]
   return (
     <span style={{ fontSize, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1 }}>

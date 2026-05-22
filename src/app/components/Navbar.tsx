@@ -74,7 +74,7 @@ export default function Navbar() {
 
       <nav className="navbar">
         <div className="navbar-inner">
-          <Link href="/painel" className="navbar-logo"><Logo /></Link>
+          <Link href="/painel" className="navbar-logo"><Logo size="md" /></Link>
 
           <div className="navbar-tabs">
             {tabs.map(tab => (
