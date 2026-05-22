@@ -845,8 +845,11 @@ function Step4({
   const totalCanais = data.channels.length || 1
   const BATCH_SIZE = 5
   const SEGUNDOS_POR_BATCH = 18
+  const SEGUNDOS_EXTRA_POR_CANAL = 8
   const batches = Math.ceil(totalProdutos / BATCH_SIZE)
-  const segundosTotal = batches * SEGUNDOS_POR_BATCH * totalCanais
+  const segundosBase = batches * SEGUNDOS_POR_BATCH
+  const segundosCanais = totalCanais > 1 ? (totalCanais - 1) * SEGUNDOS_EXTRA_POR_CANAL * batches : 0
+  const segundosTotal = segundosBase + segundosCanais
   const minutos = Math.ceil(segundosTotal / 60)
   const tempoEstimado = totalProdutos === 0
     ? '—'
