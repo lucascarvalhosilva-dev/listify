@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import Navbar, { type SectionId } from '../components/Navbar'
+import Navbar from '../components/Navbar'
 import ProductForm, { type CatalogoItem } from '../dashboard/components/ProductForm'
 import HelpChat from '@/components/HelpChat'
 
@@ -47,7 +47,7 @@ export default function PainelPage() {
   const [showForm, setShowForm] = useState(true)
   const [catalogoInicial, setCatalogoInicial] = useState<CatalogoItem | undefined>(undefined)
   const [canaisParaRepetir, setCanaisParaRepetir] = useState<string[] | undefined>(undefined)
-  const [activeSection, setActiveSection] = useState<SectionId>('cat')
+  const [activeSection, setActiveSection] = useState<string>('cat')
   const [catalogos, setCatalogos] = useState<CatalogoItem[]>([])
   const [geracoes, setGeracoes] = useState<GeracaoItem[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -75,7 +75,7 @@ export default function PainelPage() {
     setShowForm(true)
   }
 
-  function handleSectionChange(section: SectionId) {
+  function handleSectionChange(section: string) {
     setShowForm(false)
     setCatalogoInicial(undefined)
     setCanaisParaRepetir(undefined)
@@ -115,11 +115,7 @@ export default function PainelPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
-      <Navbar
-        onNovaGeracao={handleNovaGeracao}
-        activeSection={showForm ? undefined : activeSection}
-        onSectionChange={handleSectionChange}
-      />
+      <Navbar />
 
       <main style={{ flex: 1 }}>
         {/* ── Nova Geração: ProductForm ────────────────────────────────── */}
