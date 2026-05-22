@@ -152,7 +152,7 @@ export default function Home() {
       {/* DIFERENCIAIS */}
       <section className="section section-gray" id="funcionalidades">
         <div className="container">
-          <div className="section-title">Por que a Guiamos</div>
+          <div className="section-title">Por que a <span style={{fontWeight:800,letterSpacing:'-0.5px'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></div>
           <div className="section-sub" style={{marginBottom: '32px'}}></div>
           <div className="grid6">
             <div className="card-sm"><div className="card-title">5 inputs. A IA infere o resto</div><div className="card-desc">Dimensões, NCM, EAN, categoria e descrições gerados automaticamente.</div></div>

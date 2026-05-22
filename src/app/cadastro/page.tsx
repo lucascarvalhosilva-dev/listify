@@ -110,7 +110,7 @@ export default function CadastroPage() {
       <div style={cardStyle}>
 
         <div style={{ marginBottom: 32 }}>
-          <div style={{ marginBottom: 4 }}><Logo size="lg" /></div>
+          <div style={{ marginBottom: 4 }}><span style={{fontWeight:800,fontSize:'26px',letterSpacing:'-0.5px',lineHeight:'1',fontStyle:'normal'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span></div>
           <p style={{ fontSize: 14, color: '#5f6368' }}>
             Criar conta ·{' '}
             <Link href="/login" style={{ color: '#1a73e8', textDecoration: 'none', fontWeight: 500 }}>Entrar</Link>
