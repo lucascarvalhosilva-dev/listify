@@ -1,8 +1,9 @@
 'use client'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function Upgrade() {
+function UpgradeContent() {
   const searchParams = useSearchParams()
   const motivo = searchParams.get('motivo')
 
@@ -161,5 +162,13 @@ export default function Upgrade() {
         </div>
       </div>
     </>
+  )
+}
+
+export default function Upgrade() {
+  return (
+    <Suspense fallback={<div style={{minHeight:'100vh',background:'#f8f9fa'}} />}>
+      <UpgradeContent />
+    </Suspense>
   )
 }
