@@ -32,11 +32,17 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
   const pathname = usePathname()
   const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
+  const [nomeExibicao, setNomeExibicao] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    createClient().auth.getSession().then(({ data: { session } }) => {
+    createClient().auth.getSession().then(async ({ data: { session } }) => {
       setUserEmail(session?.user?.email ?? '')
+      const perfilRes = await fetch('/api/get-profile')
+      if (perfilRes.ok) {
+        const perfil = await perfilRes.json()
+        if (perfil.nome) setNomeExibicao(perfil.nome)
+      }
     })
   }, [])
 
@@ -68,7 +74,7 @@ export default function Navbar({ onNovaGeracao, activeSection, onSectionChange }
     router.push(tab.href)
   }
 
-  const displayName = userEmail ? userEmail.split('@')[0] : ''
+  const displayName = nomeExibicao || (userEmail ? userEmail.split('@')[0] : '')
 
   return (
     <>
