@@ -61,7 +61,7 @@ export default function Home() {
         .t-canal { font-size: 15px; font-weight: 500; color: #202124; }
         .t-listify { font-size: 15px; font-weight: 600; color: #1a73e8; }
         .t-manual { font-size: 15px; color: #9aa0a6; text-decoration: line-through; }
-        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .plan { background: #fff; border: 1px solid #e8eaed; border-radius: 24px; padding: 32px; display: flex; flex-direction: column; }
         .plan.featured { border: 2px solid #1a73e8; position: relative; }
         .plan-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #1a73e8; color: #fff; font-size: 11px; font-weight: 500; padding: 5px 16px; border-radius: 12px; white-space: nowrap; }
@@ -113,7 +113,7 @@ export default function Home() {
           <li><a href="#precos">Preços</a></li>
           <li><Link href="/login">Entrar</Link></li>
         </ul>
-        <Link href="/cadastro" className="nav-cta">Começar grátis</Link>
+        <Link href="/cadastro" className="nav-cta">Começar agora</Link>
       </nav>
 
       {/* HERO */}
@@ -122,7 +122,7 @@ export default function Home() {
         <h1>Cadastre produtos em marketplaces em <em>minutos</em>, não em horas</h1>
         <p>Você informa o produto, as fotos e o custo. A Listify gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.</p>
         <div className="hero-btns">
-          <Link href="/cadastro" className="btn-primary">Começar grátis</Link>
+          <Link href="/cadastro" className="btn-primary">Começar agora</Link>
           <a href="#como-funciona" className="btn-outline">Ver como funciona</a>
         </div>
       </section>
@@ -186,6 +186,17 @@ export default function Home() {
           <div className="section-sub" style={{marginBottom: '48px'}}></div>
           <div className="pricing-grid">
             <div className="plan">
+              <div className="plan-name">Free</div>
+              <div className="plan-price">R$0</div>
+              <div className="plan-period">para sempre</div>
+              <ul className="plan-features">
+                <li>5 produtos/mês</li>
+                <li>2 canais (Shopee e ML)</li>
+                <li>1 catálogo salvo</li>
+              </ul>
+              <Link href="/cadastro"><button className="btn-plan">Criar conta grátis</button></Link>
+            </div>
+            <div className="plan">
               <div className="plan-name">Starter</div>
               <div className="plan-price">R$29</div>
               <div className="plan-period">/mês</div>
@@ -193,6 +204,7 @@ export default function Home() {
                 <li>100 produtos/mês</li>
                 <li>2 canais simultâneos</li>
                 <li>5 catálogos salvos</li>
+                <li>HelpChat com IA</li>
                 <li>Correção automática de erros</li>
               </ul>
               <Link href="/cadastro"><button className="btn-plan">Começar agora</button></Link>
@@ -206,7 +218,8 @@ export default function Home() {
                 <li>500 produtos/mês</li>
                 <li>4 canais simultâneos</li>
                 <li>30 catálogos salvos</li>
-                <li>Tudo do Starter</li>
+                <li>HelpChat com IA</li>
+                <li>Correção automática de erros</li>
               </ul>
               <Link href="/cadastro"><button className="btn-plan featured-btn">Começar agora</button></Link>
             </div>
@@ -219,6 +232,7 @@ export default function Home() {
                 <li>6 canais simultâneos</li>
                 <li>Catálogos ilimitados</li>
                 <li>3 usuários</li>
+                <li>HelpChat com IA</li>
                 <li>Tudo do Profissional</li>
               </ul>
               <button className="btn-plan">Falar com a equipe</button>
