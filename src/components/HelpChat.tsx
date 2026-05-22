@@ -9,7 +9,7 @@ interface Message {
 
 const WELCOME: Message = {
   role: 'assistant',
-  content: 'Olá! Sou o assistente da Listify. Pode me perguntar sobre erros de upload, como configurar cada canal, fórmulas de preço, requisitos de foto ou qualquer dúvida sobre a plataforma.',
+  content: 'Olá! Sou o assistente da Guiamos. Pode me perguntar sobre erros de upload, como configurar cada canal, fórmulas de preço, requisitos de foto ou qualquer dúvida sobre a plataforma.',
 }
 
 export default function HelpChat() {
@@ -127,7 +127,7 @@ export default function HelpChat() {
           height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '0 16px', borderBottom: '1px solid #E8EAED', flexShrink: 0,
         }}>
-          <span style={{ fontSize: 15, fontWeight: 500, color: '#202124' }}>Assistente Listify</span>
+          <span style={{ fontSize: 15, fontWeight: 500, color: '#202124' }}>Assistente Guiamos</span>
           <button
             type="button"
             onClick={() => setIsOpen(false)}

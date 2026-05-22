@@ -33,7 +33,7 @@ export default function GuiaFotosPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[#202124]">Como preparar suas fotos</h1>
           <p className="text-sm text-[#5f6368] mt-1 leading-relaxed">
-            Siga este guia uma vez e a Listify vai usar suas fotos automaticamente em todas as gerações.
+            Siga este guia uma vez e a Guiamos vai usar suas fotos automaticamente em todas as gerações.
           </p>
         </div>
 

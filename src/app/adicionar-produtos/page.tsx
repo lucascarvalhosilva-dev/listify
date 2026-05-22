@@ -95,7 +95,7 @@ const GUIA_ADICIONAR: Record<string, { titulo: string; passos: PassoGuia[] }> = 
     titulo: 'Como adicionar produtos novos no Shopee',
     passos: [
       { texto: 'Central do Vendedor → Produto → Upload em massa → aba Envio' },
-      { texto: 'Selecione o arquivo gerado pela Listify' },
+      { texto: 'Selecione o arquivo gerado pela Guiamos' },
       { texto: 'Os produtos novos serão adicionados sem mexer nos existentes' },
     ],
   },
@@ -103,7 +103,7 @@ const GUIA_ADICIONAR: Record<string, { titulo: string; passos: PassoGuia[] }> = 
     titulo: 'Como adicionar produtos novos no Mercado Livre',
     passos: [
       { texto: 'ML → Vender → Produtos → Anunciador em Massa → Carregar planilha' },
-      { texto: 'Selecione o arquivo gerado pela Listify' },
+      { texto: 'Selecione o arquivo gerado pela Guiamos' },
       { texto: 'Os produtos novos serão criados sem alterar os existentes' },
     ],
   },
@@ -111,7 +111,7 @@ const GUIA_ADICIONAR: Record<string, { titulo: string; passos: PassoGuia[] }> = 
     titulo: 'Como adicionar produtos novos no TikTok Shop',
     passos: [
       { texto: 'seller.tiktok.com → Produtos → Importar produtos em massa' },
-      { texto: 'Selecione o CSV gerado pela Listify' },
+      { texto: 'Selecione o CSV gerado pela Guiamos' },
       { texto: 'Adicione fotos em cada produto novo pelo painel após importação' },
     ],
   },
@@ -119,7 +119,7 @@ const GUIA_ADICIONAR: Record<string, { titulo: string; passos: PassoGuia[] }> = 
     titulo: 'Como adicionar produtos novos no Bling',
     passos: [
       { texto: 'Bling → Produtos → Importar Produtos' },
-      { texto: 'Selecione o CSV gerado pela Listify' },
+      { texto: 'Selecione o CSV gerado pela Guiamos' },
       { texto: 'SKUs novos serão criados. SKUs existentes serão atualizados.', atencao: true },
     ],
   },
@@ -127,7 +127,7 @@ const GUIA_ADICIONAR: Record<string, { titulo: string; passos: PassoGuia[] }> = 
     titulo: 'Como adicionar produtos novos no Magazine Luiza',
     passos: [
       { texto: 'Acesse o painel IntegraCommerce' },
-      { texto: 'Cadastre os produtos com o arquivo gerado pela Listify' },
+      { texto: 'Cadastre os produtos com o arquivo gerado pela Guiamos' },
       { texto: 'Aguarde aprovação (24–48h)' },
     ],
   },
@@ -436,7 +436,7 @@ export default function AdicionarProdutosPage() {
                     {[
                       'Selecione o catálogo que você já publicou em um canal',
                       'Faça upload da planilha com TODOS os seus produtos (novos e antigos)',
-                      'A Listify identifica automaticamente quais SKUs são novos',
+                      'A Guiamos identifica automaticamente quais SKUs são novos',
                       'Escolha o canal de destino e gere a planilha só com os novos',
                       'Faça upload no novo canal — os produtos existentes não são afetados',
                     ].map((texto, i) => (
@@ -464,7 +464,7 @@ export default function AdicionarProdutosPage() {
                   Qual catálogo já está publicado?
                 </h2>
                 <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
-                  Selecione o catálogo que você já publicou nesse canal. A Listify vai comparar os SKUs para identificar apenas os novos.
+                  Selecione o catálogo que você já publicou nesse canal. A Guiamos vai comparar os SKUs para identificar apenas os novos.
                 </p>
 
                 {carregandoCatalogos ? (
@@ -545,7 +545,7 @@ export default function AdicionarProdutosPage() {
                 Quais produtos você quer adicionar?
               </h2>
               <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 24px', lineHeight: 1.6 }}>
-                Use a mesma planilha que você já usa. A Listify vai identificar automaticamente quais SKUs são novos
+                Use a mesma planilha que você já usa. A Guiamos vai identificar automaticamente quais SKUs são novos
                 comparando com{' '}
                 <strong style={{ color: 'var(--white)' }}>{catalogoSelecionado?.nome}</strong>.
               </p>

@@ -305,7 +305,7 @@ const DRIVE_STEPS = [
   },
   {
     img: '/images/guia-drive/drive_step4.png',
-    desc: "Clique em 'Copiar link' — o link está pronto para usar na Listify",
+    desc: "Clique em 'Copiar link' — o link está pronto para usar na Guiamos",
   },
 ]
 

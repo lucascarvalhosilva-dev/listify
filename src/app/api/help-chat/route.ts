@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `Você é o assistente da Listify, uma plataforma que automatiza o cadastro de produtos em marketplaces brasileiros. Ajude vendedores com dúvidas sobre a plataforma e os marketplaces.
+const SYSTEM_PROMPT = `Você é o assistente da Guiamos, uma plataforma que automatiza o cadastro de produtos em marketplaces brasileiros. Ajude vendedores com dúvidas sobre a plataforma e os marketplaces.
 
 SOBRE A LISTIFY:
 - O usuário fornece: nome do produto, fotos (SKU_01.jpg no Google Drive), estoque, custo e regime tributário (MEI ou Simples Nacional)
@@ -31,7 +31,7 @@ ERROS COMUNS E SOLUÇÕES:
 Shopee:
 - Erro 90006: Correios não ativado. Solução: Central do Vendedor → Configurações → Envio → Canal Logístico → ativar Correios
 - Produto em rascunho permanente: sem foto de capa ou URL do Drive sem acesso público
-- Template não carrega: problema no XML interno do arquivo — gerar novo arquivo pela Listify
+- Template não carrega: problema no XML interno do arquivo — gerar novo arquivo pela Guiamos
 
 Mercado Livre:
 - "Entrega a combinar": conta pessoal sem Mercado Envios. Precisa de conta empresarial com CNPJ

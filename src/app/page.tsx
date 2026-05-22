@@ -7,9 +7,9 @@ export default function Home() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null)
 
   const faqs = [
-    { q: 'Preciso saber programar para usar?', r: 'Não. A Listify é uma plataforma web. Você usa pelo navegador, sem instalar nada.' },
+    { q: 'Preciso saber programar para usar?', r: 'Não. A Guiamos é uma plataforma web. Você usa pelo navegador, sem instalar nada.' },
     { q: 'Funciona para qualquer tipo de produto?', r: 'Sim. O sistema infere specs pelo nome do produto. Funciona para qualquer categoria.' },
-    { q: 'O que acontece se o upload der erro?', r: 'Você envia o arquivo de resultado para a Listify e recebe uma versão corrigida automaticamente.' },
+    { q: 'O que acontece se o upload der erro?', r: 'Você envia o arquivo de resultado para a Guiamos e recebe uma versão corrigida automaticamente.' },
     { q: 'Preciso baixar algum template dos marketplaces?', r: 'Não. Os templates estão armazenados internamente. Você recebe só o arquivo preenchido.' },
     { q: 'Funciona para MEI e Simples Nacional?', r: 'Sim. O preço é calculado com a fórmula correta para cada regime tributário.' },
   ]
@@ -152,7 +152,7 @@ export default function Home() {
       {/* DIFERENCIAIS */}
       <section className="section section-gray" id="funcionalidades">
         <div className="container">
-          <div className="section-title">Por que a Listify</div>
+          <div className="section-title">Por que a Guiamos</div>
           <div className="section-sub" style={{marginBottom: '32px'}}></div>
           <div className="grid6">
             <div className="card-sm"><div className="card-title">5 inputs. A IA infere o resto</div><div className="card-desc">Dimensões, NCM, EAN, categoria e descrições gerados automaticamente.</div></div>
@@ -171,7 +171,7 @@ export default function Home() {
           <div className="section-title">Quanto tempo você economiza</div>
           <div className="section-sub">Horas de trabalho manual reduzidas a minutos com IA</div>
           <div className="table-wrap">
-            <div className="table-head"><span>Canal</span><span>Com Listify</span><span>Manual</span></div>
+            <div className="table-head"><span>Canal</span><span>Com Guiamos</span><span>Manual</span></div>
             <div className="table-row"><span className="t-canal">Shopee</span><span className="t-listify">~7 min</span><span className="t-manual">~8 horas</span></div>
             <div className="table-row"><span className="t-canal">Mercado Livre</span><span className="t-listify">~7 min</span><span className="t-manual">~10 horas</span></div>
             <div className="table-row"><span className="t-canal">TikTok Shop</span><span className="t-listify">~6 min</span><span className="t-manual">~6 horas</span></div>
