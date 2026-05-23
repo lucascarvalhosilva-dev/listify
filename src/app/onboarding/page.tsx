@@ -30,7 +30,7 @@ export default function OnboardingPage() {
         .maybeSingle()
 
       if ((profile as { onboarding_completo?: boolean } | null)?.onboarding_completo) {
-        router.replace('/painel')
+        router.replace('/chat')
         return
       }
 
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
         onboarding_completo: true,
         fotos_prontas: true,
       })
-    router.push('/painel')
+    router.push('/chat')
   }
 
   if (loading) {
@@ -84,16 +84,12 @@ export default function OnboardingPage() {
         {/* Step 1 */}
         {step === 1 && (
           <div>
-            <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            </div>
+            <div style={{ fontSize: 48, marginBottom: 20 }}>👋</div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              Bem-vindo à Guiamos
+              Bem-vindo ao Guiamos!
             </h1>
             <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
-              Em poucos minutos você vai ter arquivos prontos para publicar seus produtos em qualquer marketplace. Deixa a gente te mostrar como funciona.
+              Sou a IA que vai te ajudar a cadastrar seus produtos em marketplaces como Shopee, Mercado Livre, Amazon e mais — em minutos, não em horas.
             </p>
             <button
               type="button"
@@ -101,7 +97,7 @@ export default function OnboardingPage() {
               className="btn-primary"
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              Próximo →
+              Como funciona?
             </button>
           </div>
         )}
@@ -111,21 +107,15 @@ export default function OnboardingPage() {
           <div>
             <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M3 9h18M3 15h18M9 3v18"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              1. A planilha de produtos
+              Tudo começa com uma conversa
             </h1>
-            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 16 }}>
-              Para começar, você vai baixar nosso template Excel e preencher com as informações dos seus produtos — nome, custo e estoque. Depois é só fazer o upload aqui na plataforma.
+            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
+              Diferente de outras ferramentas, no Guiamos você não precisa preencher formulários complicados. Basta conversar comigo no chat e eu te guio em cada etapa do processo.
             </p>
-            <div style={{ background: '#e8f0fe', borderRadius: 10, padding: 12, marginBottom: 32 }}>
-              <p style={{ fontSize: 13, color: '#1a73e8', margin: 0, lineHeight: 1.6 }}>
-                Precisamos de: nome do produto, custo unitário, quantidade em estoque e regime tributário (MEI ou Simples Nacional).
-              </p>
-            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -140,7 +130,7 @@ export default function OnboardingPage() {
                 className="btn-primary"
                 style={{ flex: 1, justifyContent: 'center' }}
               >
-                Próximo →
+                E o que mais?
               </button>
             </div>
           </div>
@@ -151,23 +141,16 @@ export default function OnboardingPage() {
           <div>
             <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
               </svg>
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              2. Suas fotos no Google Drive
+              A IA cuida do trabalho pesado
             </h1>
-            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 4 }}>
-              As fotos precisam estar numa pasta do Google Drive com acesso público. Cada arquivo deve seguir o padrão de nomenclatura SKU_01.jpg (capa), SKU_02.jpg...
+            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
+              Eu pesquiso dimensões, calculo preços com sua margem, gero títulos SEO, descrições e tudo que cada marketplace exige — automaticamente. Você só revisa e baixa o arquivo pronto.
             </p>
-            <button
-              type="button"
-              onClick={() => window.open('/guia-fotos', '_blank')}
-              style={{ background: 'none', border: '1px solid #1a73e8', borderRadius: 10, padding: '8px 16px', fontSize: 13, color: '#1a73e8', cursor: 'pointer', marginTop: 12, marginBottom: 32 }}
-            >
-              Ver guia completo de fotos →
-            </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -182,7 +165,7 @@ export default function OnboardingPage() {
                 className="btn-primary"
                 style={{ flex: 1, justifyContent: 'center' }}
               >
-                Próximo →
+                Quais canais?
               </button>
             </div>
           </div>
@@ -193,29 +176,16 @@ export default function OnboardingPage() {
           <div>
             <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8M12 17v4"/>
               </svg>
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              3. Geração e revisão
+              Todos os principais marketplaces
             </h1>
-            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 20 }}>
-              Você escolhe os canais onde quer vender, a IA processa tudo e você revisa os preços e margens antes de baixar. Nenhum arquivo é gerado sem sua aprovação.
+            <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
+              Geramos arquivos prontos para upload em Shopee, Mercado Livre, Amazon, TikTok Shop, Magalu e Bling. Você escolhe onde quer vender.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10, marginBottom: 32 }}>
-              {[
-                'Preços calculados com comissões e impostos por canal',
-                'Revisão de dimensões e alertas de frete',
-              ].map(text => (
-                <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span style={{ fontSize: 13, color: '#5f6368', lineHeight: 1.5 }}>{text}</span>
-                </div>
-              ))}
-            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -230,7 +200,7 @@ export default function OnboardingPage() {
                 className="btn-primary"
                 style={{ flex: 1, justifyContent: 'center' }}
               >
-                Próximo →
+                E o que eu preciso?
               </button>
             </div>
           </div>
@@ -241,15 +211,15 @@ export default function OnboardingPage() {
           <div>
             <div style={{ width: 48, height: 48, background: '#e8f0fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a73e8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
               </svg>
             </div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: '#202124', marginBottom: 12 }}>
-              Pronto para começar
+              Só preciso do mínimo de você
             </h1>
             <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.7, marginBottom: 32 }}>
-              Se der algum erro no upload, nosso assistente te guia na correção e gera uma nova planilha automaticamente. Tudo que você gerar fica salvo no histórico para reutilizar quando quiser.
+              Nome do produto, fotos, custo e regime tributário. O resto eu descubro sozinha. Pronto para começar?
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -266,12 +236,9 @@ export default function OnboardingPage() {
                 className="btn-primary"
                 style={{ flex: 1, justifyContent: 'center' }}
               >
-                {saving ? 'Carregando…' : 'Entendi, vamos começar →'}
+                {saving ? 'Carregando…' : 'Começar a conversar →'}
               </button>
             </div>
-            <p style={{ fontSize: 12, color: '#9aa0a6', textAlign: 'center' as const, marginTop: 20 }}>
-              Você pode revisar este guia a qualquer momento em Ajuda
-            </p>
           </div>
         )}
 
