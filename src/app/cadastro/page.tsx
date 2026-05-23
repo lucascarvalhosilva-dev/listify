@@ -76,7 +76,7 @@ export default function CadastroPage() {
     }
 
     if (data.session) {
-      router.push('/onboarding')
+      router.push('/chat')
       return
     }
 

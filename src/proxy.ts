@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED = ['/painel', '/adicionar-produtos', '/onboarding']
+const PROTECTED = ['/painel', '/adicionar-produtos', '/onboarding', '/chat']
 const AUTH_ONLY = ['/login', '/cadastro']
 
 export async function proxy(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && AUTH_ONLY.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
-    url.pathname = '/painel'
+    url.pathname = '/chat'
     return NextResponse.redirect(url)
   }
 

@@ -1,0 +1,191 @@
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+type Botao = { texto: string; acao: 'redirect' | 'mensagem'; destino?: string; valor?: string }
+type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null }
+
+export default function ChatPrincipal() {
+  const [mensagens, setMensagens] = useState<Mensagem[]>([])
+  const [input, setInput] = useState('')
+  const [carregando, setCarregando] = useState(false)
+  const [nome, setNome] = useState('')
+  const [primeiraMensagem, setPrimeiraMensagem] = useState(false)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+
+      const perfilRes = await fetch('/api/get-profile')
+      const perfil = await perfilRes.json()
+      const nomeUser = perfil.nome || (perfil.email ? perfil.email.split('@')[0] : 'você')
+      setNome(nomeUser)
+
+      const histRes = await fetch('/api/chat-historico')
+      const { historico } = await histRes.json()
+
+      if (historico && historico.length > 0) {
+        setMensagens(historico)
+      } else {
+        const saudacao: Mensagem = {
+          papel: 'assistant',
+          conteudo: `Olá, ${nomeUser}! Eu sou a IA do Guiamos. Estou aqui para te ajudar a cadastrar seus produtos em marketplaces de forma rápida e automatizada.\n\nO que você quer fazer hoje?`,
+          acoes_rapidas: {
+            botoes: [
+              { texto: 'Gerar novos produtos', acao: 'redirect', destino: '/painel' },
+              { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
+              { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Quero tirar uma dúvida sobre o Guiamos' },
+              { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
+            ],
+          },
+        }
+        setMensagens([saudacao])
+        setPrimeiraMensagem(true)
+      }
+    }
+    init()
+  }, [])
+
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' })
+  }, [mensagens])
+
+  const enviar = async (texto?: string) => {
+    const mensagem = texto || input.trim()
+    if (!mensagem || carregando) return
+
+    setInput('')
+    setCarregando(true)
+    setMensagens(prev => [...prev, { papel: 'user', conteudo: mensagem }])
+
+    try {
+      const historicoEnvio = primeiraMensagem ? [] : mensagens.map(m => ({ papel: m.papel, conteudo: m.conteudo }))
+      const res = await fetch('/api/chat-principal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagem, historico: historicoEnvio }),
+      })
+      const data = await res.json()
+
+      setMensagens(prev => [...prev, {
+        papel: 'assistant',
+        conteudo: data.resposta,
+        acoes_rapidas: data.acoes,
+      }])
+      setPrimeiraMensagem(false)
+    } catch {
+      setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Tive um problema para responder. Tenta novamente?' }])
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  const clicarBotao = (botao: Botao) => {
+    if (botao.acao === 'redirect' && botao.destino) {
+      router.push(botao.destino)
+    } else if (botao.acao === 'mensagem' && botao.valor) {
+      enviar(botao.valor)
+    }
+  }
+
+  const inicial = nome ? nome[0].toUpperCase() : '?'
+
+  return (
+    <>
+      <style>{`
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f8f9fa; color: #202124; overflow: hidden; }
+        .app { display: flex; flex-direction: column; height: 100vh; background: #f8f9fa; }
+        .nav { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
+        .user-btn { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 10px; background: transparent; border: none; cursor: pointer; }
+        .user-btn:hover { background: #f8f9fa; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+        .uname { font-size: 14px; font-weight: 500; color: #202124; }
+        .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 24px 0; overflow: hidden; }
+        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
+        .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
+        .bot { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .bubble { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; padding: 14px 18px; font-size: 14px; color: #202124; line-height: 1.55; max-width: 520px; white-space: pre-wrap; }
+        .msg-user { display: flex; justify-content: flex-end; }
+        .bubble-user { background: #1a73e8; color: #fff; border-radius: 16px; border-top-right-radius: 4px; padding: 12px 18px; font-size: 14px; max-width: 380px; }
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; margin-left: 44px; }
+        .quick-btn { background: #fff; border: 1px solid #1a73e8; color: #1a73e8; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
+        .quick-btn:hover { background: #e8f0fe; }
+        .typing { display: flex; gap: 6px; padding: 14px 18px; background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; width: fit-content; }
+        .typing span { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing span:nth-child(1) { animation-delay: -0.32s; }
+        .typing span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .input-area { padding: 16px 0 20px; border-top: 1px solid #e8eaed; background: #f8f9fa; }
+        .input-box { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; display: flex; align-items: center; padding: 6px 6px 6px 18px; gap: 8px; }
+        .input-box input { flex: 1; border: none; outline: none; font-size: 14px; color: #202124; font-family: inherit; padding: 10px 0; background: transparent; }
+        .send-btn { background: #1a73e8; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        .send-btn:disabled { background: #9aa0a6; cursor: not-allowed; }
+        .hint { font-size: 11px; color: #9aa0a6; text-align: center; margin-top: 8px; }
+      `}</style>
+
+      <div className="app">
+        <div className="nav">
+          <a href="/chat" className="logo"><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></a>
+          <button className="user-btn" onClick={() => router.push('/configuracoes')}>
+            <div className="avatar">{inicial}</div>
+            <span className="uname">{nome}</span>
+          </button>
+        </div>
+
+        <div className="chat-wrap">
+          <div className="messages" ref={messagesRef}>
+            {mensagens.map((m, i) => (
+              m.papel === 'user' ? (
+                <div key={i} className="msg-user">
+                  <div className="bubble-user">{m.conteudo}</div>
+                </div>
+              ) : (
+                <div key={i} className="msg-ai">
+                  <div className="bot">G</div>
+                  <div>
+                    <div className="bubble">{m.conteudo}</div>
+                    {m.acoes_rapidas?.botoes && (
+                      <div className="quick-actions">
+                        {m.acoes_rapidas.botoes.map((b, j) => (
+                          <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>{b.texto}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            ))}
+            {carregando && (
+              <div className="msg-ai">
+                <div className="bot">G</div>
+                <div className="typing"><span></span><span></span><span></span></div>
+              </div>
+            )}
+          </div>
+
+          <div className="input-area">
+            <div className="input-box">
+              <input
+                type="text"
+                placeholder="Pergunte qualquer coisa ou descreva o que quer fazer..."
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && enviar()}
+                disabled={carregando}
+              />
+              <button className="send-btn" onClick={() => enviar()} disabled={carregando || !input.trim()}>↑</button>
+            </div>
+            <div className="hint">A IA pode cometer erros · Sempre revise as informações importantes</div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
