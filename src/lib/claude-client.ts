@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { ANTHROPIC_MODEL } from './constants'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -152,7 +153,7 @@ export async function inferProductSpecsBatch(
   systemSuffix?: string
 ): Promise<BatchProductSpec[]> {
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: ANTHROPIC_MODEL,
     max_tokens: 16000,
     system: BATCH_SYSTEM_PROMPT + (systemSuffix ?? ''),
     messages: [{ role: 'user', content: buildBatchUserPrompt(produtos, regime, canais) }],
@@ -225,7 +226,7 @@ export async function inferProductSpecs(
   regime: 'MEI' | 'SN'
 ): Promise<ProductSpecs> {
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: ANTHROPIC_MODEL,
     max_tokens: 1500,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: USER_PROMPT_TEMPLATE(productName, regime) }],

@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import * as XLSX from 'xlsx'
 import Anthropic from '@anthropic-ai/sdk'
+import { ANTHROPIC_MODEL } from '@/lib/constants'
 import { SHOPEE_ERROR_GUIDE, ML_ERROR_GUIDE } from '@/lib/errors/marketplace-errors'
 import { salvarErroAprendido, getErrosFrequentes } from '@/lib/erros-aprendidos'
 
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
     // ── Mode A: text-only Q&A (no file) ───────────────────────────────────────
     if (!arquivo_base64) {
       const msg = await client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: ANTHROPIC_MODEL,
         max_tokens: 1024,
         system: 'Você é um especialista em importação de produtos em marketplaces brasileiros. Responda de forma clara, objetiva e em português. Use listas quando ajudar. Se a solução envolver um arquivo de erros, mencione que o usuário pode usar o botão "Corrigir minha planilha gerada" para correção automática.',
         messages: [{
@@ -192,7 +193,7 @@ Responda APENAS com array JSON:
 Inclua apenas os produtos que precisam de correção. Se nenhum precisar, retorne [].`
 
       const msgC = await client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: ANTHROPIC_MODEL,
         max_tokens: 4000,
         system: 'Você é um especialista em marketplaces brasileiros. Responda APENAS com array JSON válido, sem markdown.',
         messages: [{ role: 'user', content: promptC }],
@@ -271,7 +272,7 @@ Regras:
 - Para ML: "Forma de envio" deve ser "Mercado Envios" se ≤105cm, "A combinar" se >105cm`
 
     const msgB = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: ANTHROPIC_MODEL,
       max_tokens: 4000,
       system: `Você é um especialista em marketplaces brasileiros. Responda APENAS com array JSON válido, sem markdown.${errosConhecidos}`,
       messages: [{ role: 'user', content: promptB }],
