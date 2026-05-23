@@ -8,6 +8,9 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 export const metadata: Metadata = {
   title: "Guiamos — Cadastro Automatizado para Marketplaces",
   description: "Informe o produto, as fotos, o estoque e o custo. A Guiamos gera título, descrição, preço e planilha pronta para upload em ML, Shopee, Amazon e mais.",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
