@@ -1,10 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { ANTHROPIC_MODEL } from '@/lib/constants'
+import {
+  buscarSessaoAtiva,
+  criarSessao,
+  atualizarEtapa,
+  cancelarSessoesAntigas,
+} from '@/lib/sessoes-geracao'
+import { detectarIntencaoCadastro } from '@/lib/detectar-intencao'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
-const SYSTEM_PROMPT = `Você é a IA do Guiamos, plataforma de cadastro automatizado de produtos em marketplaces brasileiros (Shopee, Mercado Livre, Amazon, TikTok Shop, Magalu, Bling).
+const SYSTEM_PROMPT_BASE = `Você é a IA do Guiamos, plataforma de cadastro automatizado de produtos em marketplaces brasileiros (Shopee, Mercado Livre, Amazon, TikTok Shop, Magalu, Bling).
 
 Sua função é guiar o usuário de forma proativa, sempre puxando a conversa e oferecendo opções claras. Seja direto, amigável e use português brasileiro.
 
@@ -14,7 +21,6 @@ REGRAS IMPORTANTES:
 - Detecte a intenção do usuário e ofereça redirecionamento quando apropriado
 
 INTENÇÕES E REDIRECIONAMENTOS:
-- Gerar produtos / cadastrar produtos / fazer novo catálogo → redirect: /painel
 - Ver catálogos / meus catálogos → redirect: /painel?aba=catalogos
 - Ver histórico → redirect: /painel?aba=historico
 - Ver plano / fazer upgrade → redirect: /upgrade
@@ -35,6 +41,13 @@ Tipos de ação:
 - "redirect" + destino: leva o usuário para outra página
 - "mensagem" + valor: envia uma mensagem pré-pronta como se o usuário tivesse digitado`
 
+const CONTEXTO_ETAPA: Record<string, string> = {
+  iniciada: `
+
+CONTEXTO DO FLUXO GUIADO:
+Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de uma planilha com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Diga que o upload pelo chat está sendo finalizado e que por enquanto ele pode usar a aba 'Nova Geração' no menu superior. NÃO redirecione automaticamente.`,
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -49,6 +62,18 @@ export async function POST(request: Request) {
       conteudo: mensagem,
     })
 
+    // Limpa sessões expiradas antes de buscar
+    await cancelarSessoesAntigas(user.id)
+
+    let sessaoAtiva = await buscarSessaoAtiva(user.id)
+
+    if (detectarIntencaoCadastro(mensagem) && !sessaoAtiva) {
+      sessaoAtiva = await criarSessao(user.id)
+    }
+
+    const contextoEtapa = sessaoAtiva ? (CONTEXTO_ETAPA[sessaoAtiva.etapa] ?? '') : ''
+    const systemPrompt = SYSTEM_PROMPT_BASE + contextoEtapa
+
     const messages = [
       ...(historico || []).map((h: { papel: string; conteudo: string }) => ({
         role: h.papel === 'user' ? 'user' : 'assistant',
@@ -60,7 +85,7 @@ export async function POST(request: Request) {
     const response = await anthropic.messages.create({
       model: ANTHROPIC_MODEL,
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
     })
 
@@ -76,6 +101,11 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error('Erro ao parsear ações:', e)
       }
+    }
+
+    // Avança etapa após resposta da IA
+    if (sessaoAtiva?.etapa === 'iniciada') {
+      await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
     }
 
     await supabase.from('chat_historico').insert({
