@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import ProductForm, { type CatalogoItem } from '../dashboard/components/ProductForm'
 import HelpChat from '@/components/HelpChat'
@@ -43,11 +44,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 const API_TO_FRONTEND: Record<string, string> = { ml: 'mercado_livre' }
 
-export default function PainelPage() {
+function PainelContent() {
+  const searchParams = useSearchParams()
+  const aba = searchParams.get('aba') ?? ''
   const [showForm, setShowForm] = useState(true)
   const [catalogoInicial, setCatalogoInicial] = useState<CatalogoItem | undefined>(undefined)
   const [canaisParaRepetir, setCanaisParaRepetir] = useState<string[] | undefined>(undefined)
-  const [activeSection, setActiveSection] = useState<string>('cat')
   const [catalogos, setCatalogos] = useState<CatalogoItem[]>([])
   const [geracoes, setGeracoes] = useState<GeracaoItem[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -69,17 +71,14 @@ export default function PainelPage() {
 
   useEffect(() => { carregarDados() }, [carregarDados])
 
+  useEffect(() => {
+    if (aba !== '') setShowForm(false)
+  }, [aba])
+
   function handleNovaGeracao() {
     setCatalogoInicial(undefined)
     setCanaisParaRepetir(undefined)
     setShowForm(true)
-  }
-
-  function handleSectionChange(section: string) {
-    setShowForm(false)
-    setCatalogoInicial(undefined)
-    setCanaisParaRepetir(undefined)
-    setActiveSection(section)
   }
 
   function handleUsarCatalogo(cat: CatalogoItem) {
@@ -131,7 +130,7 @@ export default function PainelPage() {
         )}
 
         {/* ── Meus Catálogos ──────────────────────────────────────────── */}
-        {!showForm && activeSection === 'cat' && (
+        {!showForm && aba === 'catalogos' && (
           <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 28 }}>
             <section>
               <SectionTitle>Meus Catálogos</SectionTitle>
@@ -262,7 +261,7 @@ export default function PainelPage() {
         )}
 
         {/* ── Histórico ───────────────────────────────────────────────── */}
-        {!showForm && activeSection === 'hist' && (
+        {!showForm && aba === 'historico' && (
           <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
             <SectionTitle>Histórico de Gerações</SectionTitle>
 
@@ -335,7 +334,7 @@ export default function PainelPage() {
         )}
 
         {/* ── Meu Plano ───────────────────────────────────────────────── */}
-        {!showForm && activeSection === 'plan' && (
+        {!showForm && aba === 'plano' && (
           <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <SectionTitle>Meu Plano</SectionTitle>
 
@@ -467,5 +466,13 @@ export default function PainelPage() {
       </main>
       <HelpChat />
     </div>
+  )
+}
+
+export default function PainelPage() {
+  return (
+    <Suspense>
+      <PainelContent />
+    </Suspense>
   )
 }
