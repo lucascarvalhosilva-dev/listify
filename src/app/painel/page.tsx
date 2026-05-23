@@ -72,7 +72,7 @@ function PainelContent() {
   useEffect(() => { carregarDados() }, [carregarDados])
 
   useEffect(() => {
-    if (aba !== '') setShowForm(false)
+    setShowForm(aba === '' || aba === 'nova')
   }, [aba])
 
   function handleNovaGeracao() {
