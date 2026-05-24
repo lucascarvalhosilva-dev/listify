@@ -1,18 +1,34 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import ChatFileAttachment from '@/components/ChatFileAttachment'
 
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null }
+
+function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
+  if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
+  try {
+    const jsonStr = conteudo.replace(/^\[PLANILHA_ENVIADA:\s*/, '').replace(/\]$/, '').trim()
+    return JSON.parse(jsonStr)
+  } catch {
+    return null
+  }
+}
 
 export default function ChatPrincipal() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [uploadando, setUploadando] = useState(false)
+  const [arquivo, setArquivo] = useState<File | null>(null)
+  const [erroUpload, setErroUpload] = useState('')
   const [nome, setNome] = useState('')
   const [primeiraMensagem, setPrimeiraMensagem] = useState(false)
   const messagesRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -55,9 +71,75 @@ export default function ChatPrincipal() {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' })
   }, [mensagens])
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    if (f.size > 10 * 1024 * 1024) {
+      setErroUpload('Arquivo muito grande. Limite máximo: 10 MB.')
+      return
+    }
+    setErroUpload('')
+    setArquivo(f)
+  }
+
   const enviar = async (texto?: string) => {
+    const ocupado = carregando || uploadando
+    if (ocupado) return
+
+    // ── Fluxo com arquivo ────────────────────────────────────────────────────
+    if (arquivo) {
+      const arq = arquivo
+      const marcador = `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arq.name, tamanho: arq.size })}]`
+      const historicoSnapshot = mensagens.map(m => ({ papel: m.papel, conteudo: m.conteudo }))
+
+      setArquivo(null)
+      setInput('')
+      setUploadando(true)
+      setMensagens(prev => [...prev, { papel: 'user', conteudo: marcador }])
+
+      try {
+        const fd = new FormData()
+        fd.append('arquivo', arq)
+        const upRes = await fetch('/api/chat-upload', { method: 'POST', body: fd })
+        const upData = await upRes.json()
+
+        if (!upRes.ok) {
+          setMensagens(prev => [...prev, {
+            papel: 'assistant',
+            conteudo: `Não consegui receber o arquivo: ${upData.error ?? 'Erro desconhecido'}. Tenta novamente?`,
+          }])
+          return
+        }
+
+        setUploadando(false)
+        setCarregando(true)
+
+        const res = await fetch('/api/chat-principal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensagem: marcador, historico: historicoSnapshot }),
+        })
+        const data = await res.json()
+
+        setMensagens(prev => [...prev, {
+          papel: 'assistant',
+          conteudo: data.resposta,
+          acoes_rapidas: data.acoes,
+        }])
+        setPrimeiraMensagem(false)
+      } catch {
+        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Tive um problema ao processar o arquivo. Tenta novamente?' }])
+      } finally {
+        setCarregando(false)
+        setUploadando(false)
+      }
+      return
+    }
+
+    // ── Fluxo de texto ───────────────────────────────────────────────────────
     const mensagem = texto || input.trim()
-    if (!mensagem || carregando) return
+    if (!mensagem) return
 
     setInput('')
     setCarregando(true)
@@ -95,6 +177,8 @@ export default function ChatPrincipal() {
     }
   }
 
+  const ocupado = carregando || uploadando
+  const podeSend = !ocupado && (!!arquivo || !!input.trim())
   const inicial = nome ? nome[0].toUpperCase() : '?'
 
   return (
@@ -127,9 +211,14 @@ export default function ChatPrincipal() {
         .typing span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
         .input-area { padding: 16px 0 20px; border-top: 1px solid #e8eaed; background: #f8f9fa; }
-        .input-box { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; display: flex; align-items: center; padding: 6px 6px 6px 18px; gap: 8px; }
-        .input-box input { flex: 1; border: none; outline: none; font-size: 14px; color: #202124; font-family: inherit; padding: 10px 0; background: transparent; }
-        .send-btn { background: #1a73e8; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        .file-preview { margin-bottom: 8px; }
+        .erro-upload { font-size: 12px; color: #ea4335; margin-bottom: 6px; }
+        .input-box { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; display: flex; align-items: center; padding: 6px 6px 6px 8px; gap: 4px; }
+        .clip-btn { background: none; border: none; cursor: pointer; color: #9aa0a6; padding: 6px 8px; display: flex; align-items: center; border-radius: 8px; flex-shrink: 0; }
+        .clip-btn:hover:not(:disabled) { color: #1a73e8; background: #f0f4ff; }
+        .clip-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .input-box input { flex: 1; border: none; outline: none; font-size: 14px; color: #202124; font-family: inherit; padding: 10px 6px; background: transparent; }
+        .send-btn { background: #1a73e8; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .send-btn:disabled { background: #9aa0a6; cursor: not-allowed; }
         .hint { font-size: 11px; color: #9aa0a6; text-align: center; margin-top: 8px; }
       `}</style>
@@ -145,12 +234,19 @@ export default function ChatPrincipal() {
 
         <div className="chat-wrap">
           <div className="messages" ref={messagesRef}>
-            {mensagens.map((m, i) => (
-              m.papel === 'user' ? (
-                <div key={i} className="msg-user">
-                  <div className="bubble-user">{m.conteudo}</div>
-                </div>
-              ) : (
+            {mensagens.map((m, i) => {
+              if (m.papel === 'user') {
+                const arqInfo = parsearArquivoDaMensagem(m.conteudo)
+                return (
+                  <div key={i} className="msg-user">
+                    {arqInfo
+                      ? <ChatFileAttachment nome={arqInfo.nome} tamanho={arqInfo.tamanho} />
+                      : <div className="bubble-user">{m.conteudo}</div>
+                    }
+                  </div>
+                )
+              }
+              return (
                 <div key={i} className="msg-ai">
                   <div className="bot">G</div>
                   <div>
@@ -171,8 +267,8 @@ export default function ChatPrincipal() {
                   </div>
                 </div>
               )
-            ))}
-            {carregando && (
+            })}
+            {ocupado && (
               <div className="msg-ai">
                 <div className="bot">G</div>
                 <div className="typing"><span></span><span></span><span></span></div>
@@ -181,16 +277,39 @@ export default function ChatPrincipal() {
           </div>
 
           <div className="input-area">
+            {erroUpload && <div className="erro-upload">{erroUpload}</div>}
+            {arquivo && (
+              <div className="file-preview">
+                <ChatFileAttachment nome={arquivo.name} tamanho={arquivo.size} onRemover={() => setArquivo(null)} />
+              </div>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".xlsx,.xls,.csv"
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
+            />
             <div className="input-box">
+              <button
+                className="clip-btn"
+                onClick={() => { setErroUpload(''); fileInputRef.current?.click() }}
+                disabled={ocupado}
+                title="Anexar planilha (.xlsx, .xls, .csv)"
+              >
+                <Paperclip size={18} />
+              </button>
               <input
                 type="text"
-                placeholder="Pergunte qualquer coisa ou descreva o que quer fazer..."
-                value={input}
-                onChange={e => setInput(e.target.value)}
+                placeholder={arquivo ? 'Pressione enviar para fazer o upload…' : 'Pergunte qualquer coisa ou descreva o que quer fazer...'}
+                value={arquivo ? '' : input}
+                onChange={e => !arquivo && setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && enviar()}
-                disabled={carregando}
+                disabled={ocupado}
               />
-              <button className="send-btn" onClick={() => enviar()} disabled={carregando || !input.trim()}>↑</button>
+              <button className="send-btn" onClick={() => enviar()} disabled={!podeSend}>
+                {uploadando ? '⏳' : '↑'}
+              </button>
             </div>
             <div className="hint">A IA pode cometer erros · Sempre revise as informações importantes</div>
           </div>
