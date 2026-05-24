@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
+import Navbar from '../components/Navbar'
 
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
@@ -228,20 +229,14 @@ export default function ChatPrincipal() {
 
   const ocupado = carregando || uploadando
   const podeSend = !ocupado && (!!arquivo || !!input.trim())
-  const inicial = nome ? nome[0].toUpperCase() : '?'
 
   return (
     <>
+      <Navbar />
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f8f9fa; color: #202124; overflow: hidden; }
-        .app { display: flex; flex-direction: column; height: 100vh; background: #f8f9fa; }
-        .nav { background: #fff; border-bottom: 1px solid #e8eaed; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; text-decoration: none; }
-        .user-btn { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 10px; background: transparent; border: none; cursor: pointer; }
-        .user-btn:hover { background: #f8f9fa; }
-        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
-        .uname { font-size: 14px; font-weight: 500; color: #202124; }
+        .app { display: flex; flex-direction: column; height: calc(100vh - 60px); background: #f8f9fa; }
         .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 24px 0; overflow: hidden; }
         .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
         .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
@@ -276,14 +271,6 @@ export default function ChatPrincipal() {
       `}</style>
 
       <div className="app">
-        <div className="nav">
-          <a href="/chat" className="logo"><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></a>
-          <button className="user-btn" onClick={() => router.push('/configuracoes')}>
-            <div className="avatar">{inicial}</div>
-            <span className="uname">{nome}</span>
-          </button>
-        </div>
-
         <div className="chat-wrap">
           <div className="messages" ref={messagesRef}>
             {mensagens.map((m, i) => {
