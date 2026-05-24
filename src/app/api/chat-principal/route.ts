@@ -125,6 +125,13 @@ export async function POST(request: Request) {
       sessaoAtiva = await criarSessao(user.id)
     }
 
+    // Avança 'iniciada' → 'aguardando_planilha' antes de montar o prompt,
+    // garantindo contexto e botões corretos já na primeira resposta.
+    if (sessaoAtiva?.etapa === 'iniciada') {
+      await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
+      sessaoAtiva = { ...sessaoAtiva, etapa: 'aguardando_planilha' }
+    }
+
     // ── Detecta marcadores e constrói contexto ────────────────────────────────
     const infoPlanilha = parsearMarcadorPlanilha(mensagem)
     const infoValidacaoOk = parsearMarcadorValidacaoOk(mensagem)
@@ -194,8 +201,6 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     } else if (eBaixouTemplate) {
       const botaoUpload = { texto: '📎 Enviar planilha preenchida', acao: 'upload' }
       acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
-    } else if (sessaoAtiva?.etapa === 'iniciada') {
-      await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
     } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {
       const botoesDl = [
         { texto: 'Baixar template Excel', acao: 'download', url: TEMPLATE_XLSX_URL },
