@@ -60,6 +60,13 @@ export async function POST(request: Request) {
       enviada_em: new Date().toISOString(),
     })
 
+    // Persiste o card do arquivo no histórico do chat
+    await supabase.from('chat_historico').insert({
+      user_id: user.id,
+      papel: 'user',
+      conteudo: `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arquivo.name, tamanho: arquivo.size })}]`,
+    })
+
     return Response.json({
       sucesso: true,
       nome_arquivo: arquivo.name,

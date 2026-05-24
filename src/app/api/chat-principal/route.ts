@@ -56,25 +56,48 @@ Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O usu
   validando_planilha: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: validando_planilha. O usuário já enviou a planilha e está aguardando a análise. Informe que a planilha foi recebida e está sendo verificada. Ofereça a opção de seguir com a próxima etapa (fotos no Google Drive) ou aguardar o resultado. NÃO mostre botões de download de template.`,
+Você está em fluxo guiado de cadastro. Etapa atual: validando_planilha. O usuário já enviou a planilha e está aguardando a análise. Informe que a planilha foi recebida e está sendo verificada. NÃO mostre botões de download de template.`,
+
+  aguardando_drive: `
+
+CONTEXTO DO FLUXO GUIADO:
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planilha foi validada com sucesso. Peça ao usuário o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem ser nomeadas SKU_01.jpg (capa), SKU_02.jpg (extras). A pasta precisa estar compartilhada como "Qualquer pessoa com o link → Visualizador".`,
 }
 
 const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
 
-function parsearMarcadorPlanilha(conteudo: string): { nome: string; tamanho: number } | null {
-  if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
-  try {
-    const jsonStr = conteudo.replace(/^\[PLANILHA_ENVIADA:\s*/, '').replace(/\]$/, '').trim()
-    return JSON.parse(jsonStr)
-  } catch {
-    return null
-  }
+// ── Parsers de marcadores internos ────────────────────────────────────────────
+
+function parsearMarcadorPlanilha(c: string): { nome: string; tamanho: number } | null {
+  if (!c.startsWith('[PLANILHA_ENVIADA:')) return null
+  try { return JSON.parse(c.replace(/^\[PLANILHA_ENVIADA:\s*/, '').replace(/\]$/, '').trim()) }
+  catch { return null }
+}
+
+function parsearMarcadorValidacaoOk(c: string): { total: number } | null {
+  if (!c.startsWith('[VALIDACAO_OK:')) return null
+  const m = c.match(/\[VALIDACAO_OK:\s*(\d+)\s*produtos?\]/)
+  return m ? { total: parseInt(m[1], 10) } : { total: 0 }
+}
+
+function parsearMarcadorValidacaoErro(c: string): string | null {
+  if (!c.startsWith('[VALIDACAO_ERRO:')) return null
+  return c.replace(/^\[VALIDACAO_ERRO:\s*/, '').replace(/\]$/, '').trim()
 }
 
 function limparParaClaude(conteudo: string): string {
-  const info = parsearMarcadorPlanilha(conteudo)
-  if (!info) return conteudo
-  return `Enviei minha planilha: ${info.nome}`
+  const arq = parsearMarcadorPlanilha(conteudo)
+  if (arq) return `Enviei minha planilha: ${arq.nome}`
+  if (conteudo.startsWith('[VALIDACAO_OK:')) return 'A planilha foi validada com sucesso.'
+  if (conteudo.startsWith('[VALIDACAO_ERRO:')) return 'Houve erros na validação da planilha.'
+  return conteudo
+}
+
+function esMensagemInterna(mensagem: string): boolean {
+  return (
+    mensagem.startsWith('[VALIDACAO_OK:') ||
+    mensagem.startsWith('[VALIDACAO_ERRO:')
+  )
 }
 
 export async function POST(request: Request) {
@@ -85,11 +108,14 @@ export async function POST(request: Request) {
 
     const { mensagem, historico } = await request.json()
 
-    await supabase.from('chat_historico').insert({
-      user_id: user.id,
-      papel: 'user',
-      conteudo: mensagem,
-    })
+    // Mensagens internas de validação não são salvas no histórico do chat
+    if (!esMensagemInterna(mensagem)) {
+      await supabase.from('chat_historico').insert({
+        user_id: user.id,
+        papel: 'user',
+        conteudo: mensagem,
+      })
+    }
 
     await cancelarSessoesAntigas(user.id)
 
@@ -99,20 +125,32 @@ export async function POST(request: Request) {
       sessaoAtiva = await criarSessao(user.id)
     }
 
+    // ── Detecta marcadores e constrói contexto ────────────────────────────────
     const infoPlanilha = parsearMarcadorPlanilha(mensagem)
-    const ePlanilhaEnviada = infoPlanilha !== null
-    const mensagemParaClaude = limparParaClaude(mensagem)
+    const infoValidacaoOk = parsearMarcadorValidacaoOk(mensagem)
+    const infoValidacaoErro = parsearMarcadorValidacaoErro(mensagem)
 
-    // Constrói system prompt: base + contexto de etapa (ou override para recebimento de arquivo)
     let contextoEtapa = sessaoAtiva ? (CONTEXTO_ETAPA[sessaoAtiva.etapa] ?? '') : ''
-    if (ePlanilhaEnviada && infoPlanilha) {
+
+    if (infoPlanilha) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário acabou de enviar uma planilha (nome do arquivo: ${infoPlanilha.nome}). Etapa atual: validando_planilha. Confirme o recebimento de forma calorosa e diga que vai analisar o conteúdo. Mencione que a análise automática está sendo finalizada e que em breve você vai verificar se está tudo certo. Por enquanto, peça pra ele aguardar ou ofereça a opção de seguir com a próxima etapa (fotos do Google Drive). NÃO mostre botões de download de template novamente.`
+O usuário acabou de enviar uma planilha (nome: ${infoPlanilha.nome}). Etapa atual: validando_planilha. Confirme o recebimento de forma calorosa e diga que vai analisar o conteúdo. Mencione que a análise automática está sendo finalizada. NÃO mostre botões de download de template novamente.`
+    } else if (infoValidacaoOk) {
+      contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+A planilha foi validada com sucesso. Total de produtos encontrados: ${infoValidacaoOk.total}. Etapa atual: aguardando_drive. Parabenize o usuário pela planilha estar correta, mencione o número de produtos detectados, e explique a próxima etapa: ele precisa enviar o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem estar nomeadas como SKU_01.jpg (capa), SKU_02.jpg (extras), e a pasta precisa estar compartilhada como 'Qualquer pessoa com o link → Visualizador'. Peça o link do Drive de forma clara.`
+    } else if (infoValidacaoErro !== null) {
+      contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (voltou). Avise o usuário de forma empática (sem dramatizar) que encontrou problemas, liste estes erros exatamente: "${infoValidacaoErro}". Peça pra corrigir e reenviar usando o botão de anexo (clipe) no chat. NÃO ofereça botões de download de template novamente (ele já tem). Ofereça botão rápido 'Como corrigir?' caso o usuário não entenda algum erro.`
     }
 
     const systemPrompt = SYSTEM_PROMPT_BASE + contextoEtapa
+    const mensagemParaClaude = limparParaClaude(mensagem)
 
     const messages = [
       ...(historico || []).map((h: { papel: string; conteudo: string }) => ({
@@ -143,9 +181,9 @@ O usuário acabou de enviar uma planilha (nome do arquivo: ${infoPlanilha.nome})
       }
     }
 
-    // Gerencia etapa e botões de download
-    if (ePlanilhaEnviada) {
-      // Etapa já foi avançada para validando_planilha pelo chat-upload; não tocar
+    // ── Gerencia etapa e botões de download ───────────────────────────────────
+    if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
+      // Etapa já foi gerenciada pelo chat-upload / validar-planilha
     } else if (sessaoAtiva?.etapa === 'iniciada') {
       await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
     } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {

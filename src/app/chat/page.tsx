@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download'; destino?: string; valor?: string; url?: string }
-type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null }
+type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean }
 
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
   if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
@@ -99,6 +99,7 @@ export default function ChatPrincipal() {
       setMensagens(prev => [...prev, { papel: 'user', conteudo: marcador }])
 
       try {
+        // 1. Upload
         const fd = new FormData()
         fd.append('arquivo', arq)
         const upRes = await fetch('/api/chat-upload', { method: 'POST', body: fd })
@@ -115,10 +116,36 @@ export default function ChatPrincipal() {
         setUploadando(false)
         setCarregando(true)
 
+        // 2. Mensagem temporária enquanto valida
+        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Analisando sua planilha...', temporaria: true }])
+
+        // 3. Validação estrutural
+        const valRes = await fetch('/api/validar-planilha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessao_id: upData.sessao_id }),
+        })
+        const valData = await valRes.json()
+
+        // 4. Remove temp e monta mensagem interna para IA
+        setMensagens(prev => prev.filter(m => !m.temporaria))
+
+        let mensagemInterna: string
+        if (!valRes.ok || !valData.sucesso) {
+          mensagemInterna = '[VALIDACAO_ERRO: Erro interno ao validar a planilha. Tente reenviar o arquivo.]'
+        } else if (valData.valida) {
+          mensagemInterna = `[VALIDACAO_OK: ${valData.total_produtos} produtos]`
+        } else {
+          mensagemInterna = `[VALIDACAO_ERRO: ${valData.erros_resumo}]`
+        }
+
+        // 5. IA responde com base na validação
+        // Inclui o card do arquivo no histórico para contexto
+        const historicoComArquivo = [...historicoSnapshot, { papel: 'user', conteudo: marcador }]
         const res = await fetch('/api/chat-principal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mensagem: marcador, historico: historicoSnapshot }),
+          body: JSON.stringify({ mensagem: mensagemInterna, historico: historicoComArquivo }),
         })
         const data = await res.json()
 
@@ -129,7 +156,10 @@ export default function ChatPrincipal() {
         }])
         setPrimeiraMensagem(false)
       } catch {
-        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Tive um problema ao processar o arquivo. Tenta novamente?' }])
+        setMensagens(prev => [
+          ...prev.filter(m => !m.temporaria),
+          { papel: 'assistant', conteudo: 'Tive um problema ao processar o arquivo. Tenta novamente?' },
+        ])
       } finally {
         setCarregando(false)
         setUploadando(false)
