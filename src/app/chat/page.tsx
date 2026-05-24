@@ -5,7 +5,7 @@ import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 
-type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download'; destino?: string; valor?: string; url?: string }
+type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean }
 
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
@@ -27,6 +27,7 @@ export default function ChatPrincipal() {
   const [erroUpload, setErroUpload] = useState('')
   const [nome, setNome] = useState('')
   const [primeiraMensagem, setPrimeiraMensagem] = useState(false)
+  const [urlsClicadas, setUrlsClicadas] = useState<Set<string>>(new Set())
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -203,7 +204,16 @@ export default function ChatPrincipal() {
     } else if (botao.acao === 'mensagem' && botao.valor) {
       enviar(botao.valor)
     } else if (botao.acao === 'download' && botao.url) {
+      const jaClicado = urlsClicadas.has(botao.url)
       window.open(botao.url, '_blank')
+      if (!jaClicado) {
+        setUrlsClicadas(prev => new Set([...prev, botao.url!]))
+        const formato = botao.url!.toLowerCase().includes('.csv') ? 'CSV' : 'Excel'
+        enviar(`Baixei o template em ${formato} e estou preenchendo.`)
+      }
+    } else if (botao.acao === 'upload') {
+      setErroUpload('')
+      fileInputRef.current?.click()
     }
   }
 
@@ -235,6 +245,9 @@ export default function ChatPrincipal() {
         .quick-btn:hover { background: #e8f0fe; }
         .quick-btn-download { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
         .quick-btn-download:hover { background: #1557b0; }
+        .quick-btn-download-usado { background: #fff; border: 1px solid #d1d5db; color: #6b7280; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: default; font-family: inherit; }
+        .quick-btn-upload { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; font-size: 14px; font-weight: 600; padding: 10px 24px; border-radius: 20px; cursor: pointer; font-family: inherit; flex-basis: 100%; }
+        .quick-btn-upload:hover { background: #1557b0; }
         .typing { display: flex; gap: 6px; padding: 14px 18px; background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; width: fit-content; }
         .typing span { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
         .typing span:nth-child(1) { animation-delay: -0.32s; }
@@ -283,15 +296,33 @@ export default function ChatPrincipal() {
                     <div className="bubble">{m.conteudo}</div>
                     {m.acoes_rapidas?.botoes && (
                       <div className="quick-actions">
-                        {m.acoes_rapidas.botoes.map((b, j) => (
-                          <button
-                            key={j}
-                            className={b.acao === 'download' ? 'quick-btn-download' : 'quick-btn'}
-                            onClick={() => clicarBotao(b)}
-                          >
-                            {b.acao === 'download' ? `↓ ${b.texto}` : b.texto}
-                          </button>
-                        ))}
+                        {m.acoes_rapidas.botoes.map((b, j) => {
+                          if (b.acao === 'upload') {
+                            return (
+                              <button key={j} className="quick-btn-upload" onClick={() => clicarBotao(b)}>
+                                {b.texto}
+                              </button>
+                            )
+                          }
+                          if (b.acao === 'download') {
+                            const usado = !!b.url && urlsClicadas.has(b.url)
+                            return (
+                              <button
+                                key={j}
+                                className={usado ? 'quick-btn-download-usado' : 'quick-btn-download'}
+                                onClick={() => clicarBotao(b)}
+                                disabled={usado}
+                              >
+                                {usado ? `✓ ${b.texto}` : `↓ ${b.texto}`}
+                              </button>
+                            )
+                          }
+                          return (
+                            <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
+                              {b.texto}
+                            </button>
+                          )
+                        })}
                       </div>
                     )}
                   </div>

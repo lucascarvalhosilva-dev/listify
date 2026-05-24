@@ -51,7 +51,7 @@ Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que pre
   aguardando_planilha: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O usuário precisa baixar o template e preenchê-lo com seus produtos. Ofereça ao usuário os dois formatos de template que ele pode baixar pelos botões abaixo da mensagem. As colunas obrigatórias são: SKU, Nome do Produto, Marca, Categoria, Custo Unitário (R$) e Estoque. Seja breve e direto. NÃO redirecione automaticamente.`,
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O template de planilha já está disponível para download nos botões abaixo (adicionados automaticamente pelo sistema — NÃO os inclua no JSON de acoes). Explique brevemente o que preencher: SKU (código único do produto), Nome do Produto (mínimo 3 caracteres), Marca, Categoria, Custo Unitário em R$ (ex: 11.60 ou 11,60) e Estoque (número inteiro). Seja breve e direto. NÃO redirecione automaticamente.`,
 
   validando_planilha: `
 
@@ -132,7 +132,14 @@ export async function POST(request: Request) {
 
     let contextoEtapa = sessaoAtiva ? (CONTEXTO_ETAPA[sessaoAtiva.etapa] ?? '') : ''
 
-    if (infoPlanilha) {
+    const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
+
+    if (eBaixouTemplate) {
+      contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+O usuário acabou de baixar o template. Confirme de forma curta e amigável (1-2 frases). Oriente que assim que terminar de preencher a planilha, ele deve clicar no botão grande abaixo para enviar. NÃO ofereça mais botões de download.`
+    } else if (infoPlanilha) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
@@ -184,6 +191,9 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     // ── Gerencia etapa e botões de download ───────────────────────────────────
     if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
       // Etapa já foi gerenciada pelo chat-upload / validar-planilha
+    } else if (eBaixouTemplate) {
+      const botaoUpload = { texto: '📎 Enviar planilha preenchida', acao: 'upload' }
+      acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
     } else if (sessaoAtiva?.etapa === 'iniciada') {
       await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
     } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {
