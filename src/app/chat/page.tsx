@@ -10,6 +10,14 @@ import ReactMarkdown from 'react-markdown'
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 
+const MENSAGEM_RETOMADA: Record<string, string> = {
+  aguardando_planilha: 'Notei que você começou um cadastro, mas ainda não enviou a planilha. Quer continuar de onde parou ou começar do zero?',
+  validando_planilha: 'Sua última planilha está em análise. Você pode reenviar o arquivo se preferir.',
+  aguardando_drive: 'Você estava na etapa de envio do link do Google Drive com as fotos dos produtos. Pode me enviar agora?',
+  validando_drive: 'Estava validando o link do Drive que você enviou. Pode reenviar o link se preferir.',
+  processando: 'Sua geração está em andamento. Acompanhe pelo painel ou aguarde a conclusão.',
+}
+
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
   if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
   try {
@@ -48,11 +56,28 @@ export default function ChatPrincipal() {
       setNome(nomeUser)
 
       const histRes = await fetch('/api/chat-historico')
-      const { historico, temSessaoAtiva } = await histRes.json()
+      const { historico, temSessaoAtiva, etapaAtiva } = await histRes.json()
 
       if (historico && historico.length > 0) {
+        // Cenário 1 e 3: sempre renderizar o histórico se existir
         setMensagens(historico)
-      } else if (!temSessaoAtiva) {
+      } else if (temSessaoAtiva && etapaAtiva) {
+        // Cenário 4: sessão ativa mas histórico vazio — mensagem de retomada contextualizada
+        const textoRetomada = MENSAGEM_RETOMADA[etapaAtiva] ??
+          'Notei que você tem uma sessão em andamento. Quer continuar ou começar do zero?'
+        const retomada: Mensagem = {
+          papel: 'assistant',
+          conteudo: textoRetomada,
+          acoes_rapidas: {
+            botoes: [
+              { texto: 'Continuar de onde parei', acao: 'mensagem', valor: 'Quero continuar o cadastro' },
+              { texto: 'Começar do zero', acao: 'mensagem', valor: 'Quero cancelar e começar do zero' },
+            ],
+          },
+        }
+        setMensagens([retomada])
+      } else {
+        // Cenário 2: sem histórico e sem sessão ativa — boas-vindas com botões iniciais
         const saudacao: Mensagem = {
           papel: 'assistant',
           conteudo: `Olá, ${nomeUser}! Eu sou a IA do Guiamos. Estou aqui para te ajudar a cadastrar seus produtos em marketplaces de forma rápida e automatizada.\n\nO que você quer fazer hoje?`,
