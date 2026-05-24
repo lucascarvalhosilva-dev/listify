@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
-type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean }
+type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
   if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
@@ -28,6 +28,8 @@ export default function ChatPrincipal() {
   const [nome, setNome] = useState('')
   const [primeiraMensagem, setPrimeiraMensagem] = useState(false)
   const [urlsClicadas, setUrlsClicadas] = useState<Set<string>>(new Set())
+  const [botoesIniciaisAtivos, setBotoesIniciaisAtivos] = useState(false)
+  const [clicadosInicial, setClicadosInicial] = useState<Set<number>>(new Set())
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -44,24 +46,26 @@ export default function ChatPrincipal() {
       setNome(nomeUser)
 
       const histRes = await fetch('/api/chat-historico')
-      const { historico } = await histRes.json()
+      const { historico, temSessaoAtiva } = await histRes.json()
 
       if (historico && historico.length > 0) {
         setMensagens(historico)
-      } else {
+      } else if (!temSessaoAtiva) {
         const saudacao: Mensagem = {
           papel: 'assistant',
           conteudo: `Olá, ${nomeUser}! Eu sou a IA do Guiamos. Estou aqui para te ajudar a cadastrar seus produtos em marketplaces de forma rápida e automatizada.\n\nO que você quer fazer hoje?`,
+          isWelcome: true,
           acoes_rapidas: {
             botoes: [
-              { texto: 'Gerar novos produtos', acao: 'redirect', destino: '/painel' },
+              { texto: 'Gerar novos produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
               { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
-              { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Quero tirar uma dúvida sobre o Guiamos' },
-              { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
+              { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
+              { texto: 'Ver meu plano', acao: 'redirect', destino: '/configuracoes' },
             ],
           },
         }
         setMensagens([saudacao])
+        setBotoesIniciaisAtivos(true)
         setPrimeiraMensagem(true)
       }
     }
@@ -97,6 +101,7 @@ export default function ChatPrincipal() {
       setArquivo(null)
       setInput('')
       setUploadando(true)
+      setBotoesIniciaisAtivos(false)
       setMensagens(prev => [...prev, { papel: 'user', conteudo: marcador }])
 
       try {
@@ -174,6 +179,7 @@ export default function ChatPrincipal() {
 
     setInput('')
     setCarregando(true)
+    setBotoesIniciaisAtivos(false)
     setMensagens(prev => [...prev, { papel: 'user', conteudo: mensagem }])
 
     try {
@@ -198,7 +204,10 @@ export default function ChatPrincipal() {
     }
   }
 
-  const clicarBotao = (botao: Botao) => {
+  const clicarBotao = (botao: Botao, indiceInicial?: number) => {
+    if (indiceInicial !== undefined) {
+      setClicadosInicial(prev => new Set([...prev, indiceInicial]))
+    }
     if (botao.acao === 'redirect' && botao.destino) {
       router.push(botao.destino)
     } else if (botao.acao === 'mensagem' && botao.valor) {
@@ -294,9 +303,21 @@ export default function ChatPrincipal() {
                   <div className="bot">G</div>
                   <div>
                     <div className="bubble">{m.conteudo}</div>
-                    {m.acoes_rapidas?.botoes && (
+                    {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
                       <div className="quick-actions">
                         {m.acoes_rapidas.botoes.map((b, j) => {
+                          if (m.isWelcome) {
+                            const clicado = clicadosInicial.has(j)
+                            return (
+                              <button
+                                key={j}
+                                className={clicado ? 'quick-btn-download-usado' : 'quick-btn'}
+                                onClick={() => clicarBotao(b, j)}
+                              >
+                                {clicado ? `✓ ${b.texto}` : b.texto}
+                              </button>
+                            )
+                          }
                           if (b.acao === 'upload') {
                             return (
                               <button key={j} className="quick-btn-upload" onClick={() => clicarBotao(b)}>

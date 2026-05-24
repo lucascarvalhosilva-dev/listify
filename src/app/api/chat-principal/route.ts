@@ -139,9 +139,14 @@ export async function POST(request: Request) {
 
     let contextoEtapa = sessaoAtiva ? (CONTEXTO_ETAPA[sessaoAtiva.etapa] ?? '') : ''
 
+    const eTirandoDuvida = mensagem === 'Tenho uma dúvida'
     const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
 
-    if (eBaixouTemplate) {
+    if (eTirandoDuvida) {
+      contextoEtapa = `
+
+CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de forma acolhedora, pergunte qual é a dúvida especificamente, e ofereça botões rápidos com tópicos comuns como: 'Como funciona o Guiamos?', 'Quais marketplaces suportam?', 'Como funciona a precificação?', 'Sobre os planos'.`
+    } else if (eBaixouTemplate) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
