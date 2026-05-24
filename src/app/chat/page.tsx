@@ -5,6 +5,7 @@ import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 import Navbar from '../components/Navbar'
+import ReactMarkdown from 'react-markdown'
 
 type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
@@ -241,7 +242,19 @@ export default function ChatPrincipal() {
         .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
         .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
         .bot { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .bubble { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; padding: 14px 18px; font-size: 14px; color: #202124; line-height: 1.55; max-width: 520px; white-space: pre-wrap; }
+        .bubble { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; padding: 14px 18px; font-size: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #202124; line-height: 1.65; max-width: 520px; }
+        .bubble p { margin-bottom: 8px; }
+        .bubble p:last-child { margin-bottom: 0; }
+        .bubble ul, .bubble ol { padding-left: 20px; margin-bottom: 8px; }
+        .bubble li { margin-bottom: 4px; line-height: 1.65; }
+        .bubble strong { font-weight: 600; }
+        .bubble em { font-style: italic; }
+        .bubble a { color: #1a73e8; text-decoration: none; }
+        .bubble a:hover { text-decoration: underline; }
+        .bubble code { font-family: ui-monospace, monospace; background: #f1f3f4; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+        .bubble h1 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .bubble h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .bubble h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
         .msg-user { display: flex; justify-content: flex-end; }
         .bubble-user { background: #1a73e8; color: #fff; border-radius: 16px; border-top-right-radius: 4px; padding: 12px 18px; font-size: 14px; max-width: 380px; }
         .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; margin-left: 44px; }
@@ -289,7 +302,7 @@ export default function ChatPrincipal() {
                 <div key={i} className="msg-ai">
                   <div className="bot">G</div>
                   <div>
-                    <div className="bubble">{m.conteudo}</div>
+                    <div className="bubble"><ReactMarkdown>{m.conteudo}</ReactMarkdown></div>
                     {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
                       <div className="quick-actions">
                         {m.acoes_rapidas.botoes.map((b, j) => {
