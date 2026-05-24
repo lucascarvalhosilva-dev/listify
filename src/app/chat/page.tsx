@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-type Botao = { texto: string; acao: 'redirect' | 'mensagem'; destino?: string; valor?: string }
+type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download'; destino?: string; valor?: string; url?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null }
 
 export default function ChatPrincipal() {
@@ -90,6 +90,8 @@ export default function ChatPrincipal() {
       router.push(botao.destino)
     } else if (botao.acao === 'mensagem' && botao.valor) {
       enviar(botao.valor)
+    } else if (botao.acao === 'download' && botao.url) {
+      window.open(botao.url, '_blank')
     }
   }
 
@@ -117,6 +119,8 @@ export default function ChatPrincipal() {
         .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; margin-left: 44px; }
         .quick-btn { background: #fff; border: 1px solid #1a73e8; color: #1a73e8; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
         .quick-btn:hover { background: #e8f0fe; }
+        .quick-btn-download { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
+        .quick-btn-download:hover { background: #1557b0; }
         .typing { display: flex; gap: 6px; padding: 14px 18px; background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; width: fit-content; }
         .typing span { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
         .typing span:nth-child(1) { animation-delay: -0.32s; }
@@ -154,7 +158,13 @@ export default function ChatPrincipal() {
                     {m.acoes_rapidas?.botoes && (
                       <div className="quick-actions">
                         {m.acoes_rapidas.botoes.map((b, j) => (
-                          <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>{b.texto}</button>
+                          <button
+                            key={j}
+                            className={b.acao === 'download' ? 'quick-btn-download' : 'quick-btn'}
+                            onClick={() => clicarBotao(b)}
+                          >
+                            {b.acao === 'download' ? `↓ ${b.texto}` : b.texto}
+                          </button>
                         ))}
                       </div>
                     )}

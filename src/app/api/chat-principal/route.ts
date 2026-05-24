@@ -8,6 +8,7 @@ import {
   cancelarSessoesAntigas,
 } from '@/lib/sessoes-geracao'
 import { detectarIntencaoCadastro } from '@/lib/detectar-intencao'
+import { TEMPLATE_XLSX_URL, TEMPLATE_CSV_URL } from '@/lib/templates'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -46,7 +47,14 @@ const CONTEXTO_ETAPA: Record<string, string> = {
 
 CONTEXTO DO FLUXO GUIADO:
 Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de uma planilha com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Diga que o upload pelo chat está sendo finalizado e que por enquanto ele pode usar a aba 'Nova Geração' no menu superior. NÃO redirecione automaticamente.`,
+
+  aguardando_planilha: `
+
+CONTEXTO DO FLUXO GUIADO:
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O usuário precisa baixar o template e preenchê-lo com seus produtos. Ofereça ao usuário os dois formatos de template que ele pode baixar pelos botões abaixo da mensagem. As colunas obrigatórias são: SKU, Nome do Produto, Marca, Categoria, Custo Unitário (R$) e Estoque. Seja breve e direto. NÃO redirecione automaticamente.`,
 }
+
+const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
 
 export async function POST(request: Request) {
   try {
@@ -62,7 +70,6 @@ export async function POST(request: Request) {
       conteudo: mensagem,
     })
 
-    // Limpa sessões expiradas antes de buscar
     await cancelarSessoesAntigas(user.id)
 
     let sessaoAtiva = await buscarSessaoAtiva(user.id)
@@ -92,7 +99,7 @@ export async function POST(request: Request) {
     const fullText = response.content[0].type === 'text' ? response.content[0].text : ''
 
     let textoLimpo = fullText
-    let acoes = null
+    let acoes: { botoes: Array<Record<string, string>> } | null = null
     const match = fullText.match(/<acoes>([\s\S]*?)<\/acoes>/)
     if (match) {
       try {
@@ -103,9 +110,15 @@ export async function POST(request: Request) {
       }
     }
 
-    // Avança etapa após resposta da IA
+    // Avança etapa e injeta botões de download quando adequado
     if (sessaoAtiva?.etapa === 'iniciada') {
       await atualizarEtapa(sessaoAtiva.id, 'aguardando_planilha')
+    } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {
+      const botoesDl = [
+        { texto: 'Baixar template Excel', acao: 'download', url: TEMPLATE_XLSX_URL },
+        { texto: 'Baixar template CSV', acao: 'download', url: TEMPLATE_CSV_URL },
+      ]
+      acoes = { botoes: [...(acoes?.botoes ?? []), ...botoesDl] }
     }
 
     await supabase.from('chat_historico').insert({
