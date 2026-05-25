@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 import SeletorCanais from '@/components/SeletorCanais'
 import CardDownloadArquivo from '@/components/CardDownloadArquivo'
+import CardEnvioDrive from '@/components/CardEnvioDrive'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
 
@@ -19,7 +20,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive'
   texto?: string
   destino?: string
   valor?: string
@@ -364,6 +365,32 @@ export default function ChatPrincipal() {
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
                                 .filter(b => b.acao !== 'card_download_arquivo')
+                                .map((b, j) => (
+                                  <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
+                                    {b.texto}
+                                  </button>
+                                ))
+                              }
+                            </div>
+                          )}
+                        </div>
+                      ) : m.acoes_rapidas.botoes.some(b => b.acao === 'card_envio_drive') ? (
+                        <div style={{ marginTop: 12, marginLeft: 44 }}>
+                          {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_envio_drive')
+                            .slice(0, 1)
+                            .map((b, j) => (
+                              <CardEnvioDrive
+                                key={j}
+                                valorInicial={b.valor}
+                                onEnviar={(url) => enviar(url)}
+                              />
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_envio_drive') && (
+                            <div className="quick-actions" style={{ marginLeft: 0, marginTop: 8 }}>
+                              {m.acoes_rapidas.botoes
+                                .filter(b => b.acao !== 'card_envio_drive')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.texto}

@@ -64,7 +64,7 @@ Você está em fluxo guiado de cadastro. Etapa atual: validando_planilha. O usu�
   aguardando_drive: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planilha foi validada com sucesso. Peça ao usuário o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem ser nomeadas SKU_01.jpg (capa), SKU_02.jpg (extras). A pasta precisa estar compartilhada como "Qualquer pessoa com o link → Visualizador".`,
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planilha foi validada com sucesso. Peça ao usuário o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem ser nomeadas SKU_01.jpg (capa), SKU_02.jpg (extras). A pasta precisa estar compartilhada como "Qualquer pessoa com o link → Visualizador". Um campo dedicado para colar o link aparece automaticamente abaixo desta mensagem (adicionado pelo sistema — NÃO inclua botões de envio de link no JSON de acoes). Você pode oferecer os botões "Como compartilhar?" e "Tirar dúvida" com ação mensagem.`,
 }
 
 const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
@@ -297,7 +297,7 @@ O usuário enviou o link do Drive e ele está acessível. Etapa atual: processan
         contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link rejeitado, aguardando novo link). Informe ao usuário de forma empática que o link tem um problema. Explique exatamente: "${resultadoDrive.mensagem_erro}". Peça que corrija e envie o link novamente.`
+O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link rejeitado, aguardando novo link). Informe ao usuário de forma empática que o link tem um problema. Explique exatamente: "${resultadoDrive.mensagem_erro}". O campo para reenviar o link aparece automaticamente abaixo (adicionado pelo sistema — NÃO inclua botões de envio de link no JSON de acoes).`
       }
     } else if (eBaixouTemplate) {
       contextoEtapa = `
@@ -364,10 +364,18 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
       }))
       const aiAcoes = acoes?.botoes ?? []
       acoes = { botoes: [...cardBotoes, ...aiAcoes] }
+    } else if (sessaoAtiva?.etapa === 'aguardando_drive') {
+      // Injeta card de input de Drive — cobre: estado inicial, retry após URL inválida,
+      // e mensagem genérica enquanto aguarda. URL da tentativa anterior vai em valor.
+      const valorUrl = (urlDrive && resultadoDrive && !resultadoDrive.acessivel) ? urlDrive : undefined
+      const cardBotao: Record<string, unknown> = { acao: 'card_envio_drive' }
+      if (valorUrl) cardBotao.valor = valorUrl
+      const aiAcoes = (acoes?.botoes ?? []).filter(b => (b as Record<string, unknown>)['acao'] !== 'card_envio_drive')
+      acoes = { botoes: [cardBotao, ...aiAcoes] }
     } else if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
       // Etapa já foi gerenciada pelo chat-upload / validar-planilha
     } else if (urlDrive !== null) {
-      // Drive URL tratado acima — sem botões adicionais
+      // URL de Drive válida: etapa avançou para processando, short-circuit já retornou
     } else if (eBaixouTemplate) {
       const botaoUpload = { texto: '📎 Enviar planilha preenchida', acao: 'upload' }
       acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
