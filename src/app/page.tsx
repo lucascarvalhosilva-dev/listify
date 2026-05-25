@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Paperclip } from 'lucide-react'
+import { ArrowUp, Loader2, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 import SeletorCanais from '@/components/SeletorCanais'
@@ -289,50 +289,56 @@ export default function ChatPrincipal() {
       <Navbar />
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f8f9fa; color: #202124; overflow: hidden; }
-        .app { display: flex; flex-direction: column; height: calc(100vh - 60px); background: #f8f9fa; }
-        .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 760px; width: 100%; margin: 0 auto; padding: 24px 24px 0; overflow: hidden; }
-        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f4f7fb; color: #182233; overflow: hidden; }
+        .app { display: flex; flex-direction: column; height: calc(100vh - 64px); background:
+          radial-gradient(circle at 18% -8%, rgba(26,115,232,0.12), transparent 28%),
+          radial-gradient(circle at 88% 4%, rgba(15,159,117,0.10), transparent 26%),
+          linear-gradient(180deg, #f8fbff 0%, #f2f6fb 100%);
+        }
+        .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 820px; width: 100%; margin: 0 auto; padding: 26px 24px 0; overflow: hidden; }
+        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 2px 4px 18px; }
         .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
-        .bot { width: 32px; height: 32px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .bubble { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; padding: 14px 18px; font-size: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #202124; line-height: 1.65; max-width: 520px; }
+        .bot { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #1a73e8 0%, #0f9f75 100%); color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 10px 22px rgba(26,115,232,0.20); }
+        .bubble { background: rgba(255,255,255,0.96); border: 1px solid #e2e8f0; border-radius: 18px; border-top-left-radius: 6px; padding: 15px 18px; font-size: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #182233; line-height: 1.66; max-width: 560px; box-shadow: 0 10px 30px rgba(15,23,42,0.06); }
         .bubble p { margin-bottom: 8px; }
         .bubble p:last-child { margin-bottom: 0; }
         .bubble ul, .bubble ol { padding-left: 20px; margin-bottom: 8px; }
         .bubble li { margin-bottom: 4px; line-height: 1.65; }
         .bubble strong { font-weight: 600; }
         .bubble em { font-style: italic; }
-        .bubble a { color: #1a73e8; text-decoration: none; }
+        .bubble a { color: #155bd5; text-decoration: none; }
         .bubble a:hover { text-decoration: underline; }
         .bubble code { font-family: ui-monospace, monospace; background: #f1f3f4; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
         .bubble h1 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
         .bubble h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
         .bubble h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
         .msg-user { display: flex; justify-content: flex-end; }
-        .bubble-user { background: #1a73e8; color: #fff; border-radius: 16px; border-top-right-radius: 4px; padding: 12px 18px; font-size: 14px; max-width: 380px; }
-        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; margin-left: 44px; }
-        .quick-btn { background: #fff; border: 1px solid #1a73e8; color: #1a73e8; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
-        .quick-btn:hover { background: #e8f0fe; }
-        .quick-btn-download { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-family: inherit; }
-        .quick-btn-download:hover { background: #1557b0; }
-        .quick-btn-download-usado { background: #fff; border: 1px solid #d1d5db; color: #6b7280; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 20px; cursor: default; font-family: inherit; }
-        .quick-btn-upload { background: #1a73e8; border: 1px solid #1a73e8; color: #fff; font-size: 14px; font-weight: 600; padding: 10px 24px; border-radius: 20px; cursor: pointer; font-family: inherit; flex-basis: 100%; }
-        .quick-btn-upload:hover { background: #1557b0; }
-        .typing { display: flex; gap: 6px; padding: 14px 18px; background: #fff; border: 1px solid #e8eaed; border-radius: 16px; border-top-left-radius: 4px; width: fit-content; }
-        .typing span { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .bubble-user { background: linear-gradient(135deg, #1a73e8 0%, #155bd5 100%); color: #fff; border-radius: 18px; border-top-right-radius: 6px; padding: 13px 18px; font-size: 14px; max-width: 420px; box-shadow: 0 12px 26px rgba(26,115,232,0.18); }
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; margin-left: 46px; }
+        .quick-btn { background: rgba(255,255,255,0.92); border: 1px solid rgba(26,115,232,0.28); color: #155bd5; font-size: 13px; font-weight: 700; padding: 8px 15px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background .18s, border-color .18s, box-shadow .18s, transform .18s; }
+        .quick-btn:hover { background: #ffffff; border-color: rgba(26,115,232,0.48); box-shadow: 0 8px 22px rgba(26,115,232,0.12); transform: translateY(-1px); }
+        .quick-btn-download { background: #155bd5; border: 1px solid #155bd5; color: #fff; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background .18s, transform .18s, box-shadow .18s; }
+        .quick-btn-download:hover { background: #0f4bb8; box-shadow: 0 8px 22px rgba(26,115,232,0.18); transform: translateY(-1px); }
+        .quick-btn-download-usado { background: #f7fafc; border: 1px solid #d8e0eb; color: #697386; font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 999px; cursor: default; font-family: inherit; }
+        .quick-btn-upload { background: linear-gradient(135deg, #1a73e8 0%, #0f9f75 100%); border: 1px solid transparent; color: #fff; font-size: 14px; font-weight: 700; padding: 11px 24px; border-radius: 999px; cursor: pointer; font-family: inherit; flex-basis: 100%; box-shadow: 0 12px 26px rgba(26,115,232,0.18); }
+        .quick-btn-upload:hover { filter: brightness(0.96); }
+        .typing { display: flex; gap: 6px; padding: 14px 18px; background: rgba(255,255,255,0.96); border: 1px solid #e2e8f0; border-radius: 18px; border-top-left-radius: 6px; width: fit-content; box-shadow: 0 10px 30px rgba(15,23,42,0.06); }
+        .typing span { width: 6px; height: 6px; background: #7a8699; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
         .typing span:nth-child(1) { animation-delay: -0.32s; }
         .typing span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        .input-area { padding: 16px 0 20px; border-top: 1px solid #e8eaed; background: #f8f9fa; }
+        .input-area { padding: 16px 0 20px; border-top: 1px solid rgba(207,216,228,0.72); background: rgba(248,251,255,0.82); backdrop-filter: blur(14px); }
         .file-preview { margin-bottom: 8px; }
         .erro-upload { font-size: 12px; color: #ea4335; margin-bottom: 6px; }
-        .input-box { background: #fff; border: 1px solid #e8eaed; border-radius: 16px; display: flex; align-items: center; padding: 6px 6px 6px 8px; gap: 4px; }
+        .input-box { background: #fff; border: 1px solid #dbe4ef; border-radius: 18px; display: flex; align-items: center; padding: 7px 7px 7px 8px; gap: 4px; box-shadow: 0 12px 34px rgba(15,23,42,0.08); }
         .clip-btn { background: none; border: none; cursor: pointer; color: #9aa0a6; padding: 6px 8px; display: flex; align-items: center; border-radius: 8px; flex-shrink: 0; }
         .clip-btn:hover:not(:disabled) { color: #1a73e8; background: #f0f4ff; }
         .clip-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-        .input-box input { flex: 1; border: none; outline: none; font-size: 14px; color: #202124; font-family: inherit; padding: 10px 6px; background: transparent; }
-        .send-btn { background: #1a73e8; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .input-box input { flex: 1; border: none; outline: none; font-size: 14px; color: #182233; font-family: inherit; padding: 10px 6px; background: transparent; }
+        .send-btn { background: #155bd5; color: #fff; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .18s, transform .18s, box-shadow .18s; box-shadow: 0 9px 20px rgba(26,115,232,0.22); }
+        .send-btn:hover:not(:disabled) { background: #0f4bb8; transform: translateY(-1px); }
         .send-btn:disabled { background: #9aa0a6; cursor: not-allowed; }
+        .send-spinner { animation: spin .8s linear infinite; }
         .hint { font-size: 11px; color: #9aa0a6; text-align: center; margin-top: 8px; }
       `}</style>
 
@@ -517,7 +523,7 @@ export default function ChatPrincipal() {
                 disabled={ocupado}
               />
               <button className="send-btn" onClick={() => enviar()} disabled={!podeSend}>
-                {uploadando ? '⏳' : '↑'}
+                {uploadando ? <Loader2 size={17} className="send-spinner" /> : <ArrowUp size={18} strokeWidth={2.5} />}
               </button>
             </div>
             <div className="hint">A IA pode cometer erros · Sempre revise as informações importantes</div>

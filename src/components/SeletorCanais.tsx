@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 
 const CANAIS = [
   { id: 'shopee', label: 'Shopee' },
@@ -47,8 +48,8 @@ export default function SeletorCanais({ sessaoId, onConfirmar, valorInicial = []
     .join(', ')
 
   return (
-    <div style={{ marginTop: 12, marginLeft: 44 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+    <div style={{ marginTop: 12, marginLeft: 46 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, marginBottom: 10 }}>
         {CANAIS.map(canal => {
           const sel = selecionados.includes(canal.id)
           return (
@@ -57,28 +58,33 @@ export default function SeletorCanais({ sessaoId, onConfirmar, valorInicial = []
               onClick={() => toggle(canal.id)}
               disabled={confirmado}
               style={{
-                padding: '8px 18px',
-                borderRadius: 20,
-                border: `1.5px solid ${sel ? '#1a73e8' : '#d1d5db'}`,
-                background: sel ? '#1a73e8' : '#fff',
-                color: sel ? '#fff' : '#202124',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '8px 15px',
+                borderRadius: 999,
+                border: `1px solid ${sel ? '#155bd5' : '#d8e0eb'}`,
+                background: sel ? '#155bd5' : 'rgba(255,255,255,0.92)',
+                color: sel ? '#fff' : '#263241',
                 fontSize: 13,
-                fontWeight: sel ? 600 : 400,
+                fontWeight: 700,
                 cursor: confirmado ? 'default' : 'pointer',
                 fontFamily: 'inherit',
-                transition: 'all 0.15s',
+                transition: 'background .18s, border-color .18s, box-shadow .18s, transform .18s',
                 opacity: confirmado && !sel ? 0.45 : 1,
+                boxShadow: sel ? '0 8px 22px rgba(26,115,232,0.14)' : 'none',
               }}
             >
-              {sel ? `✓ ${canal.label}` : canal.label}
+              {sel && <Check size={14} strokeWidth={2.4} />}
+              {canal.label}
             </button>
           )
         })}
       </div>
 
       {confirmado ? (
-        <div style={{ fontSize: 12, color: '#5f6368', padding: '4px 0' }}>
-          ✓ Canais confirmados: {labelsConfirmados}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#0f8a62', padding: '5px 0' }}>
+          <Check size={13} strokeWidth={2.4} /> Canais confirmados: {labelsConfirmados}
         </div>
       ) : (
         <button
@@ -86,15 +92,16 @@ export default function SeletorCanais({ sessaoId, onConfirmar, valorInicial = []
           disabled={selecionados.length === 0 || salvando}
           style={{
             padding: '10px 24px',
-            borderRadius: 20,
-            background: selecionados.length > 0 ? '#1a73e8' : '#e8eaed',
+            borderRadius: 999,
+            background: selecionados.length > 0 ? 'linear-gradient(135deg, #1a73e8 0%, #0f9f75 100%)' : '#e8edf4',
             color: selecionados.length > 0 ? '#fff' : '#9aa0a6',
             border: 'none',
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: selecionados.length > 0 && !salvando ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
-            transition: 'all 0.15s',
+            transition: 'filter .18s, transform .18s',
+            boxShadow: selecionados.length > 0 ? '0 12px 26px rgba(26,115,232,0.18)' : 'none',
           }}
         >
           {salvando

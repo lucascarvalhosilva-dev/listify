@@ -1,15 +1,16 @@
 'use client'
 import { useState } from 'react'
+import { BarChart3, Download, FileSpreadsheet, Music, Package, ShoppingBag, Store, type LucideIcon } from 'lucide-react'
 
-const CANAL_ICONE: Record<string, string> = {
-  shopee: '🛒',
-  ml: '🏪',
-  mercado_livre: '🏪',
-  amazon: '📦',
-  magalu: '🛍',
-  tiktok: '🎵',
-  tiktok_shop: '🎵',
-  bling: '📊',
+const CANAL_ICONE: Record<string, LucideIcon> = {
+  shopee: ShoppingBag,
+  ml: Store,
+  mercado_livre: Store,
+  amazon: Package,
+  magalu: ShoppingBag,
+  tiktok: Music,
+  tiktok_shop: Music,
+  bling: BarChart3,
 }
 
 function formatarTamanho(bytes: number): string {
@@ -30,7 +31,7 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
   const [erro, setErro] = useState('')
 
   const nomeArquivo = path.split('/').pop() ?? path
-  const icone = CANAL_ICONE[canal] ?? '📄'
+  const Icone = CANAL_ICONE[canal] ?? FileSpreadsheet
 
   const handleBaixar = async () => {
     if (baixando) return
@@ -65,20 +66,33 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      background: '#fff',
-      border: '1px solid #e8eaed',
-      borderRadius: 12,
-      padding: '12px 16px',
+      background: 'rgba(255,255,255,0.96)',
+      border: '1px solid #e2e8f0',
+      borderRadius: 16,
+      padding: '13px 16px',
       gap: 12,
-      maxWidth: 480,
+      maxWidth: 520,
       width: '100%',
       boxSizing: 'border-box',
+      boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-        <span style={{ fontSize: 22, flexShrink: 0 }}>{icone}</span>
+        <span style={{
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          background: '#eaf2ff',
+          color: '#155bd5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Icone size={18} strokeWidth={2.2} />
+        </span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#202124' }}>{nome_canal_label}</div>
-          <div style={{ fontSize: 12, color: '#5f6368', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#182233' }}>{nome_canal_label}</div>
+          <div style={{ fontSize: 12, color: '#697386', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {nomeArquivo} · {formatarTamanho(tamanho_bytes)}
           </div>
           {erro && <div style={{ fontSize: 11, color: '#ea4335', marginTop: 3 }}>{erro}</div>}
@@ -88,21 +102,25 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
         onClick={handleBaixar}
         disabled={baixando}
         style={{
-          padding: '8px 18px',
-          borderRadius: 20,
-          background: baixando ? '#9aa0a6' : '#1a73e8',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 7,
+          padding: '8px 16px',
+          borderRadius: 999,
+          background: baixando ? '#9aa0a6' : '#155bd5',
           color: '#fff',
           border: 'none',
           fontSize: 13,
-          fontWeight: 600,
+          fontWeight: 700,
           cursor: baixando ? 'not-allowed' : 'pointer',
           flexShrink: 0,
           fontFamily: 'inherit',
-          transition: 'background 0.15s',
+          transition: 'background 0.15s, transform 0.15s',
           whiteSpace: 'nowrap',
         }}
       >
-        {baixando ? '…' : 'Baixar'}
+        {!baixando && <Download size={14} strokeWidth={2.3} />}
+        {baixando ? 'Preparando' : 'Baixar'}
       </button>
     </div>
   )

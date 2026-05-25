@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { AlertCircle, CheckCircle2, FolderOpen } from 'lucide-react'
 import { extrairUrlDrive } from '@/lib/validador-drive'
 
 type Validacao = 'vazio' | 'invalido' | 'valido'
@@ -46,17 +47,30 @@ export default function CardEnvioDrive({ onEnviar, valorInicial = '' }: Props) {
 
   return (
     <div style={{
-      background: '#fff',
-      border: '1px solid #e8eaed',
-      borderRadius: 12,
+      background: 'rgba(255,255,255,0.96)',
+      border: '1px solid #e2e8f0',
+      borderRadius: 16,
       padding: '16px 18px',
-      maxWidth: 480,
+      maxWidth: 520,
       width: '100%',
       boxSizing: 'border-box',
+      boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 20, flexShrink: 0 }}>📁</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#202124' }}>
+        <span style={{
+          width: 34,
+          height: 34,
+          borderRadius: 12,
+          background: '#eaf2ff',
+          color: '#155bd5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <FolderOpen size={18} strokeWidth={2.2} />
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#182233' }}>
           Link da pasta do Google Drive
         </span>
       </div>
@@ -73,14 +87,15 @@ export default function CardEnvioDrive({ onEnviar, valorInicial = '' }: Props) {
           style={{
             flex: '1 1 200px',
             border: `1px solid ${borderColor}`,
-            borderRadius: 8,
-            padding: '9px 12px',
+            borderRadius: 10,
+            padding: '10px 12px',
             fontSize: 13,
             fontFamily: 'inherit',
             outline: 'none',
-            color: '#202124',
+            color: '#182233',
             background: enviando ? '#f8f9fa' : '#fff',
-            transition: 'border-color 0.15s',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+            boxShadow: validacao === 'valido' ? '0 0 0 3px rgba(52,168,83,0.10)' : 'none',
           }}
         />
         <button
@@ -88,24 +103,26 @@ export default function CardEnvioDrive({ onEnviar, valorInicial = '' }: Props) {
           disabled={validacao !== 'valido' || enviando}
           style={{
             flex: '0 0 auto',
-            padding: '9px 18px',
-            borderRadius: 20,
-            background: validacao === 'valido' && !enviando ? '#1a73e8' : '#9aa0a6',
+            padding: '10px 18px',
+            borderRadius: 999,
+            background: validacao === 'valido' && !enviando ? '#155bd5' : '#9aa0a6',
             color: '#fff',
             border: 'none',
             fontSize: 13,
-            fontWeight: 600,
+            fontWeight: 700,
             cursor: validacao === 'valido' && !enviando ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
             whiteSpace: 'nowrap',
-            transition: 'background 0.15s',
+            transition: 'background 0.15s, transform 0.15s',
           }}
         >
-          {enviando ? 'Enviando…' : 'Enviar link'}
+          {enviando ? 'Enviando...' : 'Enviar link'}
         </button>
       </div>
 
-      <div style={{ fontSize: 12, color: msgColor, marginTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: msgColor, marginTop: 8 }}>
+        {validacao === 'valido' && <CheckCircle2 size={13} strokeWidth={2.2} />}
+        {validacao === 'invalido' && <AlertCircle size={13} strokeWidth={2.2} />}
         {msgText}
       </div>
     </div>
