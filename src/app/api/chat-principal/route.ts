@@ -209,6 +209,9 @@ export async function POST(request: Request) {
     console.log('[CHAT] canaisAlvo:', JSON.stringify(sessaoAtiva?.canais_alvo ?? null))
     console.log('[CHAT] eCanaisEscolhidos:', eCanaisEscolhidos, '| geracao_disparada:', (sessaoAtiva?.dados_planilha as Record<string,unknown>)?.geracao_disparada ?? null)
 
+    type ArquivoBaixavel = { canal: string; nome_canal_label: string; path: string; tamanho_bytes: number; catalogo_id?: string | null }
+    let arquivosBaixaveis: ArquivoBaixavel[] = []
+
     if (eTirandoDuvida) {
       contextoEtapa = `
 
@@ -251,10 +254,11 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           })
           console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
           if (gerarResp.ok) {
-            const gerarData = await gerarResp.json() as { sucesso: boolean; canais_processados: number; arquivos_count: number; alertas: string[] }
+            const gerarData = await gerarResp.json() as { sucesso: boolean; canais_processados: number; arquivos_count: number; alertas: string[]; arquivos_baixaveis?: ArquivoBaixavel[] }
             geracaoOk = true
             arquivosCount = gerarData.arquivos_count
             alertasTxt = gerarData.alertas.length > 0 ? ` Alertas: ${gerarData.alertas.join('; ')}.` : ''
+            arquivosBaixaveis = gerarData.arquivos_baixaveis ?? []
           } else {
             const errBody = await gerarResp.text()
             console.error('[CHAT PRINCIPAL] gerar-do-chat erro:', gerarResp.status, errBody)
@@ -267,7 +271,13 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-A geração foi concluída com sucesso. Canais: ${lista}. Arquivos gerados: ${arquivosCount}.${alertasTxt} Informe ao usuário de forma sucinta que os cadastros foram gerados e que os arquivos já estão disponíveis para download na aba 'Meus Catálogos'. Seja breve e objetivo.`
+A geração foi concluída com sucesso. Canais: ${lista}. Arquivos gerados: ${arquivosCount}.${alertasTxt}
+Os cards de download aparecem automaticamente abaixo desta mensagem (adicionados pelo sistema — NÃO os inclua no JSON de acoes e NÃO liste os arquivos).
+Celebre o sucesso em 1-2 frases curtas. Mencione brevemente:
+- Os arquivos estão prontos nos cards abaixo
+- Foram salvos automaticamente em Meus Catálogos (acesso permanente)
+- Os links dos cards expiram em 1h, mas o catálogo fica salvo para sempre
+Ofereça 2-3 opções de próximo passo como 'Cadastrar mais produtos', 'Ver Meus Catálogos', 'Tirar uma dúvida'. NÃO redirecione automaticamente.`
         } else {
           contextoEtapa = `
 
@@ -330,7 +340,7 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     const fullText = response.content[0].type === 'text' ? response.content[0].text : ''
 
     let textoLimpo = fullText
-    let acoes: { botoes: Array<Record<string, string>> } | null = null
+    let acoes: { botoes: Array<Record<string, unknown>> } | null = null
     const match = fullText.match(/<acoes>([\s\S]*?)<\/acoes>/)
     if (match) {
       try {
@@ -342,7 +352,17 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     }
 
     // ── Gerencia etapa e botões de download ───────────────────────────────────
-    if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
+    if (arquivosBaixaveis.length > 0) {
+      const cardBotoes = arquivosBaixaveis.map(a => ({
+        acao: 'card_download_arquivo',
+        path: a.path,
+        canal: a.canal,
+        nome_canal_label: a.nome_canal_label,
+        tamanho_bytes: a.tamanho_bytes,
+      }))
+      const aiAcoes = acoes?.botoes ?? []
+      acoes = { botoes: [...cardBotoes, ...aiAcoes] }
+    } else if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
       // Etapa já foi gerenciada pelo chat-upload / validar-planilha
     } else if (urlDrive !== null) {
       // Drive URL tratado acima — sem botões adicionais

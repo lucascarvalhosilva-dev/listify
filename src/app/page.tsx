@@ -5,6 +5,7 @@ import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 import SeletorCanais from '@/components/SeletorCanais'
+import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
 
@@ -17,7 +18,18 @@ const CANAL_LABELS: Record<string, string> = {
   bling: 'Bling',
 }
 
-type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais'; destino?: string; valor?: string; url?: string; sessao_id?: string }
+type Botao = {
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo'
+  texto?: string
+  destino?: string
+  valor?: string
+  url?: string
+  sessao_id?: string
+  path?: string
+  canal?: string
+  nome_canal_label?: string
+  tamanho_bytes?: number
+}
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 
 const MENSAGEM_RETOMADA: Record<string, string> = {
@@ -332,7 +344,36 @@ export default function ChatPrincipal() {
                   <div>
                     <div className="bubble"><ReactMarkdown>{m.conteudo}</ReactMarkdown></div>
                     {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
-                      m.acoes_rapidas.botoes.some(b => b.acao === 'selector_canais') ? (
+                      m.acoes_rapidas.botoes.some(b => b.acao === 'card_download_arquivo') ? (
+                        <div style={{ marginTop: 12, marginLeft: 44 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                            {m.acoes_rapidas.botoes
+                              .filter(b => b.acao === 'card_download_arquivo')
+                              .map((b, j) => (
+                                <CardDownloadArquivo
+                                  key={j}
+                                  path={b.path!}
+                                  canal={b.canal!}
+                                  nome_canal_label={b.nome_canal_label!}
+                                  tamanho_bytes={b.tamanho_bytes!}
+                                />
+                              ))
+                            }
+                          </div>
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo') && (
+                            <div className="quick-actions" style={{ marginLeft: 0 }}>
+                              {m.acoes_rapidas.botoes
+                                .filter(b => b.acao !== 'card_download_arquivo')
+                                .map((b, j) => (
+                                  <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
+                                    {b.texto}
+                                  </button>
+                                ))
+                              }
+                            </div>
+                          )}
+                        </div>
+                      ) : m.acoes_rapidas.botoes.some(b => b.acao === 'selector_canais') ? (
                         m.acoes_rapidas.botoes
                           .filter(b => b.acao === 'selector_canais')
                           .map((b, j) => (

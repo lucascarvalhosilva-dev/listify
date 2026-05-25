@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 
 export const maxDuration = 60
@@ -21,6 +22,15 @@ const CONTENT_TYPE: Record<string, string> = {
   amazon: 'text/csv',
 }
 
+const CANAL_LABELS: Record<string, string> = {
+  shopee: 'Shopee',
+  ml: 'Mercado Livre',
+  tiktok: 'TikTok Shop',
+  bling: 'Bling',
+  magalu: 'Magalu',
+  amazon: 'Amazon',
+}
+
 interface ProdutoValido {
   sku: string
   nome: string
@@ -30,11 +40,23 @@ interface ProdutoValido {
   categoria?: string
 }
 
+interface ArquivoGerado {
+  canal: string
+  path: string
+  tamanho_bytes: number
+  catalogo_id?: string
+}
+
 interface ProcessCatalogResponse {
   status: string
   produtos_processados: number
   alertas: string[]
   arquivos: Record<string, string | null>
+}
+
+function formatarDataLabel(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 export async function POST(request: Request) {
@@ -150,8 +172,9 @@ export async function POST(request: Request) {
     const processData = await processResp.json() as ProcessCatalogResponse
     console.log('[GERAR-DO-CHAT] process-catalog ok, produtos_processados:', processData.produtos_processados)
 
+    // ── Upload de arquivos para bucket 'geracoes' ─────────────────────────────
     const ts = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
-    const arquivosGerados: Array<{ canal: string; path: string; tamanho_bytes: number }> = []
+    const arquivosGerados: ArquivoGerado[] = []
 
     for (const [canal, b64] of Object.entries(processData.arquivos)) {
       if (!b64) continue
@@ -172,27 +195,78 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── Salvar catálogos e avançar etapa ─────────────────────────────────────
+    const alertasCatalogos: string[] = []
+    const catalogosIds: string[] = []
+    const agora = new Date()
+    const dataLabel = formatarDataLabel(agora)
+
+    if (arquivosGerados.length > 0) {
+      const supabaseService = createServiceClient()
+
+      for (const arquivo of arquivosGerados) {
+        const nomeCanal = CANAL_LABELS[arquivo.canal] ?? arquivo.canal
+        const { data: cat, error: catErr } = await supabaseService
+          .from('catalogos')
+          .insert({
+            user_id: user.id,
+            nome: `Cadastro ${nomeCanal} - ${dataLabel}`,
+            produtos: produtos,
+            drive_url: sessao.drive_url,
+            regime_tributario: regimeRaw,
+            canal: arquivo.canal,
+            arquivo_path: arquivo.path,
+          })
+          .select('id')
+          .single()
+
+        if (catErr || !cat) {
+          console.error('[GERAR-DO-CHAT] erro ao criar catálogo:', arquivo.canal, catErr?.message)
+          alertasCatalogos.push(
+            `Catálogo para ${nomeCanal} não foi salvo automaticamente. Os arquivos estão disponíveis para download.`
+          )
+        } else {
+          arquivo.catalogo_id = (cat as { id: string }).id
+          catalogosIds.push((cat as { id: string }).id)
+          console.log('[GERAR-DO-CHAT] catálogo criado:', arquivo.canal, (cat as { id: string }).id)
+        }
+      }
+    }
+
+    const alertasFinal = [...(processData.alertas ?? []), ...alertasCatalogos]
+
     const { error: updateErr } = await supabase
       .from('sessoes_geracao')
       .update({
+        etapa: 'concluida',
         dados_planilha: {
           ...dados,
           geracao_disparada: true,
           geracao_concluida: true,
-          concluida_em: new Date().toISOString(),
+          concluida_em: agora.toISOString(),
           arquivos_gerados: arquivosGerados,
-          alertas: processData.alertas ?? [],
+          alertas: alertasFinal,
           canais_processados: processData.produtos_processados,
+          catalogos_ids: catalogosIds,
         },
       })
       .eq('id', sessao_id)
     if (updateErr) console.error('[GERAR-DO-CHAT] erro ao salvar resultado:', updateErr)
 
+    const arquivosBaixaveis = arquivosGerados.map(a => ({
+      canal: a.canal,
+      nome_canal_label: CANAL_LABELS[a.canal] ?? a.canal,
+      path: a.path,
+      tamanho_bytes: a.tamanho_bytes,
+      catalogo_id: a.catalogo_id ?? null,
+    }))
+
     return Response.json({
       sucesso: true,
       canais_processados: processData.produtos_processados,
       arquivos_count: arquivosGerados.length,
-      alertas: processData.alertas ?? [],
+      alertas: alertasFinal,
+      arquivos_baixaveis: arquivosBaixaveis,
     })
   } catch (error) {
     console.error('[GERAR-DO-CHAT] erro:', error)
