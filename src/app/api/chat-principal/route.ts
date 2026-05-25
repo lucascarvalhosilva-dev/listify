@@ -196,7 +196,7 @@ CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de f
         contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O link do Google Drive foi validado com sucesso! URL recebida: ${urlDrive}. Etapa atual: processando. Confirme ao usuário de forma animada que o link é válido e as fotos foram localizadas. Diga que a geração dos catálogos foi iniciada e que em breve ele poderá baixar os arquivos prontos. Seja positivo e entusiasmado.`
+O usuário enviou o link do Drive e ele parece estar acessível. Etapa atual: processando. Confirme o recebimento de forma objetiva — diga que o link foi registrado e que a próxima etapa é a geração dos cadastros para os marketplaces. Avise honestamente que a geração completa pelo chat ainda está em desenvolvimento. Por enquanto, oriente o usuário a usar a aba 'Meus Catálogos' para acompanhar quando estiver pronto, ou aguardar a próxima atualização. NÃO invente números de fotos. NÃO prometa validação de SKU. NÃO ofereça botões que redirecionem automaticamente.`
       } else {
         contextoEtapa = `
 

@@ -12,7 +12,19 @@ export function extrairUrlDrive(mensagem: string): string | null {
 }
 
 export async function validarAcessoDrive(url: string): Promise<ResultadoValidacaoDrive> {
-  if (!url.includes('/folders/') && !url.includes('open?id=')) {
+  // Arquivo individual (não pasta)
+  if (url.includes('/file/d/')) {
+    return {
+      acessivel: false,
+      tipo_erro: 'nao_e_pasta',
+      mensagem_erro: mensagemErroAmigavel('nao_e_pasta'),
+    }
+  }
+  if (
+    !url.includes('/folders/') &&
+    !url.includes('open?id=') &&
+    !url.includes('folderview?id=')
+  ) {
     return {
       acessivel: false,
       tipo_erro: 'nao_e_pasta',
@@ -35,6 +47,9 @@ export async function validarAcessoDrive(url: string): Promise<ResultadoValidaca
     })
     clearTimeout(timeout)
 
+    const urlFinal = res.url.includes('accounts.google.com') ? 'accounts.google.com' : 'drive.google.com'
+    console.log('[DRIVE] status HTTP:', res.status, '| url final:', urlFinal)
+
     if (res.status === 404) {
       return {
         acessivel: false,
@@ -43,35 +58,74 @@ export async function validarAcessoDrive(url: string): Promise<ResultadoValidaca
       }
     }
 
-    if (res.status === 200) {
-      if (res.url.includes('accounts.google.com')) {
-        return {
-          acessivel: false,
-          tipo_erro: 'nao_publico',
-          mensagem_erro: mensagemErroAmigavel('nao_publico'),
-        }
+    // Redirect para signin = definitivamente privado (sinal negativo forte sem precisar ler body)
+    if (
+      res.url.includes('accounts.google.com/signin') ||
+      res.url.includes('accounts.google.com/ServiceLogin')
+    ) {
+      console.log('[DRIVE] sinal negativo forte: redirect para accounts.google.com')
+      return {
+        acessivel: false,
+        tipo_erro: 'nao_publico',
+        mensagem_erro: mensagemErroAmigavel('nao_publico'),
       }
-      const body = await res.text()
-      if (
-        body.includes('Sign in') ||
-        body.includes('Fazer login') ||
-        body.includes('ServiceLogin') ||
-        body.includes('accounts.google.com')
-      ) {
-        return {
-          acessivel: false,
-          tipo_erro: 'nao_publico',
-          mensagem_erro: mensagemErroAmigavel('nao_publico'),
-        }
-      }
-      return { acessivel: true }
     }
 
-    return {
-      acessivel: false,
-      tipo_erro: 'nao_publico',
-      mensagem_erro: mensagemErroAmigavel('nao_publico'),
+    if (res.status !== 200) {
+      return {
+        acessivel: false,
+        tipo_erro: 'nao_publico',
+        mensagem_erro: mensagemErroAmigavel('nao_publico'),
+      }
     }
+
+    const body = await res.text()
+    const htmlKb = Math.round(body.length / 1024)
+
+    // ── Sinais POSITIVOS (pasta provavelmente pública) ────────────────────────
+    const sinaisPositivos: string[] = []
+    if (/\.(jpg|jpeg|png|webp)/i.test(body)) sinaisPositivos.push('imagens-listadas')
+    if (body.includes('og:image') && body.includes('drive.google.com')) sinaisPositivos.push('og-image-drive')
+    if (body.includes('"Google Drive"') || body.includes("'Google Drive'")) sinaisPositivos.push('og-site-name-drive')
+    if (body.includes('_DriveCookie') || body.includes('folderView')) sinaisPositivos.push('estrutura-pasta-drive')
+    if (
+      body.includes('application/json+oembed') ||
+      body.includes('drive.google.com/drive/folders')
+    ) sinaisPositivos.push('metadata-pasta')
+
+    // ── Sinais NEGATIVOS FORTES (alta certeza de pasta privada) ──────────────
+    const sinaisNegativos: string[] = []
+    if (body.includes('Sign in') && body.includes('to continue')) sinaisNegativos.push('sign-in-to-continue')
+    if (body.includes('You need access')) sinaisNegativos.push('you-need-access')
+    if (
+      body.includes('Você precisa solicitar acesso') ||
+      body.includes('Solicitar acesso')
+    ) sinaisNegativos.push('solicitar-acesso')
+    if (body.includes('Request access')) sinaisNegativos.push('request-access')
+    if (body.includes('ServiceLogin') && body.includes('continue=')) sinaisNegativos.push('service-login-redirect')
+
+    console.log(
+      '[DRIVE] html:', htmlKb + 'kb',
+      '| positivos:', sinaisPositivos.join(',') || 'nenhum',
+      '| negativos:', sinaisNegativos.join(',') || 'nenhum',
+    )
+
+    // ── Decisão: aceitar no caso de dúvida ───────────────────────────────────
+    if (sinaisPositivos.length > 0) {
+      return { acessivel: true }
+    }
+    if (sinaisNegativos.length > 0) {
+      return {
+        acessivel: false,
+        tipo_erro: 'nao_publico',
+        mensagem_erro: mensagemErroAmigavel('nao_publico'),
+      }
+    }
+
+    // Nenhum sinal conclusivo → aceitar (falso negativo é menos prejudicial)
+    console.log('[DRIVE] sem sinais conclusivos — aceitando no caso de dúvida')
+    return { acessivel: true }
+
   } catch {
     clearTimeout(timeout)
     return {
