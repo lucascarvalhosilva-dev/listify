@@ -329,9 +329,9 @@ export async function POST(request: Request) {
         conteudo: [
           `**Pronto!** Seus arquivos foram gerados com sucesso!`,
           ``,
-          `Voce tem **${arquivosGerados.length} arquivo${arquivosGerados.length > 1 ? 's' : ''}** pronto${arquivosGerados.length > 1 ? 's' : ''} para baixar abaixo. Eles tambem foram salvos automaticamente em **Meus Catalogos** para voce acessar sempre que precisar.`,
+          `Você tem **${arquivosGerados.length} arquivo${arquivosGerados.length > 1 ? 's' : ''}** pronto${arquivosGerados.length > 1 ? 's' : ''} para baixar abaixo. Eles também foram salvos automaticamente em **Meus Catálogos** para você acessar sempre que precisar.`,
           ``,
-          `Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, e so clicar nos botoes abaixo!`,
+          `Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, é só clicar nos botões abaixo!`,
         ].join('\n'),
         acoes: {
           botoes: [
@@ -352,7 +352,7 @@ export async function POST(request: Request) {
               }
             }),
             { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },
-            { acao: 'mensagem', texto: 'Tirar uma duvida', valor: 'Tenho uma duvida' },
+            { acao: 'mensagem', texto: 'Tirar uma dúvida', valor: 'Tenho uma dúvida' },
           ],
         },
       } : null,

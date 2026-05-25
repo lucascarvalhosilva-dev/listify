@@ -48,5 +48,6 @@ O usuário principal é vendedor de marketplace no Brasil. Priorize clareza, con
 - Antes de executar uma tarefa, sugira qual canal é mais adequado para ela: Codex, Claude Code, ou ambos em sequência.
 - Se a tarefa parecer mais adequada para Claude Code, avise o usuário antes de implementar e explique brevemente o motivo.
 - Se a tarefa puder ser feita melhor em conjunto, proponha a ordem de trabalho entre Codex e Claude Code.
+- Ao mexer em mensagens exibidas ao usuário, diferencie textos fixos no código de textos gerados por IA/prompt. Preserve acentuação e português natural em ambos.
 - Explique o que mudou, onde mudou e como testar.
 - Se fizer deploy, informe commit, branch e domínio verificado.
