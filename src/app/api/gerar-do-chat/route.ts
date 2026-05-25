@@ -201,11 +201,20 @@ export async function POST(request: Request) {
     const agora = new Date()
     const dataLabel = formatarDataLabel(agora)
 
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceKey) {
+      console.error('[CATALOGOS] SUPABASE_SERVICE_ROLE_KEY não definida — inserts vão falhar')
+    }
+
+    console.log('[CATALOGOS] iniciando insert de', arquivosGerados.length, 'catalogos')
+
     if (arquivosGerados.length > 0) {
       const supabaseService = createServiceClient()
 
       for (const arquivo of arquivosGerados) {
         const nomeCanal = CANAL_LABELS[arquivo.canal] ?? arquivo.canal
+        console.log('[CATALOGOS] inserindo canal:', arquivo.canal, '| arquivo_path:', arquivo.path)
+
         const { data: cat, error: catErr } = await supabaseService
           .from('catalogos')
           .insert({
@@ -221,20 +230,22 @@ export async function POST(request: Request) {
           .single()
 
         if (catErr || !cat) {
-          console.error('[GERAR-DO-CHAT] erro ao criar catálogo:', arquivo.canal, catErr?.message)
+          console.error('[CATALOGOS] falha no insert canal=' + arquivo.canal + ':', JSON.stringify(catErr))
           alertasCatalogos.push(
             `Catálogo para ${nomeCanal} não foi salvo automaticamente. Os arquivos estão disponíveis para download.`
           )
         } else {
-          arquivo.catalogo_id = (cat as { id: string }).id
-          catalogosIds.push((cat as { id: string }).id)
-          console.log('[GERAR-DO-CHAT] catálogo criado:', arquivo.canal, (cat as { id: string }).id)
+          const catId = (cat as { id: string }).id
+          arquivo.catalogo_id = catId
+          catalogosIds.push(catId)
+          console.log('[CATALOGOS] insert ok: canal=' + arquivo.canal + ' id=' + catId)
         }
       }
     }
 
     const alertasFinal = [...(processData.alertas ?? []), ...alertasCatalogos]
 
+    console.log('[ETAPA] atualizando pra concluida | catalogos salvos:', catalogosIds.length)
     const { error: updateErr } = await supabase
       .from('sessoes_geracao')
       .update({
@@ -251,7 +262,11 @@ export async function POST(request: Request) {
         },
       })
       .eq('id', sessao_id)
-    if (updateErr) console.error('[GERAR-DO-CHAT] erro ao salvar resultado:', updateErr)
+    if (updateErr) {
+      console.error('[ETAPA] falha:', JSON.stringify(updateErr))
+    } else {
+      console.log('[ETAPA] update ok — sessao', sessao_id, 'agora concluida')
+    }
 
     const arquivosBaixaveis = arquivosGerados.map(a => ({
       canal: a.canal,

@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { ANTHROPIC_MODEL } from '@/lib/constants'
+
+export const maxDuration = 60
 import {
   buscarSessaoAtiva,
   criarSessao,
