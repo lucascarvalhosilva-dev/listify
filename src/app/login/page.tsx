@@ -55,7 +55,7 @@ export default function LoginPage() {
       .maybeSingle()
 
     if ((profile as { onboarding_completo?: boolean } | null)?.onboarding_completo) {
-      router.push('/chat')
+      router.push('/')
     } else {
       router.push('/onboarding')
     }

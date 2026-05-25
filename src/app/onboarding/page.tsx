@@ -30,7 +30,7 @@ export default function OnboardingPage() {
         .maybeSingle()
 
       if ((profile as { onboarding_completo?: boolean } | null)?.onboarding_completo) {
-        router.replace('/chat')
+        router.replace('/')
         return
       }
 
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
         onboarding_completo: true,
         fotos_prontas: true,
       })
-    router.push('/chat')
+    router.push('/')
   }
 
   if (loading) {

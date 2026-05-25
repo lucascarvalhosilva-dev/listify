@@ -37,7 +37,8 @@
       "Bash(git push *)",
       "Bash(node -e \"const fs=require\\('fs'\\);const c=fs.readFileSync\\('src/app/page.tsx','utf8'\\);const lines=c.split\\('\\\\n'\\);for\\(let i=18;i<30;i++\\)console.log\\(i+1,lines[i]\\);\")",
       "Bash(grep -rn \"Listify\" src/app/login/page.tsx src/app/cadastro/page.tsx src/app/upgrade/page.tsx src/app/configuracoes/page.tsx src/app/layout.tsx)",
-      "Bash(grep -rn \"Listify\" src/app/onboarding/page.tsx src/app/painel/page.tsx)"
+      "Bash(grep -rn \"Listify\" src/app/onboarding/page.tsx src/app/painel/page.tsx)",
+      "PowerShell(Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c cd `\"C:\\\\Users\\\\Lucas\\\\Desktop\\\\listify`\" && npm run dev\" -WindowStyle Normal)"
     ]
   }
 }

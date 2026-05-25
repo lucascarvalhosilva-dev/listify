@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PROTECTED = ['/painel', '/adicionar-produtos', '/onboarding', '/chat']
+const PROTECTED = ['/painel', '/adicionar-produtos', '/onboarding']
 const AUTH_ONLY = ['/login', '/cadastro']
 
 export async function proxy(request: NextRequest) {
@@ -29,6 +29,13 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  // Raiz: deslogado → landing, logado → chat (renderizado em /)
+  if (!user && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/sobre'
+    return NextResponse.redirect(url)
+  }
+
   if (!user && PROTECTED.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -37,7 +44,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && AUTH_ONLY.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
-    url.pathname = '/chat'
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
