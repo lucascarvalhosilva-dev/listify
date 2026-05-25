@@ -35,7 +35,7 @@ Responda com texto natural e ao final adicione um bloco JSON entre <acoes> e </a
 <acoes>
 {
   "botoes": [
-    {"texto": "Gerar produtos", "acao": "redirect", "destino": "/"},
+    {"texto": "Cadastrar produtos", "acao": "mensagem", "valor": "quero cadastrar produtos"},
     {"texto": "Tirar dúvida", "acao": "mensagem", "valor": "Como faço uma boa foto de produto?"}
   ]
 }
@@ -49,7 +49,7 @@ const CONTEXTO_ETAPA: Record<string, string> = {
   iniciada: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de uma planilha com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Diga que o upload pelo chat está sendo finalizado e que por enquanto ele pode usar a aba 'Nova Geração' no menu superior. NÃO redirecione automaticamente.`,
+Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de uma planilha com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Oriente o usuário a baixar o template e enviar a planilha preenchida pelo próprio chat. NÃO redirecione automaticamente.`,
 
   aguardando_planilha: `
 

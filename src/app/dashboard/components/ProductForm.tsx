@@ -56,6 +56,7 @@ export interface CatalogoItem {
   regime_tributario: string
   drive_url: string
   canal?: string | null
+  arquivo_path?: string | null
   produtos: ProdutoRevisao[]
 }
 
@@ -1639,7 +1640,7 @@ function ResultadoScreen({
             cursor: 'pointer', transition: 'all 0.15s',
           }}
         >
-          Gerar novos produtos
+          Cadastrar produtos
         </button>
       </div>
     </div>

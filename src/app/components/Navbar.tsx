@@ -43,7 +43,7 @@ export default function Navbar({ activeAba = '' }: NavbarProps) {
   const tabs = [
     { label: 'Chat', href: '/' },
     { label: 'Meus Catálogos', href: '/painel?aba=catalogos', aba: 'catalogos' },
-    { label: 'Meu Plano', href: '/painel?aba=plano', aba: 'plano' },
+    { label: 'Meu Plano', href: '/upgrade' },
   ]
 
   const isTabActive = (tab: (typeof tabs)[number]) => {
@@ -70,6 +70,7 @@ export default function Navbar({ activeAba = '' }: NavbarProps) {
         .navbar-chevron { font-size: 10px; color: #5f6368; }
         .navbar-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid #e8eaed; border-radius: 14px; padding: 8px; min-width: 200px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); z-index: 100; }
         .dropdown-email { font-size: 12px; color: #5f6368; padding: 8px 12px 12px; border-bottom: 1px solid #e8eaed; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dropdown-main-links { display: none; }
         .dropdown-link { display: block; font-size: 14px; color: #202124; text-decoration: none; padding: 9px 12px; border-radius: 8px; }
         .dropdown-link:hover { background: #f8f9fa; }
         .dropdown-divider { height: 1px; background: #e8eaed; margin: 8px 0; }
@@ -78,6 +79,7 @@ export default function Navbar({ activeAba = '' }: NavbarProps) {
         @media (max-width: 768px) {
           .navbar-tabs { display: none; }
           .navbar-username { display: none; }
+          .dropdown-main-links { display: block; }
         }
       `}</style>
 
@@ -110,6 +112,14 @@ export default function Navbar({ activeAba = '' }: NavbarProps) {
             {menuAberto && (
               <div className="navbar-dropdown">
                 <div className="dropdown-email">{userEmail}</div>
+                <div className="dropdown-main-links">
+                  {tabs.map(tab => (
+                    <Link key={tab.href} href={tab.href} className="dropdown-link" onClick={() => setMenuAberto(false)}>
+                      {tab.label}
+                    </Link>
+                  ))}
+                  <div className="dropdown-divider" />
+                </div>
                 <Link href="/configuracoes" className="dropdown-link" onClick={() => setMenuAberto(false)}>
                   Configurações
                 </Link>

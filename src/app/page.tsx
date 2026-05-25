@@ -111,7 +111,7 @@ export default function ChatPrincipal() {
               { texto: 'Cadastrar produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
               { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
               { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
-              { texto: 'Ver meu plano', acao: 'redirect', destino: '/configuracoes' },
+              { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
             ],
           },
         }

@@ -54,6 +54,8 @@ function PainelContent() {
   const [geracoes, setGeracoes] = useState<GeracaoItem[]>([])
   const [carregando, setCarregando] = useState(true)
   const [deletandoId, setDeletandoId] = useState<string | null>(null)
+  const [baixandoCatalogoId, setBaixandoCatalogoId] = useState<string | null>(null)
+  const [erroDownloadCatalogoId, setErroDownloadCatalogoId] = useState<string | null>(null)
 
   const carregarDados = useCallback(() => {
     setCarregando(true)
@@ -74,12 +76,6 @@ function PainelContent() {
   useEffect(() => {
     setShowForm(aba === '' || aba === 'nova')
   }, [aba])
-
-  function handleNovaGeracao() {
-    setCatalogoInicial(undefined)
-    setCanaisParaRepetir(undefined)
-    setShowForm(true)
-  }
 
   function handleUsarCatalogo(cat: CatalogoItem) {
     setCatalogoInicial(cat)
@@ -110,7 +106,32 @@ function PainelContent() {
     if (res.ok) setCatalogos(prev => prev.filter(c => c.id !== id))
   }
 
-  const totalProdutosProcessados = geracoes.reduce((sum, g) => sum + g.total_produtos, 0)
+  async function handleDownloadCatalogo(cat: CatalogoItem) {
+    if (!cat.arquivo_path || baixandoCatalogoId) return
+    setBaixandoCatalogoId(cat.id)
+    setErroDownloadCatalogoId(null)
+    try {
+      const res = await fetch('/api/download-arquivo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: cat.arquivo_path }),
+      })
+      const data = await res.json() as { url?: string; error?: string }
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'Erro ao gerar download')
+
+      const nomeArquivo = cat.arquivo_path.split('/').pop() ?? `${cat.nome}.xlsx`
+      const a = document.createElement('a')
+      a.href = data.url
+      a.download = nomeArquivo
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch {
+      setErroDownloadCatalogoId(cat.id)
+    } finally {
+      setBaixandoCatalogoId(null)
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
@@ -146,9 +167,9 @@ function PainelContent() {
                   </div>
                   <p style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 6 }}>Nenhum catálogo ainda</p>
                   <p style={{ fontSize: 13, color: '#5f6368', marginBottom: 20, lineHeight: 1.6 }}>Faça sua primeira geração para salvar um catálogo e reutilizá-lo em outros canais.</p>
-                  <button onClick={() => handleNovaGeracao()} style={{ background: '#1a73e8', color: 'white', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                    Fazer primeira geração →
-                  </button>
+                  <Link href="/" style={{ display: 'inline-block', background: '#1a73e8', color: 'white', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textDecoration: 'none' }}>
+                    Cadastrar produtos no chat →
+                  </Link>
                 </div>
               ) : (
                 <div style={{
@@ -194,6 +215,28 @@ function PainelContent() {
 
                         {/* Ações */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {cat.arquivo_path && (
+                            <>
+                              <button
+                                onClick={() => handleDownloadCatalogo(cat)}
+                                disabled={baixandoCatalogoId === cat.id}
+                                style={{
+                                  width: '100%', padding: '9px 0', textAlign: 'center' as const,
+                                  borderRadius: 8, border: '1px solid #1a73e8',
+                                  background: '#1a73e8',
+                                  color: '#ffffff', fontSize: 13, fontWeight: 600,
+                                  cursor: baixandoCatalogoId === cat.id ? 'not-allowed' : 'pointer',
+                                }}
+                              >
+                                {baixandoCatalogoId === cat.id ? 'Preparando...' : 'Baixar planilha'}
+                              </button>
+                              {erroDownloadCatalogoId === cat.id && (
+                                <div style={{ fontSize: 11, color: '#ea4335', lineHeight: 1.4 }}>
+                                  Não consegui gerar o download. Tente novamente.
+                                </div>
+                              )}
+                            </>
+                          )}
                           <Link
                             href={`/adicionar-produtos?cat=${cat.id}`}
                             style={{
@@ -333,134 +376,18 @@ function PainelContent() {
           </div>
         )}
 
-        {/* ── Meu Plano ───────────────────────────────────────────────── */}
+        {/* ── Meu Plano legado ────────────────────────────────────────── */}
         {!showForm && aba === 'plano' && (
-          <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <SectionTitle>Meu Plano</SectionTitle>
-
-            {/* Section 1: Plano atual */}
-            <div style={{
-              background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const,
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: '#202124' }}>Starter</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#34a853', background: '#e6f4ea', borderRadius: 6, padding: '2px 8px' }}>
-                    Plano atual
-                  </span>
-                </div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: '#202124', lineHeight: 1.2 }}>
-                  R$29<span style={{ fontSize: 13, fontWeight: 400, color: '#9aa0a6' }}>/mês</span>
-                </div>
-                <div style={{ fontSize: 13, color: '#5f6368' }}>Para vendedores começando nos marketplaces</div>
-              </div>
-              <button style={{
-                border: '1px solid #1a73e8', color: '#1a73e8', background: '#ffffff',
-                borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 500, cursor: 'pointer',
-                whiteSpace: 'nowrap' as const,
-              }}>
-                Fazer upgrade →
-              </button>
-            </div>
-
-            {/* Section 2: Uso do mês */}
-            <div style={{ background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 16 }}>
-                Uso em {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 14 }}>
-                {[
-                  { label: 'Produtos gerados',      value: totalProdutosProcessados, limit: 100,  suffix: '/ 100'         },
-                  { label: 'Catálogos salvos',       value: catalogos.length,         limit: 5,    suffix: '/ 5'           },
-                  { label: 'Gerações realizadas',    value: geracoes.length,          limit: null, suffix: 'gerações'      },
-                ].map(({ label, value, limit, suffix }) => {
-                  const pct = limit ? Math.min((value / limit) * 100, 100) : 0
-                  const barColor = limit
-                    ? (value >= limit ? '#ea4335' : value / limit > 0.8 ? '#f9ab00' : '#1a73e8')
-                    : '#1a73e8'
-                  return (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 14, color: '#202124', minWidth: 180 }}>{label}</span>
-                      {limit !== null ? (
-                        <div style={{ flex: 1, height: 6, background: '#f1f3f4', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 3, transition: 'width 0.3s' }} />
-                        </div>
-                      ) : (
-                        <div style={{ flex: 1 }} />
-                      )}
-                      <span style={{ fontSize: 13, color: '#5f6368', minWidth: 80, textAlign: 'right' as const }}>
-                        {value} {suffix}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Section 3: Comparativo de planos */}
-            <div style={{ background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '20px 24px' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#202124', marginBottom: 16 }}>Planos disponíveis</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                {[
-                  {
-                    nome: 'Starter', preco: 'R$29', atual: true,
-                    features: ['100 produtos/mês', '2 canais simultâneos', '5 catálogos salvos', 'Chat de suporte', 'Correção automática'],
-                  },
-                  {
-                    nome: 'Profissional', preco: 'R$59', atual: false,
-                    features: ['500 produtos/mês', '4 canais simultâneos', '30 catálogos salvos', 'Chat de suporte', 'Correção automática'],
-                  },
-                  {
-                    nome: 'Agência', preco: 'R$127', atual: false,
-                    features: ['Produtos ilimitados', '6 canais (todos)', 'Catálogos ilimitados', 'Chat de suporte', 'Correção automática', '3 usuários'],
-                  },
-                ].map(plan => (
-                  <div
-                    key={plan.nome}
-                    style={{
-                      background: '#ffffff',
-                      border: plan.atual ? '2px solid #1a73e8' : '1px solid #e8eaed',
-                      borderRadius: 16, padding: 24,
-                      display: 'flex', flexDirection: 'column' as const, gap: 0,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontSize: 15, fontWeight: 600, color: '#202124' }}>{plan.nome}</span>
-                      {plan.atual && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#34a853', background: '#e6f4ea', borderRadius: 6, padding: '2px 8px' }}>
-                          Plano atual
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#202124', marginBottom: 2 }}>
-                      {plan.preco}<span style={{ fontSize: 13, fontWeight: 400, color: '#9aa0a6' }}>/mês</span>
-                    </div>
-                    <div style={{ borderTop: '1px solid #e8eaed', margin: '16px 0' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 0, marginBottom: 20, flex: 1 }}>
-                      {plan.features.map(f => (
-                        <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
-                          <span style={{ fontSize: 13, color: '#1a73e8', flexShrink: 0, marginTop: 1 }}>✓</span>
-                          <span style={{ fontSize: 13, color: '#5f6368' }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      disabled={plan.atual}
-                      style={{
-                        width: '100%', padding: '10px 0', borderRadius: 10, border: 'none',
-                        background: plan.atual ? '#f1f3f4' : '#1a73e8',
-                        color: plan.atual ? '#9aa0a6' : '#ffffff',
-                        fontSize: 14, fontWeight: 600,
-                        cursor: plan.atual ? 'default' : 'pointer',
-                      }}
-                    >
-                      {plan.atual ? 'Plano atual' : 'Fazer upgrade →'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
+            <section style={{ background: '#ffffff', border: '1px solid #e8eaed', borderRadius: 16, padding: '24px 28px' }}>
+              <SectionTitle>Meu Plano</SectionTitle>
+              <p style={{ fontSize: 14, color: '#5f6368', lineHeight: 1.6, margin: '0 0 18px' }}>
+                A gestão de plano agora fica em uma página dedicada, com os limites e opções de upgrade em um só lugar.
+              </p>
+              <Link href="/upgrade" style={{ display: 'inline-block', background: '#1a73e8', color: '#ffffff', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                Ver planos e upgrade →
+              </Link>
+            </section>
           </div>
         )}
       </main>

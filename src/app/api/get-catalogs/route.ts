@@ -23,7 +23,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('catalogos')
-      .select('id, nome, canal, criado_em, atualizado_em, regime_tributario, drive_url, produtos')
+      .select('id, nome, canal, criado_em, atualizado_em, regime_tributario, drive_url, arquivo_path, produtos')
       .eq('user_id', user.id)
       .order('atualizado_em', { ascending: false })
 

@@ -29,7 +29,7 @@
 | Tabela | Colunas principais |
 |---|---|
 | `profiles` | `id, regime_tributario, fotos_prontas, onboarding_completo, criado_em, plano, nome, margem_padrao, notif_email, notif_limite` |
-| `catalogos` | `id, user_id, nome, produtos (jsonb), drive_url, regime_tributario, canal, criado_em, atualizado_em` |
+| `catalogos` | `id, user_id, nome, produtos (jsonb), drive_url, regime_tributario, canal, arquivo_path, criado_em, atualizado_em` |
 | `sessoes_geracao` | `id, user_id, etapa, canais_chat, criado_em` (verificar colunas exatas no código) |
 | `produtos_cache` | cache de specs geradas pela IA (evita reprocessar produtos já conhecidos) |
 | `erros_aprendidos` | `canal, tipo_erro, causa, solucao, ocorrencias, exemplo_original, exemplo_corrigido` |
