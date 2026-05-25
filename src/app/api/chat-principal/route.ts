@@ -9,6 +9,7 @@ import {
 } from '@/lib/sessoes-geracao'
 import { detectarIntencaoCadastro } from '@/lib/detectar-intencao'
 import { TEMPLATE_XLSX_URL, TEMPLATE_CSV_URL } from '@/lib/templates'
+import { extrairUrlDrive, validarAcessoDrive, type ResultadoValidacaoDrive } from '@/lib/validador-drive'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -132,6 +133,50 @@ export async function POST(request: Request) {
       sessaoAtiva = { ...sessaoAtiva, etapa: 'aguardando_planilha' }
     }
 
+    // ── Detecta e valida link do Google Drive ────────────────────────────────
+    let urlDrive: string | null = null
+    let resultadoDrive: ResultadoValidacaoDrive | null = null
+
+    if (
+      sessaoAtiva &&
+      (sessaoAtiva.etapa === 'aguardando_drive' || sessaoAtiva.etapa === 'validando_drive')
+    ) {
+      urlDrive = extrairUrlDrive(mensagem)
+      console.log('[DRIVE] etapa:', sessaoAtiva.etapa, '| url detectada:', urlDrive ? 'sim' : 'não')
+
+      if (urlDrive) {
+        const { error: e1 } = await supabase
+          .from('sessoes_geracao')
+          .update({ etapa: 'validando_drive' })
+          .eq('id', sessaoAtiva.id)
+        if (e1) console.error('[DRIVE] erro ao marcar validando_drive:', e1)
+        sessaoAtiva = { ...sessaoAtiva, etapa: 'validando_drive' }
+
+        resultadoDrive = await validarAcessoDrive(urlDrive)
+        console.log('[DRIVE] resultado:', resultadoDrive.acessivel ? 'acessivel' : resultadoDrive.tipo_erro)
+
+        if (resultadoDrive.acessivel) {
+          const { error: e2 } = await supabase
+            .from('sessoes_geracao')
+            .update({
+              etapa: 'processando',
+              drive_url: urlDrive,
+              dados_planilha: { ...(sessaoAtiva.dados_planilha ?? {}), drive_validado: true },
+            })
+            .eq('id', sessaoAtiva.id)
+          if (e2) console.error('[DRIVE] erro ao marcar processando:', e2)
+          sessaoAtiva = { ...sessaoAtiva, etapa: 'processando', drive_url: urlDrive }
+        } else {
+          const { error: e3 } = await supabase
+            .from('sessoes_geracao')
+            .update({ etapa: 'aguardando_drive' })
+            .eq('id', sessaoAtiva.id)
+          if (e3) console.error('[DRIVE] erro ao reverter aguardando_drive:', e3)
+          sessaoAtiva = { ...sessaoAtiva, etapa: 'aguardando_drive' }
+        }
+      }
+    }
+
     // ── Detecta marcadores e constrói contexto ────────────────────────────────
     const infoPlanilha = parsearMarcadorPlanilha(mensagem)
     const infoValidacaoOk = parsearMarcadorValidacaoOk(mensagem)
@@ -146,6 +191,18 @@ export async function POST(request: Request) {
       contextoEtapa = `
 
 CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de forma acolhedora, pergunte qual é a dúvida especificamente, e ofereça botões rápidos com tópicos comuns como: 'Como funciona o Guiamos?', 'Quais marketplaces suportam?', 'Como funciona a precificação?', 'Sobre os planos'.`
+    } else if (urlDrive !== null && resultadoDrive !== null) {
+      if (resultadoDrive.acessivel) {
+        contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+O link do Google Drive foi validado com sucesso! URL recebida: ${urlDrive}. Etapa atual: processando. Confirme ao usuário de forma animada que o link é válido e as fotos foram localizadas. Diga que a geração dos catálogos foi iniciada e que em breve ele poderá baixar os arquivos prontos. Seja positivo e entusiasmado.`
+      } else {
+        contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link rejeitado, aguardando novo link). Informe ao usuário de forma empática que o link tem um problema. Explique exatamente: "${resultadoDrive.mensagem_erro}". Peça que corrija e envie o link novamente.`
+      }
     } else if (eBaixouTemplate) {
       contextoEtapa = `
 
@@ -203,6 +260,8 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     // ── Gerencia etapa e botões de download ───────────────────────────────────
     if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
       // Etapa já foi gerenciada pelo chat-upload / validar-planilha
+    } else if (urlDrive !== null) {
+      // Drive URL tratado acima — sem botões adicionais
     } else if (eBaixouTemplate) {
       const botaoUpload = { texto: '📎 Enviar planilha preenchida', acao: 'upload' }
       acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
