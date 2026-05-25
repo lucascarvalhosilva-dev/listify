@@ -114,7 +114,7 @@ function PainelContent() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
-      <Navbar />
+      <Navbar activeAba={aba} />
 
       <main style={{ flex: 1 }}>
         {/* ── Nova Geração: ProductForm ────────────────────────────────── */}

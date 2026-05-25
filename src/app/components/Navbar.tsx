@@ -5,7 +5,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Logo from './Logo'
 
-export default function Navbar() {
+type NavbarProps = {
+  activeAba?: string
+}
+
+export default function Navbar({ activeAba = '' }: NavbarProps) {
   const [userEmail, setUserEmail] = useState('')
   const [nomeExibicao, setNomeExibicao] = useState('')
   const [menuAberto, setMenuAberto] = useState(false)
@@ -38,9 +42,15 @@ export default function Navbar() {
 
   const tabs = [
     { label: 'Chat', href: '/' },
-    { label: 'Meus Catálogos', href: '/painel?aba=catalogos' },
-    { label: 'Meu Plano', href: '/painel?aba=plano' },
+    { label: 'Meus Catálogos', href: '/painel?aba=catalogos', aba: 'catalogos' },
+    { label: 'Meu Plano', href: '/painel?aba=plano', aba: 'plano' },
   ]
+
+  const isTabActive = (tab: (typeof tabs)[number]) => {
+    if (tab.href === '/') return pathname === '/'
+    if ('aba' in tab) return pathname === '/painel' && activeAba === tab.aba
+    return pathname === tab.href
+  }
 
   return (
     <>
@@ -80,7 +90,7 @@ export default function Navbar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`navbar-tab ${pathname === tab.href || (tab.href === '/painel' && pathname === '/painel' && !tab.href.includes('?')) ? 'active' : ''}`}
+                className={`navbar-tab ${isTabActive(tab) ? 'active' : ''}`}
               >
                 {tab.label}
               </Link>

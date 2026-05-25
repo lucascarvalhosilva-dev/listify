@@ -108,7 +108,7 @@ export default function ChatPrincipal() {
           isWelcome: true,
           acoes_rapidas: {
             botoes: [
-              { texto: 'Gerar novos produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
+              { texto: 'Cadastrar produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
               { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
               { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
               { texto: 'Ver meu plano', acao: 'redirect', destino: '/configuracoes' },
