@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 
-export const maxDuration = 10
+export const maxDuration = 60
 
 const EXTENSAO: Record<string, string> = {
   shopee: 'xlsx',
