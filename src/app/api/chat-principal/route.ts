@@ -204,22 +204,83 @@ export async function POST(request: Request) {
     const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
     const eCanaisEscolhidos = mensagem.startsWith('Canais escolhidos:')
 
+    console.log('[CHAT] msg:', mensagem.slice(0, 80))
+    console.log('[CHAT] etapa:', sessaoAtiva?.etapa ?? 'sem_sessao')
+    console.log('[CHAT] canaisAlvo:', JSON.stringify(sessaoAtiva?.canais_alvo ?? null))
+    console.log('[CHAT] eCanaisEscolhidos:', eCanaisEscolhidos, '| geracao_disparada:', (sessaoAtiva?.dados_planilha as Record<string,unknown>)?.geracao_disparada ?? null)
+
     if (eTirandoDuvida) {
       contextoEtapa = `
 
 CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de forma acolhedora, pergunte qual é a dúvida especificamente, e ofereça botões rápidos com tópicos comuns como: 'Como funciona o Guiamos?', 'Quais marketplaces suportam?', 'Como funciona a precificação?', 'Sobre os planos'.`
-    } else if (eCanaisEscolhidos && sessaoAtiva?.etapa === 'processando') {
+    } else if (eCanaisEscolhidos && sessaoAtiva?.etapa === 'processando' && (sessaoAtiva.canais_alvo ?? []).length > 0) {
       const lista = mensagem.replace('Canais escolhidos: ', '')
-      contextoEtapa = `
+      const dadosAtual = (sessaoAtiva.dados_planilha ?? {}) as Record<string, unknown>
+      console.log('[CHAT] branch eCanaisEscolhidos: geracao_disparada =', dadosAtual?.geracao_disparada ?? false)
+
+      if (dadosAtual?.geracao_disparada) {
+        if (dadosAtual?.geracao_concluida) {
+          contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário escolheu os seguintes canais para geração: ${lista}. Etapa: processando. Confirme a escolha de forma objetiva e mencione os canais escolhidos. Diga que agora vai iniciar a geração dos cadastros, mas avise honestamente que a geração automática completa pelo chat ainda está em desenvolvimento — próxima atualização (Bloco 3e.2). Por enquanto, oriente o usuário a acompanhar pela aba 'Meus Catálogos' no menu superior. NÃO ofereça botões que redirecionem automaticamente.`
+A geração já foi concluída com sucesso. Canais: ${lista}. Informe ao usuário de forma breve que os cadastros já foram gerados e estão disponíveis para download na aba 'Meus Catálogos'.`
+        } else if (dadosAtual?.geracao_erro) {
+          contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+A geração anterior terminou com erro. Canais solicitados: ${lista}. Peça desculpas ao usuário de forma empática e ofereça um botão 'Tentar de novo' com ação de mensagem.`
+        } else {
+          contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+A geração está em andamento para os canais: ${lista}. Informe o usuário que o processo está sendo concluído.`
+        }
+      } else {
+        const cookieHeader = request.headers.get('cookie') ?? ''
+        const gerarUrl = new URL('/api/gerar-do-chat', request.url).toString()
+        console.log('[CHAT] chamando gerar-do-chat:', gerarUrl, '| sessaoId:', sessaoAtiva.id)
+        let geracaoOk = false
+        let arquivosCount = 0
+        let alertasTxt = ''
+
+        try {
+          const gerarResp = await fetch(gerarUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+            body: JSON.stringify({ sessao_id: sessaoAtiva.id }),
+          })
+          console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
+          if (gerarResp.ok) {
+            const gerarData = await gerarResp.json() as { sucesso: boolean; canais_processados: number; arquivos_count: number; alertas: string[] }
+            geracaoOk = true
+            arquivosCount = gerarData.arquivos_count
+            alertasTxt = gerarData.alertas.length > 0 ? ` Alertas: ${gerarData.alertas.join('; ')}.` : ''
+          } else {
+            const errBody = await gerarResp.text()
+            console.error('[CHAT PRINCIPAL] gerar-do-chat erro:', gerarResp.status, errBody)
+          }
+        } catch (e) {
+          console.error('[CHAT PRINCIPAL] erro ao chamar gerar-do-chat:', e)
+        }
+
+        if (geracaoOk) {
+          contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+A geração foi concluída com sucesso. Canais: ${lista}. Arquivos gerados: ${arquivosCount}.${alertasTxt} Informe ao usuário de forma sucinta que os cadastros foram gerados e que os arquivos já estão disponíveis para download na aba 'Meus Catálogos'. Seja breve e objetivo.`
+        } else {
+          contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+Houve um erro na geração dos cadastros para os canais: ${lista}. Peça desculpas ao usuário de forma empática. Ofereça um botão 'Tentar de novo' com ação de mensagem.`
+        }
+      }
     } else if (urlDrive !== null && resultadoDrive !== null) {
       if (resultadoDrive.acessivel) {
         contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário enviou o link do Drive e ele parece estar acessível. Etapa atual: processando. Confirme o recebimento de forma objetiva — diga que o link foi registrado e que a próxima etapa é a geração dos cadastros para os marketplaces. Avise honestamente que a geração completa pelo chat ainda está em desenvolvimento. Por enquanto, oriente o usuário a usar a aba 'Meus Catálogos' para acompanhar quando estiver pronto, ou aguardar a próxima atualização. NÃO invente números de fotos. NÃO prometa validação de SKU. NÃO ofereça botões que redirecionem automaticamente.`
+O usuário enviou o link do Drive e ele está acessível. Etapa atual: processando. Confirme o recebimento de forma objetiva e diga que a próxima etapa é escolher os canais de venda. NÃO invente números de fotos. NÃO prometa validação de SKU. NÃO ofereça botões que redirecionem automaticamente.`
       } else {
         contextoEtapa = `
 
