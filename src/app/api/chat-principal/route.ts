@@ -314,6 +314,12 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
         })
 
         let geracaoOk = false
+        let geracaoData: {
+          mensagem_sucesso?: {
+            conteudo: string
+            acoes: { botoes: Array<Record<string, unknown>> }
+          } | null
+        } | null = null
         try {
           const gerarResp = await fetch(gerarUrl, {
             method: 'POST',
@@ -322,7 +328,9 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           })
           console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
           geracaoOk = gerarResp.ok
-          if (!geracaoOk) {
+          if (geracaoOk) {
+            geracaoData = await gerarResp.json().catch(() => null)
+          } else {
             const errBody = await gerarResp.text()
             console.error('[CHAT PRINCIPAL] gerar-do-chat erro:', gerarResp.status, errBody)
           }
@@ -331,6 +339,14 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
         }
 
         if (geracaoOk) {
+          if (geracaoData?.mensagem_sucesso) {
+            console.log('[CHAT] retornando mensagem_sucesso direta')
+            return Response.json({
+              resposta: geracaoData.mensagem_sucesso.conteudo,
+              acoes: geracaoData.mensagem_sucesso.acoes,
+            })
+          }
+
           // gerar-do-chat já inseriu a mensagem de sucesso com cards + botões de ajuda
           // Frontend vai recarregar o histórico pra exibir ambas as mensagens
           return Response.json({ resposta: procesandoTexto, acoes: null, recarregar_historico: true })

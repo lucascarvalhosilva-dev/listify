@@ -325,6 +325,37 @@ export async function POST(request: Request) {
       arquivos_count: arquivosGerados.length,
       alertas: alertasFinal,
       arquivos_baixaveis: arquivosBaixaveis,
+      mensagem_sucesso: arquivosGerados.length > 0 ? {
+        conteudo: [
+          `**Pronto!** Seus arquivos foram gerados com sucesso!`,
+          ``,
+          `Voce tem **${arquivosGerados.length} arquivo${arquivosGerados.length > 1 ? 's' : ''}** pronto${arquivosGerados.length > 1 ? 's' : ''} para baixar abaixo. Eles tambem foram salvos automaticamente em **Meus Catalogos** para voce acessar sempre que precisar.`,
+          ``,
+          `Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, e so clicar nos botoes abaixo!`,
+        ].join('\n'),
+        acoes: {
+          botoes: [
+            ...arquivosBaixaveis.map(a => ({
+              acao: 'card_download_arquivo',
+              path: a.path,
+              canal: a.canal,
+              nome_canal_label: a.nome_canal_label,
+              tamanho_bytes: a.tamanho_bytes,
+            })),
+            ...canaisAlvo.map(canalChat => {
+              const nomeLabel = CANAL_LABELS[normalizarCanalParaEngine(canalChat)] ?? canalChat
+              return {
+                acao: 'botao_ajuda_upload',
+                canal: canalChat,
+                nome_canal_label: nomeLabel,
+                texto: `Como subir no ${nomeLabel}?`,
+              }
+            }),
+            { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },
+            { acao: 'mensagem', texto: 'Tirar uma duvida', valor: 'Tenho uma duvida' },
+          ],
+        },
+      } : null,
       mensagem_sucesso_inserida: arquivosGerados.length > 0,
     })
   } catch (error) {
