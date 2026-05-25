@@ -308,7 +308,8 @@ export async function POST(request: Request) {
         { acao: 'mensagem', texto: 'Tirar uma dúvida', valor: 'Tenho uma dúvida' },
       ]
 
-      const { error: histErr } = await supabase.from('chat_historico').insert({
+      const supabaseService = createServiceClient()
+      const { error: histErr } = await supabaseService.from('chat_historico').insert({
         user_id: user.id,
         papel: 'assistant',
         conteudo: conteudoSucesso,
