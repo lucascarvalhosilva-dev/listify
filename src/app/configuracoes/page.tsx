@@ -133,7 +133,7 @@ export default function Configuracoes() {
       `}</style>
 
       <div className="cfg-wrap">
-        <Link href="/painel" className="cfg-back">← Voltar ao painel</Link>
+        <Link href="/" className="cfg-back">← Voltar ao chat</Link>
         <h1 className="cfg-title">Configurações</h1>
 
         {mensagem && (

@@ -38,7 +38,7 @@ const MENSAGEM_RETOMADA: Record<string, string> = {
   validando_planilha: 'Sua última planilha está em análise. Você pode reenviar o arquivo se preferir.',
   aguardando_drive: 'Você estava na etapa de envio do link do Google Drive com as fotos dos produtos. Pode me enviar agora?',
   validando_drive: 'Estava validando o link do Drive que você enviou. Pode reenviar o link se preferir.',
-  processando: 'Sua geração está em andamento. Acompanhe pelo painel ou aguarde a conclusão.',
+  processando: 'Sua geração está em andamento. Acompanhe aqui no chat ou aguarde a conclusão.',
 }
 
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {

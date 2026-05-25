@@ -110,7 +110,7 @@ function UpgradeContent() {
 
       <div className="upgrade-wrap">
         <div className="upgrade-header">
-          <Link href="/painel" className="upgrade-back">← Voltar ao painel</Link>
+          <Link href="/" className="upgrade-back">← Voltar ao chat</Link>
           <div className="upgrade-badge">Você está no plano Free</div>
           <h1 className="upgrade-title">Escolha seu plano</h1>
           <p className="upgrade-sub">Desbloqueie mais produtos, canais e funcionalidades para escalar suas vendas.</p>

@@ -35,7 +35,7 @@ Responda com texto natural e ao final adicione um bloco JSON entre <acoes> e </a
 <acoes>
 {
   "botoes": [
-    {"texto": "Gerar produtos", "acao": "redirect", "destino": "/painel"},
+    {"texto": "Gerar produtos", "acao": "redirect", "destino": "/"},
     {"texto": "Tirar dúvida", "acao": "mensagem", "valor": "Como faço uma boa foto de produto?"}
   ]
 }

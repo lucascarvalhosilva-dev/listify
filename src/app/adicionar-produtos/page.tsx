@@ -281,7 +281,7 @@ export default function AdicionarProdutosPage() {
     const params = new URLSearchParams(window.location.search)
     const cat = params.get('cat')
     if (!cat) {
-      router.push('/painel')
+      router.push('/painel?aba=catalogos')
       return
     }
     setCatIdParam(cat)
@@ -476,7 +476,7 @@ export default function AdicionarProdutosPage() {
                   }}>
                     <p style={{ fontSize: 13, color: '#fbbf24', margin: 0, lineHeight: 1.6 }}>
                       Para adicionar produtos, acesse <strong>Meus Catálogos</strong> e clique em <strong>✏️ Atualizar</strong> no catálogo que deseja expandir.{' '}
-                      <Link href="/painel" style={{ color: '#fbbf24', fontWeight: 600 }}>Ir aos catálogos →</Link>
+                      <Link href="/painel?aba=catalogos" style={{ color: '#fbbf24', fontWeight: 600 }}>Ir aos catálogos →</Link>
                     </p>
                   </div>
                 ) : !catalogoSelecionado ? (
@@ -486,7 +486,7 @@ export default function AdicionarProdutosPage() {
                   }}>
                     <p style={{ fontSize: 13, color: '#f87171', margin: 0, lineHeight: 1.6 }}>
                       Catálogo não encontrado.{' '}
-                      <Link href="/painel" style={{ color: '#f87171', fontWeight: 600 }}>Voltar aos catálogos →</Link>
+                      <Link href="/painel?aba=catalogos" style={{ color: '#f87171', fontWeight: 600 }}>Voltar aos catálogos →</Link>
                     </p>
                   </div>
                 ) : (

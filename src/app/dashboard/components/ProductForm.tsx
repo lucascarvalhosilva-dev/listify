@@ -536,7 +536,7 @@ function Step1({
             ))}
             {catalogos.length > 3 && (
               <a
-                href="/painel"
+                href="/painel?aba=catalogos"
                 style={{
                   fontSize: 12, color: 'var(--blue-glow)', textDecoration: 'none',
                   textAlign: 'center', display: 'block', padding: '6px 0',
