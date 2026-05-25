@@ -37,6 +37,13 @@ O usuário principal é vendedor de marketplace no Brasil. Priorize clareza, con
   - `/api/process-catalog`
 - O painel `/painel` ainda existe, mas é fluxo legado/apoio.
 
+## Design e experiência
+
+- Para qualquer mudança visual ou texto de interface, leia `docs/08-design-ui.md`.
+- Direção visual: operacional premium, claro, confiável e focado em ação.
+- Prefira metadados úteis, badges, status de arquivo e botões com hierarquia clara.
+- Use ícones lucide quando eles ajudarem a escanear ações, estados ou navegação.
+
 ## Validação
 
 - Sempre rode `npm.cmd exec tsc -- --noEmit` antes de finalizar alterações.
