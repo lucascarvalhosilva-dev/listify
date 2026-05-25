@@ -14,7 +14,7 @@ export type SessaoGeracao = {
   id: string
   user_id: string
   etapa: Etapa
-  canal_alvo: string | null
+  canais_alvo: string[]
   dados_planilha: Record<string, unknown>
   drive_url: string | null
   resultado_geracao_id: string | null

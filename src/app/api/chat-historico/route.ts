@@ -16,5 +16,11 @@ export async function GET() {
     buscarSessaoAtiva(user.id),
   ])
 
-  return Response.json({ historico: data || [], temSessaoAtiva: !!sessaoAtiva, etapaAtiva: sessaoAtiva?.etapa ?? null })
+  return Response.json({
+    historico: data || [],
+    temSessaoAtiva: !!sessaoAtiva,
+    etapaAtiva: sessaoAtiva?.etapa ?? null,
+    sessaoId: sessaoAtiva?.id ?? null,
+    canaisAlvo: sessaoAtiva?.canais_alvo ?? [],
+  })
 }

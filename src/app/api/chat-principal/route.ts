@@ -177,6 +177,22 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── Seleção de canais: short-circuit quando processando sem canais ────────
+    if (sessaoAtiva?.etapa === 'processando') {
+      const canaisAlvo: string[] = sessaoAtiva.canais_alvo ?? []
+      if (canaisAlvo.length === 0) {
+        const resposta = 'Ótimo! Agora vou preparar os cadastros. Para quais marketplaces você quer gerar? Selecione um ou mais nos botões abaixo. Você pode escolher quantos quiser — vou criar arquivos otimizados para cada um.'
+        const acoes = { botoes: [{ texto: 'Selecionar canais', acao: 'selector_canais', sessao_id: sessaoAtiva.id }] }
+        await supabase.from('chat_historico').insert({
+          user_id: user.id,
+          papel: 'assistant',
+          conteudo: resposta,
+          acoes_rapidas: acoes,
+        })
+        return Response.json({ resposta, acoes })
+      }
+    }
+
     // ── Detecta marcadores e constrói contexto ────────────────────────────────
     const infoPlanilha = parsearMarcadorPlanilha(mensagem)
     const infoValidacaoOk = parsearMarcadorValidacaoOk(mensagem)
@@ -186,11 +202,18 @@ export async function POST(request: Request) {
 
     const eTirandoDuvida = mensagem === 'Tenho uma dúvida'
     const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
+    const eCanaisEscolhidos = mensagem.startsWith('Canais escolhidos:')
 
     if (eTirandoDuvida) {
       contextoEtapa = `
 
 CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de forma acolhedora, pergunte qual é a dúvida especificamente, e ofereça botões rápidos com tópicos comuns como: 'Como funciona o Guiamos?', 'Quais marketplaces suportam?', 'Como funciona a precificação?', 'Sobre os planos'.`
+    } else if (eCanaisEscolhidos && sessaoAtiva?.etapa === 'processando') {
+      const lista = mensagem.replace('Canais escolhidos: ', '')
+      contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+O usuário escolheu os seguintes canais para geração: ${lista}. Etapa: processando. Confirme a escolha de forma objetiva e mencione os canais escolhidos. Diga que agora vai iniciar a geração dos cadastros, mas avise honestamente que a geração automática completa pelo chat ainda está em desenvolvimento — próxima atualização (Bloco 3e.2). Por enquanto, oriente o usuário a acompanhar pela aba 'Meus Catálogos' no menu superior. NÃO ofereça botões que redirecionem automaticamente.`
     } else if (urlDrive !== null && resultadoDrive !== null) {
       if (resultadoDrive.acessivel) {
         contextoEtapa = `

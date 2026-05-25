@@ -4,10 +4,20 @@ import { useRouter } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
+import SeletorCanais from '@/components/SeletorCanais'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
 
-type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload'; destino?: string; valor?: string; url?: string }
+const CANAL_LABELS: Record<string, string> = {
+  shopee: 'Shopee',
+  mercado_livre: 'Mercado Livre',
+  amazon: 'Amazon',
+  magalu: 'Magalu',
+  tiktok_shop: 'TikTok Shop',
+  bling: 'Bling',
+}
+
+type Botao = { texto: string; acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais'; destino?: string; valor?: string; url?: string; sessao_id?: string }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 
 const MENSAGEM_RETOMADA: Record<string, string> = {
@@ -40,6 +50,8 @@ export default function ChatPrincipal() {
   const [urlsClicadas, setUrlsClicadas] = useState<Set<string>>(new Set())
   const [botoesIniciaisAtivos, setBotoesIniciaisAtivos] = useState(false)
   const [clicadosInicial, setClicadosInicial] = useState<Set<number>>(new Set())
+  const [sessaoId, setSessaoId] = useState<string | null>(null)
+  const [canaisAlvo, setCanaisAlvo] = useState<string[]>([])
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -56,7 +68,9 @@ export default function ChatPrincipal() {
       setNome(nomeUser)
 
       const histRes = await fetch('/api/chat-historico')
-      const { historico, temSessaoAtiva, etapaAtiva } = await histRes.json()
+      const { historico, temSessaoAtiva, etapaAtiva, sessaoId: sid, canaisAlvo: ca } = await histRes.json()
+      if (sid) setSessaoId(sid)
+      if (ca?.length > 0) setCanaisAlvo(ca)
 
       if (historico && historico.length > 0) {
         setMensagens(historico)
@@ -318,47 +332,64 @@ export default function ChatPrincipal() {
                   <div>
                     <div className="bubble"><ReactMarkdown>{m.conteudo}</ReactMarkdown></div>
                     {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
-                      <div className="quick-actions">
-                        {m.acoes_rapidas.botoes.map((b, j) => {
-                          if (m.isWelcome) {
-                            const clicado = clicadosInicial.has(j)
+                      m.acoes_rapidas.botoes.some(b => b.acao === 'selector_canais') ? (
+                        m.acoes_rapidas.botoes
+                          .filter(b => b.acao === 'selector_canais')
+                          .map((b, j) => (
+                            <SeletorCanais
+                              key={j}
+                              sessaoId={b.sessao_id ?? sessaoId ?? ''}
+                              onConfirmar={(canais) => {
+                                setCanaisAlvo(canais)
+                                const labels = canais.map(c => CANAL_LABELS[c] ?? c).join(', ')
+                                enviar(`Canais escolhidos: ${labels}`)
+                              }}
+                              valorInicial={canaisAlvo}
+                            />
+                          ))
+                      ) : (
+                        <div className="quick-actions">
+                          {m.acoes_rapidas.botoes.map((b, j) => {
+                            if (m.isWelcome) {
+                              const clicado = clicadosInicial.has(j)
+                              return (
+                                <button
+                                  key={j}
+                                  className={clicado ? 'quick-btn-download-usado' : 'quick-btn'}
+                                  onClick={() => clicarBotao(b, j)}
+                                >
+                                  {clicado ? `✓ ${b.texto}` : b.texto}
+                                </button>
+                              )
+                            }
+                            if (b.acao === 'upload') {
+                              return (
+                                <button key={j} className="quick-btn-upload" onClick={() => clicarBotao(b)}>
+                                  {b.texto}
+                                </button>
+                              )
+                            }
+                            if (b.acao === 'download') {
+                              const usado = !!b.url && urlsClicadas.has(b.url)
+                              return (
+                                <button
+                                  key={j}
+                                  className={usado ? 'quick-btn-download-usado' : 'quick-btn-download'}
+                                  onClick={() => clicarBotao(b)}
+                                  disabled={usado}
+                                >
+                                  {usado ? `✓ ${b.texto}` : `↓ ${b.texto}`}
+                                </button>
+                              )
+                            }
                             return (
-                              <button
-                                key={j}
-                                className={clicado ? 'quick-btn-download-usado' : 'quick-btn'}
-                                onClick={() => clicarBotao(b, j)}
-                              >
-                                {clicado ? `✓ ${b.texto}` : b.texto}
-                              </button>
-                            )
-                          }
-                          if (b.acao === 'upload') {
-                            return (
-                              <button key={j} className="quick-btn-upload" onClick={() => clicarBotao(b)}>
+                              <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                 {b.texto}
                               </button>
                             )
-                          }
-                          if (b.acao === 'download') {
-                            const usado = !!b.url && urlsClicadas.has(b.url)
-                            return (
-                              <button
-                                key={j}
-                                className={usado ? 'quick-btn-download-usado' : 'quick-btn-download'}
-                                onClick={() => clicarBotao(b)}
-                                disabled={usado}
-                              >
-                                {usado ? `✓ ${b.texto}` : `↓ ${b.texto}`}
-                              </button>
-                            )
-                          }
-                          return (
-                            <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
-                              {b.texto}
-                            </button>
-                          )
-                        })}
-                      </div>
+                          })}
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
