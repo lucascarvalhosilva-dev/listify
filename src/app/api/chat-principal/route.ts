@@ -69,6 +69,64 @@ Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planil
 
 const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
 
+const INSTRUCOES_UPLOAD: Record<string, string> = {
+  'Shopee': `O usuário pediu ajuda pra subir o arquivo no Shopee. Explique passo a passo, com clareza e formatação Markdown:
+1. **Pré-requisito:** Configurações → Envio → Canal Logístico → Correios ATIVO (toggle verde)
+2. **Acessar:** Central do Vendedor → Produto → Upload em massa → aba **ENVIO** (não 'Baixar')
+3. Selecione o arquivo **.xlsx** baixado da Guiamos (NÃO usar o template original da Shopee)
+4. Aguardar processamento — checar 'Registros' até aparecer 'Sucesso X/X'
+5. Se houver erros: baixar o resultado e enviar pra Guiamos (mencione brevemente o ciclo de correção automática)
+6. Quando tudo OK: Produto → Rascunho (X) → Selecionar todos → Ações em Massa → Publicar
+7. Opcional: Ferramentas de Produto → Editar Características → preencher atributos
+Termine perguntando se ficou alguma dúvida específica. Não invente passos.`,
+
+  'Mercado Livre': `O usuário pediu ajuda pra subir o arquivo no Mercado Livre. Explique passo a passo:
+1. **Pré-requisito:** conta ML **EMPRESARIAL** (CNPJ) com Mercado Envios habilitado
+2. **Acessar:** ML → Vender → Produtos → Anunciador em Massa → Carregar planilha
+3. Selecione o **.xlsx** baixado da Guiamos (NÃO editar o arquivo antes)
+4. Aguardar processamento (1-5 min) — ML envia e-mail quando concluído
+5. Baixar arquivo de resultado — se houver erros, enviar pra Guiamos pra correção automática
+6. Meus Anúncios → adicionar fotos em cada produto (ML não confia em URLs do Drive, fotos manualmente pelo editor — ~2 min por produto)
+Termine perguntando se ficou alguma dúvida.`,
+
+  'Amazon': `O usuário pediu ajuda pra subir o arquivo na Amazon. Explique passo a passo:
+1. **Pré-requisito:** verificar se o produto já existe no catálogo Amazon (busca por EAN). Se sim: vincular ao listing existente, não criar novo.
+2. Se não tem EAN: solicitar isenção de GTIN em sellercentral.amazon.com.br (24-48h)
+3. **Acessar:** Seller Central → Catálogo → Adicionar Produtos (ou upload em massa via template Amazon)
+4. Preencher Informações Vitais (EAN, título, marca, categoria)
+5. Completar abas: Variações, Oferta, Imagens (upload direto, mín. 1000x1000px), Descrição
+6. Salvar e finalizar — aguardar aprovação (~15 min a 24h)
+Termine perguntando se ficou alguma dúvida.`,
+
+  'Magalu': `O usuário pediu ajuda pra subir o arquivo no Magalu. Explique passo a passo:
+1. **Pré-requisito:** CNPJ ativo há +3 meses + emissão de NF-e ativa
+2. Acessar o painel **IntegraCommerce** (fornecido pelo Magalu)
+3. Cadastrar produtos com o CSV/planilha baixado da Guiamos
+4. Atenção: apenas cores simples (azul, preto, verde...) — evitar 'azul marinho', 'verde-água'
+5. Aguardar análise do catálogo (~24-48h)
+6. Após aprovação, adicionar fotos (mín. 2, 900x900px, fundo branco, máx. 2MB)
+Termine perguntando se ficou alguma dúvida.`,
+
+  'TikTok Shop': `O usuário pediu ajuda pra subir o arquivo no TikTok Shop. Explique passo a passo:
+1. **Acessar:** seller.tiktok.com → Produtos → Importar produtos em massa (menu lateral esquerdo)
+2. Selecionar o **CSV** gerado pela Guiamos (marcas e dimensões já validadas/ajustadas)
+3. Aguardar processamento (~10 min) — TikTok notifica quando concluído
+4. Para cada produto: adicionar fotos manualmente + vídeo (vídeo curto 15-30s dá boost significativo do algoritmo)
+5. Ativar produtos: Meus Produtos → Inativo → Ativar
+Termine perguntando se ficou alguma dúvida.`,
+
+  'Bling': `O usuário pediu ajuda pra subir o arquivo no Bling. Explique passo a passo:
+1. Bling → Produtos → Importar Produtos → Selecionar arquivo
+2. Selecionar o **CSV** gerado pela Guiamos (campos pré-mapeados — Bling reconhece automaticamente)
+3. Confirmar importação
+4. Produtos aparecem com dimensões, fotos e categorias preenchidas — prontos pra emissão de NF-e e controle de estoque
+
+Em seção separada ao final:
+💡 **Avançado (opcional):** Se você quiser que o Bling sincronize estoque automaticamente com ML/Shopee, ative as integrações em Bling → Configurações → Integrações. Importante: ao ativar a integração com ML, habilite também a opção 'Atualizar dimensões ao exportar produto' — sem isso, o ML pode mostrar prazos de entrega errados nos seus anúncios.
+
+Termine perguntando se ficou alguma dúvida.`,
+}
+
 // ── Parsers de marcadores internos ────────────────────────────────────────────
 
 function parsearMarcadorPlanilha(c: string): { nome: string; tamanho: number } | null {
@@ -205,6 +263,7 @@ export async function POST(request: Request) {
     const eTirandoDuvida = mensagem === 'Tenho uma dúvida'
     const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
     const eCanaisEscolhidos = mensagem.startsWith('Canais escolhidos:')
+    const eAjudaUpload = mensagem.startsWith('Como subir no ')
 
     console.log('[CHAT] msg:', mensagem.slice(0, 80))
     console.log('[CHAT] etapa:', sessaoAtiva?.etapa ?? 'sem_sessao')
@@ -244,10 +303,17 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
         const cookieHeader = request.headers.get('cookie') ?? ''
         const gerarUrl = new URL('/api/gerar-do-chat', request.url).toString()
         console.log('[CHAT] chamando gerar-do-chat:', gerarUrl, '| sessaoId:', sessaoAtiva.id)
-        let geracaoOk = false
-        let arquivosCount = 0
-        let alertasTxt = ''
 
+        // Salva mensagem "processando" ANTES de disparar — garante ordem no histórico
+        const procesandoTexto = `Perfeito! Estou gerando os cadastros para ${lista}. Isso pode levar alguns instantes... ⏳`
+        await supabase.from('chat_historico').insert({
+          user_id: user.id,
+          papel: 'assistant',
+          conteudo: procesandoTexto,
+          acoes_rapidas: null,
+        })
+
+        let geracaoOk = false
         try {
           const gerarResp = await fetch(gerarUrl, {
             method: 'POST',
@@ -255,13 +321,8 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
             body: JSON.stringify({ sessao_id: sessaoAtiva.id }),
           })
           console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
-          if (gerarResp.ok) {
-            const gerarData = await gerarResp.json() as { sucesso: boolean; canais_processados: number; arquivos_count: number; alertas: string[]; arquivos_baixaveis?: ArquivoBaixavel[] }
-            geracaoOk = true
-            arquivosCount = gerarData.arquivos_count
-            alertasTxt = gerarData.alertas.length > 0 ? ` Alertas: ${gerarData.alertas.join('; ')}.` : ''
-            arquivosBaixaveis = gerarData.arquivos_baixaveis ?? []
-          } else {
+          geracaoOk = gerarResp.ok
+          if (!geracaoOk) {
             const errBody = await gerarResp.text()
             console.error('[CHAT PRINCIPAL] gerar-do-chat erro:', gerarResp.status, errBody)
           }
@@ -270,22 +331,24 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
         }
 
         if (geracaoOk) {
-          contextoEtapa = `
+          // gerar-do-chat já inseriu a mensagem de sucesso com cards + botões de ajuda
+          // Frontend vai recarregar o histórico pra exibir ambas as mensagens
+          return Response.json({ resposta: procesandoTexto, acoes: null, recarregar_historico: true })
+        }
 
-CONTEXTO DO FLUXO GUIADO:
-A geração foi concluída com sucesso. Canais: ${lista}. Arquivos gerados: ${arquivosCount}.${alertasTxt}
-Os cards de download aparecem automaticamente abaixo desta mensagem (adicionados pelo sistema — NÃO os inclua no JSON de acoes e NÃO liste os arquivos).
-Celebre o sucesso em 1-2 frases curtas. Mencione brevemente:
-- Os arquivos estão prontos nos cards abaixo
-- Foram salvos automaticamente em Meus Catálogos (acesso permanente)
-- Os links dos cards expiram em 1h, mas o catálogo fica salvo para sempre
-Ofereça 2-3 opções de próximo passo como 'Cadastrar mais produtos', 'Ver Meus Catálogos', 'Tirar uma dúvida'. NÃO redirecione automaticamente.`
-        } else {
-          contextoEtapa = `
+        // Falha: cai no fluxo normal do Anthropic com contexto de erro
+        contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
 Houve um erro na geração dos cadastros para os canais: ${lista}. Peça desculpas ao usuário de forma empática. Ofereça um botão 'Tentar de novo' com ação de mensagem.`
-        }
+      }
+    } else if (eAjudaUpload) {
+      const nomeCanal = mensagem.replace('Como subir no ', '').replace(/\?$/, '').trim()
+      const instrucoes = INSTRUCOES_UPLOAD[nomeCanal]
+      if (instrucoes) {
+        contextoEtapa = `\n\n${instrucoes}`
+      } else {
+        contextoEtapa = `\n\nO usuário pediu ajuda pra subir produtos no marketplace "${nomeCanal}". Explique de forma clara e estruturada o que você sabe sobre cadastrar produtos em massa nessa plataforma. Se não tiver informação específica suficiente, oriente o usuário a consultar a central de ajuda do marketplace.`
       }
     } else if (urlDrive !== null && resultadoDrive !== null) {
       if (resultadoDrive.acessivel) {
@@ -354,7 +417,16 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     }
 
     // ── Gerencia etapa e botões de download ───────────────────────────────────
-    if (arquivosBaixaveis.length > 0) {
+    if (eAjudaUpload) {
+      const aiAcoes = acoes?.botoes ?? []
+      acoes = {
+        botoes: [
+          ...aiAcoes,
+          { acao: 'mensagem', texto: 'Tirar outra dúvida', valor: 'Tenho uma dúvida' },
+          { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },
+        ],
+      }
+    } else if (arquivosBaixaveis.length > 0) {
       const cardBotoes = arquivosBaixaveis.map(a => ({
         acao: 'card_download_arquivo',
         path: a.path,

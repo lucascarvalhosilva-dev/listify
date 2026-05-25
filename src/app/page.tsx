@@ -20,7 +20,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -234,11 +234,21 @@ export default function ChatPrincipal() {
       })
       const data = await res.json()
 
-      setMensagens(prev => [...prev, {
-        papel: 'assistant',
-        conteudo: data.resposta,
-        acoes_rapidas: data.acoes,
-      }])
+      if (data.recarregar_historico) {
+        // Geração concluída: gerar-do-chat já inseriu a mensagem de sucesso no histórico.
+        // Recarregar para exibir "processando" + "🎉 Pronto!" como mensagens separadas.
+        const histRes = await fetch('/api/chat-historico')
+        const { historico: novoHistorico } = await histRes.json()
+        if (novoHistorico?.length > 0) {
+          setMensagens(novoHistorico)
+        }
+      } else {
+        setMensagens(prev => [...prev, {
+          papel: 'assistant',
+          conteudo: data.resposta,
+          acoes_rapidas: data.acoes,
+        }])
+      }
       setPrimeiraMensagem(false)
     } catch {
       setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Tive um problema para responder. Tenta novamente?' }])
@@ -266,6 +276,8 @@ export default function ChatPrincipal() {
     } else if (botao.acao === 'upload') {
       setErroUpload('')
       fileInputRef.current?.click()
+    } else if (botao.acao === 'botao_ajuda_upload' && botao.nome_canal_label) {
+      enviar(`Como subir no ${botao.nome_canal_label}?`)
     }
   }
 
@@ -367,7 +379,9 @@ export default function ChatPrincipal() {
                                 .filter(b => b.acao !== 'card_download_arquivo')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
-                                    {b.texto}
+                                    {b.acao === 'botao_ajuda_upload'
+                                      ? (b.texto ?? `📚 Como subir no ${b.nome_canal_label}?`)
+                                      : b.texto}
                                   </button>
                                 ))
                               }

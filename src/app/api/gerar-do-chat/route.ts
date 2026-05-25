@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
+import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 
 export const maxDuration = 60
 
@@ -276,12 +276,55 @@ export async function POST(request: Request) {
       catalogo_id: a.catalogo_id ?? null,
     }))
 
+    // ── Inserir mensagem de sucesso no histórico do chat ──────────────────────
+    if (arquivosGerados.length > 0) {
+      const n = arquivosGerados.length
+      const conteudoSucesso = [
+        `🎉 **Pronto!** Seus arquivos foram gerados com sucesso!`,
+        ``,
+        `Você tem **${n} arquivo${n > 1 ? 's' : ''}** pronto${n > 1 ? 's' : ''} para baixar abaixo. Eles também foram salvos automaticamente em **Meus Catálogos** para você acessar sempre que precisar.`,
+        ``,
+        `👇 Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, é só clicar nos botões abaixo!`,
+      ].join('\n')
+
+      const botoesSucesso = [
+        ...arquivosGerados.map(a => ({
+          acao: 'card_download_arquivo',
+          path: a.path,
+          canal: a.canal,
+          nome_canal_label: CANAL_LABELS[a.canal] ?? a.canal,
+          tamanho_bytes: a.tamanho_bytes,
+        })),
+        ...canaisAlvo.map(canalChat => {
+          const nomeLabel = CANAL_LABELS[normalizarCanalParaEngine(canalChat)] ?? canalChat
+          return {
+            acao: 'botao_ajuda_upload',
+            canal: canalChat,
+            nome_canal_label: nomeLabel,
+            texto: `📚 Como subir no ${nomeLabel}?`,
+          }
+        }),
+        { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },
+        { acao: 'mensagem', texto: 'Tirar uma dúvida', valor: 'Tenho uma dúvida' },
+      ]
+
+      const { error: histErr } = await supabase.from('chat_historico').insert({
+        user_id: user.id,
+        papel: 'assistant',
+        conteudo: conteudoSucesso,
+        acoes_rapidas: { botoes: botoesSucesso },
+      })
+      if (histErr) console.error('[GERAR-DO-CHAT] erro ao inserir mensagem de sucesso:', histErr)
+      else console.log('[GERAR-DO-CHAT] mensagem de sucesso inserida no histórico')
+    }
+
     return Response.json({
       sucesso: true,
       canais_processados: processData.produtos_processados,
       arquivos_count: arquivosGerados.length,
       alertas: alertasFinal,
       arquivos_baixaveis: arquivosBaixaveis,
+      mensagem_sucesso_inserida: arquivosGerados.length > 0,
     })
   } catch (error) {
     console.error('[GERAR-DO-CHAT] erro:', error)
