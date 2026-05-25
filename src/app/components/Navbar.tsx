@@ -37,7 +37,7 @@ export default function Navbar() {
   const inicial = displayName ? displayName[0].toUpperCase() : '?'
 
   const tabs = [
-    { label: 'Nova Geração', href: '/painel' },
+    { label: 'Chat', href: '/' },
     { label: 'Meus Catálogos', href: '/painel?aba=catalogos' },
     { label: 'Histórico', href: '/painel?aba=historico' },
     { label: 'Meu Plano', href: '/painel?aba=plano' },
