@@ -11,13 +11,15 @@ export async function GET() {
       .from('chat_historico')
       .select('papel, conteudo, acoes_rapidas, criado_em')
       .eq('user_id', user.id)
-      .order('criado_em', { ascending: true })
+      .order('criado_em', { ascending: false })
       .limit(50),
     buscarSessaoAtiva(user.id),
   ])
 
+  const historico = (data || []).reverse()
+
   return Response.json({
-    historico: data || [],
+    historico,
     temSessaoAtiva: !!sessaoAtiva,
     etapaAtiva: sessaoAtiva?.etapa ?? null,
     sessaoId: sessaoAtiva?.id ?? null,
