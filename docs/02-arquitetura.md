@@ -4,12 +4,12 @@
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | Next.js 14 + TypeScript + Tailwind CSS |
+| Frontend | Next.js 16 + TypeScript + CSS inline (style={{}}) |
 | UI components | shadcn/ui em `src/components/ui/` (button, input, label, card, badge, separator, sheet, tabs, avatar) |
 | Banco de dados | Supabase (PostgreSQL) |
 | Auth | Supabase Auth |
-| Deploy | Vercel (plano Hobby) + GitHub (deploy automático no push pra `main`) |
-| IA | Anthropic API — modelo `claude-sonnet-4-20250514` |
+| Deploy | Vercel (plano Pro) + GitHub (deploy automático no push pra `main`) |
+| IA | Anthropic API — modelo `claude-sonnet-4-5` |
 | Email transacional | Resend com domínio `guiamos.com.br` (`noreply@guiamos.com.br`) |
 | DNS | Cloudflare (domínio `guiamos.com.br`) |
 
@@ -30,7 +30,7 @@
 |---|---|
 | `profiles` | `id, regime_tributario, fotos_prontas, onboarding_completo, criado_em, plano, nome, margem_padrao, notif_email, notif_limite` |
 | `catalogos` | `id, user_id, nome, produtos (jsonb), drive_url, regime_tributario, canal, criado_em, atualizado_em` |
-| `geracoes` | `id, user_id, canais (text[]), total_produtos, criado_em` |
+| `sessoes_geracao` | `id, user_id, etapa, canais_chat, criado_em` (verificar colunas exatas no código) |
 | `produtos_cache` | cache de specs geradas pela IA (evita reprocessar produtos já conhecidos) |
 | `erros_aprendidos` | `canal, tipo_erro, causa, solucao, ocorrencias, exemplo_original, exemplo_corrigido` |
 | `chat_historico` | `id, user_id, papel, conteudo, acoes_rapidas (jsonb), criado_em` |
@@ -39,7 +39,7 @@
 
 | Rota | Arquivo | O que é |
 |---|---|---|
-| `/` | `src/app/page.tsx` | Landing page (tema claro, marca Guiamos) |
+| `/` | `src/app/page.tsx` | Interface principal — chat em tela cheia (ChatPrincipal) |
 | `/login` | `src/app/login/page.tsx` | Login |
 | `/cadastro` | `src/app/cadastro/page.tsx` | Cadastro (inclui regime tributário) |
 | `/onboarding` | `src/app/onboarding/page.tsx` | 5 telas apresentando o chat como ferramenta principal |
@@ -56,13 +56,10 @@
 |---|---|
 | `/api/chat-principal` | Conversa do chat principal (claude-sonnet-4) com detecção de intenção |
 | `/api/process-catalog` | Processa planilha em batches de 5 produtos via Claude API |
-| `/api/generate-files` | Gera arquivos finais por canal (xlsx/csv) |
-| `/api/save-catalog` | Salva catálogo no Supabase |
 | `/api/get-catalogs` | Lista catálogos do usuário (atenção: inclui coluna `canal` na SELECT) |
 | `/api/delete-catalog/[id]` | Deleta catálogo |
 | `/api/get-history` | Histórico de gerações |
-| `/api/fix-errors` | Ciclo de correção automática (recebe arquivo de erro do canal, gera versão corrigida) |
-| `/api/check-drive` | Valida acesso a pasta do Google Drive |
+| `/api/validar-drive` | Valida acesso a pasta do Google Drive |
 | `/api/help-chat` | Chat de suporte (HelpChat) — painel lateral deslizante |
 
 ## Variáveis de ambiente (Vercel)

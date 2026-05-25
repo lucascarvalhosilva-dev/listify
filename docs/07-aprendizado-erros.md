@@ -29,6 +29,9 @@ Erros documentados na doc original e implementados como regras determinísticas 
 Ver arquivos individuais por canal em `canais/<nome>.md`.
 
 ### Camada 2 — Aprendizado por classificação (LLM)
+
+⚠️ STATUS: planejada, não implementada ainda. /api/fix-errors não existe no código.
+
 Quando upload retorna erro novo (não coberto pela camada 1), o sistema:
 1. Lê o arquivo de erro retornado pelo canal
 2. Envia pra Claude API com contexto do produto original
@@ -37,6 +40,9 @@ Quando upload retorna erro novo (não coberto pela camada 1), o sistema:
 5. Se funcionar, salva em `erros_aprendidos` pra uso futuro
 
 ### Camada 3 — Detecção de padrões recorrentes
+
+⚠️ STATUS: planejada, não implementada ainda.
+
 Quando um erro aparece N vezes (atualmente threshold de 3), o sistema:
 1. Promove o aprendizado da camada 2 pra regra determinística da camada 1
 2. Notifica o mantenedor (no dashboard interno) que uma nova regra foi candidatada
@@ -44,7 +50,7 @@ Quando um erro aparece N vezes (atualmente threshold de 3), o sistema:
 
 ## API de correção
 
-Endpoint: `/api/fix-errors`
+Endpoint planejado — ainda não implementado. O fluxo descrito abaixo é o comportamento alvo.
 
 Fluxo do usuário:
 1. Usuário faz upload no canal (Shopee, ML, etc.)

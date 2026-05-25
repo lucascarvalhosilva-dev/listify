@@ -9,9 +9,9 @@
 
 ## Fluxo de onboarding (5 telas)
 
-Apresenta o chat como ferramenta principal. Ao terminar, marca `onboarding_completo=true` na tabela `profiles` e redireciona pra `/chat`.
+Apresenta o chat como ferramenta principal. Ao terminar, marca `onboarding_completo=true` na tabela `profiles` e redireciona pra `/`.
 
-## Interface principal: o chat (`/chat`)
+## Interface principal: o chat (`/`)
 
 A interface principal do Guiamos é um **chat em tela cheia**. Substituiu a navegação por abas/painel como ponto de entrada.
 
@@ -20,7 +20,7 @@ Características:
 - **Botões rápidos clicáveis**: respostas frequentes viram botões pra acelerar o fluxo
 - **Histórico persistente**: salvo na tabela `chat_historico`
 - **Detecta intenção**: redireciona pra `/painel`, `/upgrade`, `/configuracoes`, etc. quando faz sentido
-- **API**: `/api/chat-principal` (modelo `claude-sonnet-4-20250514`)
+- **API**: `/api/chat-principal` (modelo `claude-sonnet-4-5`)
 
 > O painel antigo em `/painel` continua acessível e funcional (4 abas: Nova Geração, Catálogos, Histórico, Plano), mas está oculto do menu principal.
 
@@ -31,11 +31,11 @@ Características:
 3. Upload de planilha `.xlsx` com produtos
 4. Seleção de canal(is) — limitada pelo plano do usuário (ver `04-precificacao.md`)
 5. **Processamento em batches de 5 produtos** via Claude API (`/api/process-catalog`)
-   - Tela de loading com progresso real
-6. **Revisão de preços** (Etapa 1) — usuário confirma ou edita valores calculados
-7. **Revisão de dimensões** (Etapa 2) — campos inferidos exibidos para edição opcional
-8. **Geração de arquivos** + download (`/api/generate-files`)
-9. **Ciclo de correção automática**: se upload no canal der erro, usuário envia arquivo de retorno → `/api/fix-errors` diagnostica e gera versão corrigida
+   - Tela de loading (progresso granular ainda não implementado)
+6. **Geração de arquivos** + download
+
+> Revisão de preços e dimensões: planejado mas não implementado ainda.
+> `/api/fix-errors`: planejado mas não implementado.
 
 ## Fluxo de adicionar produtos a catálogo existente
 
