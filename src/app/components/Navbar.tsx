@@ -39,7 +39,6 @@ export default function Navbar() {
   const tabs = [
     { label: 'Chat', href: '/' },
     { label: 'Meus Catálogos', href: '/painel?aba=catalogos' },
-    { label: 'Histórico', href: '/painel?aba=historico' },
     { label: 'Meu Plano', href: '/painel?aba=plano' },
   ]
 
