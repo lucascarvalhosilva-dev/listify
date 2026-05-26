@@ -25,6 +25,13 @@ O usuário principal é vendedor de marketplace no Brasil. Priorize clareza, con
 - Faça commits pequenos e descritivos.
 - Não misture refactor com bugfix.
 - Não commitar `.env.local`, `.claude/settings.local.json`, `.next`, `node_modules`.
+- Não empilhar mudanças de áreas diferentes em um único commit. Ex.: chat + landing + formulários = 3 commits separados, nunca 1 commit "polimento geral".
+- Cada push para main é um deploy em produção. Tratar main como ambiente de produção, não como ambiente de teste.
+
+## Validação de UI
+
+- "Validação visual automatizada" (ex.: browser headless do Codex) NÃO substitui validação humana.
+- Sempre que uma mudança envolver UI, pausar e aguardar confirmação do usuário antes de fazer push para main.
 
 ## Fluxo principal do produto
 
