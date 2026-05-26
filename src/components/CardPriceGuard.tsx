@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, DollarSign, ShieldCheck, TrendingUp } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, DollarSign, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react'
 import type { PriceGuardData } from '@/lib/price-guard'
 
 export type { PriceGuardCanalResumo, PriceGuardData, PriceGuardRisco, PriceGuardStatus } from '@/lib/price-guard'
@@ -26,7 +26,8 @@ export default function CardPriceGuard({
   canais,
   riscos_preview,
   nota,
-}: PriceGuardData) {
+  onAjustarPrecos,
+}: PriceGuardData & { onAjustarPrecos?: () => void }) {
   const tema = {
     ok: {
       cor: '#0f7b58',
@@ -209,6 +210,39 @@ export default function CardPriceGuard({
       }}>
         {nota}
       </div>
+
+      {onAjustarPrecos && (
+        <div style={{
+          borderTop: '1px solid #e6edf6',
+          padding: '11px 14px 14px',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          background: '#fbfdff',
+        }}>
+          <button
+            type="button"
+            onClick={onAjustarPrecos}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: '1px solid rgba(26,115,232,0.28)',
+              background: '#fff',
+              color: '#155bd5',
+              borderRadius: 999,
+              padding: '8px 13px',
+              fontSize: 12,
+              fontWeight: 850,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: '0 8px 18px rgba(26,115,232,0.08)',
+            }}
+          >
+            <SlidersHorizontal size={14} strokeWidth={2.4} />
+            Ajustar preços no chat
+          </button>
+        </div>
+      )}
     </div>
   )
 }

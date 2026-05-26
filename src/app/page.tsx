@@ -9,6 +9,7 @@ import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
 import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
 import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
+import MiniEditorPrecos, { type MensagemAjustePrecos } from '@/components/MiniEditorPrecos'
 import SidebarConversas, { type SidebarConversasRef } from '@/components/SidebarConversas'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
@@ -29,6 +30,8 @@ type Botao = {
   valor?: string
   url?: string
   sessao_id?: string
+  conversa_id?: string
+  canais?: string[]
   path?: string
   canal?: string
   nome_canal_label?: string
@@ -126,6 +129,7 @@ export default function ChatPrincipal() {
   const sidebarRef = useRef<SidebarConversasRef>(null)
   const requestIdRef = useRef(0)
   const [sidebarAberta, setSidebarAberta] = useState(false)
+  const [editorPrecosAberto, setEditorPrecosAberto] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -201,6 +205,13 @@ export default function ChatPrincipal() {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' })
   }, [mensagens])
 
+  useEffect(() => {
+    if (!editorPrecosAberto) return
+    window.setTimeout(() => {
+      messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' })
+    }, 80)
+  }, [editorPrecosAberto])
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     e.target.value = ''
@@ -220,6 +231,7 @@ export default function ChatPrincipal() {
     setUrlsClicadas(new Set())
     setClicadosInicial(new Set())
     setCanaisAlvo([])
+    setEditorPrecosAberto(null)
   }
 
   const selecionarConversa = async (id: string) => {
@@ -434,6 +446,15 @@ export default function ChatPrincipal() {
     }
   }
 
+  const receberAjustePrecos = (mensagem: MensagemAjustePrecos) => {
+    setMensagens(prev => [...prev, {
+      papel: 'assistant',
+      conteudo: mensagem.conteudo,
+      acoes_rapidas: { botoes: mensagem.acoes.botoes as Botao[] },
+    }])
+    void sidebarRef.current?.refetchConversas()
+  }
+
   const ocupado = carregando || uploadando
   const bloqueado = ocupado || carregandoConversa
   const podeSend = !bloqueado && (!!arquivo || !!input.trim())
@@ -568,11 +589,32 @@ export default function ChatPrincipal() {
                           }
                           {m.acoes_rapidas.botoes
                             .filter(b => b.acao === 'card_price_guard' && b.price_guard)
-                            .map((b, j) => (
-                              <div key={j} style={{ marginBottom: 8 }}>
-                                <CardPriceGuard {...b.price_guard!} />
-                              </div>
-                            ))
+                            .map((b, j) => {
+                              const editorKey = `${i}-price-${j}`
+                              const sessaoAjuste = b.sessao_id
+                              const conversaAjuste = b.conversa_id ?? conversaId
+                              const podeAjustar = !!sessaoAjuste && !!conversaAjuste
+
+                              return (
+                                <div key={j} style={{ marginBottom: 8 }}>
+                                  <CardPriceGuard
+                                    {...b.price_guard!}
+                                    onAjustarPrecos={podeAjustar ? () => setEditorPrecosAberto(editorPrecosAberto === editorKey ? null : editorKey) : undefined}
+                                  />
+                                  {podeAjustar && editorPrecosAberto === editorKey && (
+                                    <div style={{ marginTop: 8 }}>
+                                      <MiniEditorPrecos
+                                        sessaoId={sessaoAjuste}
+                                        conversaId={conversaAjuste}
+                                        canais={b.price_guard!.canais}
+                                        onCancelar={() => setEditorPrecosAberto(null)}
+                                        onSucesso={receberAjustePrecos}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })
                           }
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                             {m.acoes_rapidas.botoes

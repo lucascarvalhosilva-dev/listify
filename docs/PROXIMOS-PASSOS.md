@@ -51,7 +51,6 @@ Foco: vendedor volta toda semana e justifica pagar mensalidade.
 - [ ] Catalog Quality Score
 - [ ] Geração de vídeo curto do produto (Remotion + Cloud Run) — diferencial prioritário para canais que valorizam/exigem vídeo
 - [ ] Alertas de qualidade integrados ao Quality Score
-- [ ] Revisão de preço/margem em catálogos já gerados
 - [ ] Melhorias de título/SEO a partir do histórico do catálogo
 - [ ] Biblioteca de erros reais por marketplace e categoria
 - [ ] Hosting próprio de fotos (Cloudflare R2) somente se Google Drive gerar atrito recorrente — ver docs/05-fotos.md
@@ -170,4 +169,5 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
 - Status de confiança pós-geração no chat (campos, produtos, preço, arquivos, Drive e alertas)
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
+- Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
 - AGENTS.md com diretrizes de workflow

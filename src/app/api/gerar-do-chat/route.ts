@@ -236,6 +236,7 @@ export async function POST(request: Request) {
 
     const processData = await processResp.json() as ProcessCatalogResponse
     console.log('[GERAR-DO-CHAT] process-catalog ok, produtos_processados:', processData.produtos_processados)
+    const produtosRevisao = processData.produtos_revisao ?? []
 
     // ── Upload de arquivos para bucket 'geracoes' ─────────────────────────────
     const ts = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
@@ -285,7 +286,7 @@ export async function POST(request: Request) {
           .insert({
             user_id: user.id,
             nome: `Cadastro ${nomeCanal} - ${dataLabel}`,
-            produtos: produtos,
+            produtos: produtosRevisao.length > 0 ? produtosRevisao : produtos,
             drive_url: sessao.drive_url,
             regime_tributario: regimeRaw,
             canal: arquivo.canal,
@@ -320,10 +321,16 @@ export async function POST(request: Request) {
       precosCalculados: processData.produtos_processados > 0,
     })
     const priceGuard = criarCardPriceGuard({
-      produtosRevisao: processData.produtos_revisao ?? [],
+      produtosRevisao,
       canais: canaisEngine,
       regime,
     })
+    const priceGuardAction = {
+      ...priceGuard,
+      sessao_id,
+      conversa_id,
+      canais: canaisEngine,
+    }
 
     console.log('[ETAPA] atualizando pra concluida | catalogos salvos:', catalogosIds.length)
     const { error: updateErr } = await supabase
@@ -339,6 +346,10 @@ export async function POST(request: Request) {
           alertas: alertasFinal,
           status_confianca: statusConfianca,
           price_guard: priceGuard.price_guard,
+          produtos_revisao: produtosRevisao,
+          canais_engine: canaisEngine,
+          regime,
+          regime_label: regimeRaw,
           canais_processados: processData.produtos_processados,
           catalogos_ids: catalogosIds,
         },
@@ -371,7 +382,7 @@ export async function POST(request: Request) {
 
       const botoesSucesso = [
         statusConfianca,
-        priceGuard,
+        priceGuardAction,
         ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
           path: a.path,
@@ -421,7 +432,7 @@ export async function POST(request: Request) {
         acoes: {
           botoes: [
             statusConfianca,
-            priceGuard,
+            priceGuardAction,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',
               path: a.path,

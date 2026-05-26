@@ -1,17 +1,50 @@
 import { normalizarCanalParaEngine } from '@/lib/normalizar-canais'
 
 export type PriceGuardStatus = 'ok' | 'atencao' | 'risco'
+export type RegimePriceGuard = 'MEI' | 'SN'
+export type AplicarAjusteEm = 'todos' | 'com_risco'
+export type TipoAjustePreco = 'margem_minima' | 'percentual' | 'valor_fixo' | 'preco_manual'
+export type CampoPrecoProduto =
+  | 'preco_ml'
+  | 'preco_shopee'
+  | 'preco_tiktok'
+  | 'preco_bling'
+  | 'preco_magalu'
+  | 'preco_amazon'
 
 export interface ProdutoRevisaoPriceGuard {
   sku: string
   nome: string
   custo: number
+  estoque?: number
+  embalagem?: number
   preco_ml?: number
   preco_shopee?: number
   preco_tiktok?: number
   preco_bling?: number
   preco_magalu?: number
   preco_amazon?: number
+  peso_g?: number
+  comprimento_cm?: number
+  largura_cm?: number
+  altura_cm?: number
+  confianca_dimensoes?: 'alta' | 'media'
+  titulo_ml?: string
+  titulo_shopee?: string
+  titulo_amazon?: string
+  descricao_ml?: string
+  descricao_shopee?: string
+  descricao_tiktok?: string
+  descricao_magalu?: string
+  descricao_bling?: string
+  descricao_amazon?: string
+  bullet_point1?: string
+  bullet_point2?: string
+  bullet_point3?: string
+  bullet_point4?: string
+  bullet_point5?: string
+  ncm?: string
+  gtin?: string
 }
 
 export interface PriceGuardCanalResumo {
@@ -54,6 +87,60 @@ export interface PriceGuardData {
 export interface CardPriceGuardAction {
   acao: 'card_price_guard'
   price_guard: PriceGuardData
+  sessao_id?: string
+  conversa_id?: string
+  canais?: string[]
+}
+
+export interface PoliticaPreco {
+  comissao: number
+  imposto: number
+  taxaPagamento: number
+  custoFixo: number
+}
+
+export interface PriceGuardMetricas {
+  custo: number
+  preco: number
+  lucro_estimado: number
+  margem_percentual: number
+  taxas_percentual: number
+  custo_fixo: number
+}
+
+export interface AjustePrecoManual {
+  sku: string
+  canal: string
+  preco: number
+}
+
+export interface AplicarAjustePrecosParams {
+  produtos: ProdutoRevisaoPriceGuard[]
+  canais: string[]
+  regime: RegimePriceGuard
+  tipo: TipoAjustePreco
+  aplicarEm: AplicarAjusteEm
+  margemMinimaPercentual?: number
+  percentual?: number
+  valorFixo?: number
+  arredondarFinal90?: boolean
+  ajustesManuais?: AjustePrecoManual[]
+}
+
+export interface AlteracaoPreco {
+  sku: string
+  nome: string
+  canal: string
+  nome_canal_label: string
+  preco_anterior: number
+  preco_novo: number
+  margem_anterior: number | null
+  margem_nova: number | null
+}
+
+export interface AplicarAjustePrecosResultado {
+  produtos: ProdutoRevisaoPriceGuard[]
+  alteracoes: AlteracaoPreco[]
 }
 
 const CANAL_LABELS: Record<string, string> = {
@@ -67,7 +154,7 @@ const CANAL_LABELS: Record<string, string> = {
   amazon: 'Amazon',
 }
 
-const PRECO_FIELD_BY_CANAL: Record<string, keyof ProdutoRevisaoPriceGuard> = {
+const PRECO_FIELD_BY_CANAL: Record<string, CampoPrecoProduto> = {
   shopee: 'preco_shopee',
   ml: 'preco_ml',
   mercado_livre: 'preco_ml',
@@ -91,9 +178,27 @@ function media(valores: number[]): number | null {
   return round2(valores.reduce((acc, valor) => acc + valor, 0) / valores.length)
 }
 
-function obterPoliticaPreco(canal: string, regime: 'MEI' | 'SN', preco: number) {
+function formatarMoedaCurta(valor: number): string {
+  return valor.toFixed(2).replace('.', ',')
+}
+
+export function normalizarCanalPriceGuard(canal: string): string {
+  return normalizarCanalParaEngine(canal)
+}
+
+export function getCanalLabelPriceGuard(canal: string): string {
+  const normalizado = normalizarCanalPriceGuard(canal)
+  return CANAL_LABELS[normalizado] ?? CANAL_LABELS[canal] ?? canal
+}
+
+export function getCampoPrecoPorCanal(canal: string): CampoPrecoProduto | null {
+  const normalizado = normalizarCanalPriceGuard(canal)
+  return PRECO_FIELD_BY_CANAL[normalizado] ?? PRECO_FIELD_BY_CANAL[canal] ?? null
+}
+
+export function obterPoliticaPreco(canal: string, regime: RegimePriceGuard, preco: number): PoliticaPreco {
   const imposto = regime === 'SN' ? 0.04 : 0
-  const canalNormalizado = normalizarCanalParaEngine(canal)
+  const canalNormalizado = normalizarCanalPriceGuard(canal)
 
   if (canalNormalizado === 'shopee') {
     return {
@@ -130,16 +235,192 @@ function obterPoliticaPreco(canal: string, regime: 'MEI' | 'SN', preco: number) 
   }
 }
 
+export function calcularMetricasPriceGuard(
+  produto: ProdutoRevisaoPriceGuard,
+  canal: string,
+  regime: RegimePriceGuard
+): PriceGuardMetricas | null {
+  const campoPreco = getCampoPrecoPorCanal(canal)
+  const custo = Number(produto.custo)
+  const preco = campoPreco ? Number(produto[campoPreco]) : NaN
+
+  if (!Number.isFinite(custo) || custo < 0 || !Number.isFinite(preco) || preco <= 0) {
+    return null
+  }
+
+  const politica = obterPoliticaPreco(canal, regime, preco)
+  const taxaPercentual = politica.comissao + politica.imposto + politica.taxaPagamento
+  const custoTaxas = preco * taxaPercentual
+  const lucroEstimado = preco - custo - politica.custoFixo - custoTaxas
+  const margemPercentual = preco > 0 ? (lucroEstimado / preco) * 100 : -100
+
+  return {
+    custo: round2(custo),
+    preco: round2(preco),
+    lucro_estimado: round2(lucroEstimado),
+    margem_percentual: round1(margemPercentual),
+    taxas_percentual: round1(taxaPercentual * 100),
+    custo_fixo: round2(politica.custoFixo),
+  }
+}
+
+function statusPorMetricas(metricas: PriceGuardMetricas | null, margemMinimaPercentual = 10): PriceGuardStatus {
+  if (!metricas) return 'atencao'
+  if (metricas.lucro_estimado <= 0) return 'risco'
+  if (metricas.margem_percentual < margemMinimaPercentual) return 'atencao'
+  return 'ok'
+}
+
+export function arredondarPrecoFinal90(preco: number): number {
+  if (!Number.isFinite(preco) || preco <= 0) return 0
+  const base = Math.floor(preco) + 0.9
+  return round2(base >= preco ? base : Math.floor(preco) + 1.9)
+}
+
+function calcularPrecoComPolitica(
+  custo: number,
+  canal: string,
+  regime: RegimePriceGuard,
+  margemPercentual: number,
+  precoReferencia: number
+): number {
+  const politica = obterPoliticaPreco(canal, regime, precoReferencia)
+  const taxaPercentual = politica.comissao + politica.imposto + politica.taxaPagamento
+  const margem = margemPercentual / 100
+  const denominador = 1 - taxaPercentual - margem
+  if (denominador <= 0.05) return custo + politica.custoFixo
+  return (custo + politica.custoFixo) / denominador
+}
+
+export function calcularPrecoParaMargem(params: {
+  custo: number
+  canal: string
+  regime: RegimePriceGuard
+  margemPercentual: number
+  arredondarFinal90?: boolean
+}): number {
+  const custo = Number(params.custo)
+  const margem = Number(params.margemPercentual)
+  if (!Number.isFinite(custo) || custo < 0 || !Number.isFinite(margem)) return 0
+
+  const canalNormalizado = normalizarCanalPriceGuard(params.canal)
+  let preco: number
+
+  if (canalNormalizado === 'ml' || canalNormalizado === 'mercado_livre') {
+    const precoComTaxaBaixa = calcularPrecoComPolitica(custo, params.canal, params.regime, margem, 0)
+    if (precoComTaxaBaixa < 79) {
+      preco = precoComTaxaBaixa
+    } else {
+      const precoSemTaxaBaixa = calcularPrecoComPolitica(custo, params.canal, params.regime, margem, 79)
+      preco = precoSemTaxaBaixa >= 79 ? precoSemTaxaBaixa : 79
+    }
+  } else {
+    preco = calcularPrecoComPolitica(custo, params.canal, params.regime, margem, 0)
+  }
+
+  const arredondado = params.arredondarFinal90 ? arredondarPrecoFinal90(preco) : round2(preco)
+  return Math.max(0, arredondado)
+}
+
+export function aplicarAjustePrecos(params: AplicarAjustePrecosParams): AplicarAjustePrecosResultado {
+  const produtos = params.produtos.map(produto => ({ ...produto }))
+  const alteracoes: AlteracaoPreco[] = []
+  const margemAlvo = Math.max(1, Math.min(80, Number(params.margemMinimaPercentual ?? 10)))
+
+  if (params.tipo === 'preco_manual') {
+    for (const ajuste of params.ajustesManuais ?? []) {
+      const produto = produtos.find(p => p.sku === ajuste.sku)
+      const campoPreco = getCampoPrecoPorCanal(ajuste.canal)
+      const precoNovo = Number(ajuste.preco)
+      if (!produto || !campoPreco || !Number.isFinite(precoNovo) || precoNovo <= 0) continue
+
+      const precoAnterior = Number(produto[campoPreco])
+      if (!Number.isFinite(precoAnterior) || Math.abs(precoNovo - precoAnterior) < 0.01) continue
+
+      const metricasAntes = calcularMetricasPriceGuard(produto, ajuste.canal, params.regime)
+      produto[campoPreco] = round2(precoNovo)
+      const metricasDepois = calcularMetricasPriceGuard(produto, ajuste.canal, params.regime)
+      alteracoes.push({
+        sku: produto.sku,
+        nome: produto.nome,
+        canal: normalizarCanalPriceGuard(ajuste.canal),
+        nome_canal_label: getCanalLabelPriceGuard(ajuste.canal),
+        preco_anterior: round2(precoAnterior),
+        preco_novo: round2(precoNovo),
+        margem_anterior: metricasAntes?.margem_percentual ?? null,
+        margem_nova: metricasDepois?.margem_percentual ?? null,
+      })
+    }
+
+    return { produtos, alteracoes }
+  }
+
+  for (const produto of produtos) {
+    for (const canal of params.canais) {
+      const campoPreco = getCampoPrecoPorCanal(canal)
+      if (!campoPreco) continue
+
+      const precoAnterior = Number(produto[campoPreco])
+      const metricasAntes = calcularMetricasPriceGuard(produto, canal, params.regime)
+      const statusAntes = statusPorMetricas(metricasAntes, margemAlvo)
+
+      if (params.aplicarEm === 'com_risco' && statusAntes === 'ok') continue
+      if (!Number.isFinite(precoAnterior) || precoAnterior <= 0) continue
+
+      let precoNovo = precoAnterior
+
+      if (params.tipo === 'margem_minima') {
+        precoNovo = calcularPrecoParaMargem({
+          custo: produto.custo,
+          canal,
+          regime: params.regime,
+          margemPercentual: margemAlvo,
+          arredondarFinal90: params.arredondarFinal90,
+        })
+        precoNovo = Math.max(precoAnterior, precoNovo)
+      } else if (params.tipo === 'percentual') {
+        const percentual = Number(params.percentual ?? 0)
+        if (!Number.isFinite(percentual) || percentual === 0) continue
+        precoNovo = precoAnterior * (1 + percentual / 100)
+        if (params.arredondarFinal90) precoNovo = arredondarPrecoFinal90(precoNovo)
+      } else if (params.tipo === 'valor_fixo') {
+        const valorFixo = Number(params.valorFixo ?? 0)
+        if (!Number.isFinite(valorFixo) || valorFixo === 0) continue
+        precoNovo = precoAnterior + valorFixo
+        if (params.arredondarFinal90) precoNovo = arredondarPrecoFinal90(precoNovo)
+      }
+
+      precoNovo = round2(precoNovo)
+      if (!Number.isFinite(precoNovo) || precoNovo <= 0 || Math.abs(precoNovo - precoAnterior) < 0.01) continue
+
+      produto[campoPreco] = precoNovo
+      const metricasDepois = calcularMetricasPriceGuard(produto, canal, params.regime)
+
+      alteracoes.push({
+        sku: produto.sku,
+        nome: produto.nome,
+        canal: normalizarCanalPriceGuard(canal),
+        nome_canal_label: getCanalLabelPriceGuard(canal),
+        preco_anterior: round2(precoAnterior),
+        preco_novo: precoNovo,
+        margem_anterior: metricasAntes?.margem_percentual ?? null,
+        margem_nova: metricasDepois?.margem_percentual ?? null,
+      })
+    }
+  }
+
+  return { produtos, alteracoes }
+}
+
 export function criarCardPriceGuard(params: {
   produtosRevisao: ProdutoRevisaoPriceGuard[]
   canais: string[]
-  regime: 'MEI' | 'SN'
+  regime: RegimePriceGuard
 }): CardPriceGuardAction {
   const riscos: PriceGuardRisco[] = []
 
   const canaisResumo = params.canais.map(canal => {
-    const campoPreco = PRECO_FIELD_BY_CANAL[canal]
-    const nomeCanal = CANAL_LABELS[normalizarCanalParaEngine(canal)] ?? CANAL_LABELS[canal] ?? canal
+    const nomeCanal = getCanalLabelPriceGuard(canal)
     const precosValidos: number[] = []
     const custosValidos: number[] = []
     const margens: number[] = []
@@ -151,9 +432,9 @@ export function criarCardPriceGuard(params: {
 
     for (const produto of params.produtosRevisao) {
       const custo = Number(produto.custo)
-      const preco = campoPreco ? Number(produto[campoPreco]) : NaN
+      const metricas = calcularMetricasPriceGuard(produto, canal, params.regime)
 
-      if (!Number.isFinite(custo) || custo < 0 || !Number.isFinite(preco) || preco <= 0) {
+      if (!metricas) {
         produtosComAlerta += 1
         riscos.push({
           canal,
@@ -170,22 +451,16 @@ export function criarCardPriceGuard(params: {
         continue
       }
 
-      const politica = obterPoliticaPreco(canal, params.regime, preco)
-      const taxaPercentual = politica.comissao + politica.imposto + politica.taxaPagamento
-      const custoTaxas = preco * taxaPercentual
-      const lucroEstimado = preco - custo - politica.custoFixo - custoTaxas
-      const margemPercentual = preco > 0 ? (lucroEstimado / preco) * 100 : -100
+      precosValidos.push(metricas.preco)
+      custosValidos.push(metricas.custo)
+      margens.push(metricas.margem_percentual)
+      lucros.push(metricas.lucro_estimado)
+      custosFixos.push(metricas.custo_fixo)
+      taxas.push(metricas.taxas_percentual)
 
-      precosValidos.push(preco)
-      custosValidos.push(custo)
-      margens.push(margemPercentual)
-      lucros.push(lucroEstimado)
-      custosFixos.push(politica.custoFixo)
-      taxas.push(taxaPercentual * 100)
-
-      if (lucroEstimado <= 0 || margemPercentual < 10) {
+      const status = statusPorMetricas(metricas)
+      if (status !== 'ok') {
         produtosComAlerta += 1
-        const status: PriceGuardStatus = lucroEstimado <= 0 ? 'risco' : 'atencao'
         if (status === 'risco') produtosComPrejuizo += 1
         riscos.push({
           canal,
@@ -193,13 +468,13 @@ export function criarCardPriceGuard(params: {
           sku: produto.sku,
           nome: produto.nome,
           motivo: status === 'risco'
-            ? `lucro estimado negativo de R$ ${Math.abs(round2(lucroEstimado)).toFixed(2).replace('.', ',')}`
+            ? `lucro estimado negativo de R$ ${formatarMoedaCurta(Math.abs(metricas.lucro_estimado))}`
             : 'margem estimada abaixo de 10%',
           status,
-          custo: round2(custo),
-          preco: round2(preco),
-          lucro_estimado: round2(lucroEstimado),
-          margem_percentual: round1(margemPercentual),
+          custo: metricas.custo,
+          preco: metricas.preco,
+          lucro_estimado: metricas.lucro_estimado,
+          margem_percentual: metricas.margem_percentual,
         })
       }
     }
