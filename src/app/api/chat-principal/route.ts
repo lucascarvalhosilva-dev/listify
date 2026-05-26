@@ -176,6 +176,8 @@ export async function POST(request: Request) {
 
     const { mensagem, historico, conversa_id } = await request.json()
 
+    console.log('[chat-principal] conversa_id recebido:', conversa_id, 'tipo:', typeof conversa_id)
+
     if (!conversa_id || typeof conversa_id !== 'string') {
       return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
     }
@@ -191,12 +193,13 @@ export async function POST(request: Request) {
 
     // Mensagens internas de validação não são salvas no histórico do chat
     if (!esMensagemInterna(mensagem)) {
-      await supabase.from('chat_historico').insert({
+      const { error: errUser } = await supabase.from('chat_historico').insert({
         user_id: user.id,
         papel: 'user',
         conteudo: mensagem,
         conversa_id,
       })
+      if (errUser) console.error('[chat-principal] INSERT user falhou:', errUser)
 
       if (
         conversa.titulo === null &&
@@ -278,13 +281,14 @@ export async function POST(request: Request) {
       if (canaisAlvo.length === 0) {
         const resposta = 'Ótimo! Agora vou preparar os cadastros. Para quais marketplaces você quer gerar? Selecione um ou mais nos botões abaixo. Você pode escolher quantos quiser — vou criar arquivos otimizados para cada um.'
         const acoes = { botoes: [{ texto: 'Selecionar canais', acao: 'selector_canais', sessao_id: sessaoAtiva.id }] }
-        await supabase.from('chat_historico').insert({
+        const { error: errSel } = await supabase.from('chat_historico').insert({
           user_id: user.id,
           papel: 'assistant',
           conteudo: resposta,
           acoes_rapidas: acoes,
           conversa_id,
         })
+        if (errSel) console.error('[chat-principal] INSERT seletor_canais falhou:', errSel)
         return Response.json({ resposta, acoes })
       }
     }
@@ -342,13 +346,14 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
 
         // Salva mensagem "processando" ANTES de disparar — garante ordem no histórico
         const procesandoTexto = `Perfeito! Estou gerando os cadastros para ${lista}. Isso pode levar alguns instantes... ⏳`
-        await supabase.from('chat_historico').insert({
+        const { error: errProc } = await supabase.from('chat_historico').insert({
           user_id: user.id,
           papel: 'assistant',
           conteudo: procesandoTexto,
           acoes_rapidas: null,
           conversa_id,
         })
+        if (errProc) console.error('[chat-principal] INSERT processando falhou:', errProc)
 
         let geracaoOk = false
         let geracaoData: {
@@ -512,13 +517,14 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
       acoes = { botoes: [...(acoes?.botoes ?? []), ...botoesDl] }
     }
 
-    await supabase.from('chat_historico').insert({
+    const { error: errAssistant } = await supabase.from('chat_historico').insert({
       user_id: user.id,
       papel: 'assistant',
       conteudo: textoLimpo,
       acoes_rapidas: acoes,
       conversa_id,
     })
+    if (errAssistant) console.error('[chat-principal] INSERT assistant falhou:', errAssistant)
 
     return Response.json({ resposta: textoLimpo, acoes })
   } catch (error) {

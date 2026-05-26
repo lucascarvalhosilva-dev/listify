@@ -63,12 +63,13 @@ export async function POST(request: Request) {
     })
 
     // Persiste o card do arquivo no histórico do chat
-    await supabase.from('chat_historico').insert({
+    const { error: errUpload } = await supabase.from('chat_historico').insert({
       user_id: user.id,
       papel: 'user',
       conteudo: `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arquivo.name, tamanho: arquivo.size })}]`,
       conversa_id,
     })
+    if (errUpload) console.error('[chat-upload] INSERT chat_historico falhou:', errUpload)
 
     return Response.json({
       sucesso: true,
