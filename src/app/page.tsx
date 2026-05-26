@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUp, Loader2, Paperclip } from 'lucide-react'
+import { ArrowUp, Loader2, PanelLeft, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
 import SeletorCanais from '@/components/SeletorCanais'
 import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
+import SidebarConversas, { type SidebarConversasRef } from '@/components/SidebarConversas'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
 
@@ -41,6 +42,22 @@ const MENSAGEM_RETOMADA: Record<string, string> = {
   processando: 'Sua geração está em andamento. Acompanhe aqui no chat ou aguarde a conclusão.',
 }
 
+function criarMensagemBoasVindas(nomeUser: string): Mensagem {
+  return {
+    papel: 'assistant',
+    conteudo: `Olá, ${nomeUser}! Eu sou a IA do Guiamos. Estou aqui para te ajudar a cadastrar seus produtos em marketplaces de forma rápida e automatizada.\n\nO que você quer fazer hoje?`,
+    isWelcome: true,
+    acoes_rapidas: {
+      botoes: [
+        { texto: 'Cadastrar produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
+        { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
+        { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
+        { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
+      ],
+    },
+  }
+}
+
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
   if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
   try {
@@ -68,6 +85,9 @@ export default function ChatPrincipal() {
   const [canaisAlvo, setCanaisAlvo] = useState<string[]>([])
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const sidebarRef = useRef<SidebarConversasRef>(null)
+  const requestIdRef = useRef(0)
+  const [sidebarAberta, setSidebarAberta] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -103,20 +123,7 @@ export default function ChatPrincipal() {
         }
         setMensagens([retomada])
       } else {
-        const saudacao: Mensagem = {
-          papel: 'assistant',
-          conteudo: `Olá, ${nomeUser}! Eu sou a IA do Guiamos. Estou aqui para te ajudar a cadastrar seus produtos em marketplaces de forma rápida e automatizada.\n\nO que você quer fazer hoje?`,
-          isWelcome: true,
-          acoes_rapidas: {
-            botoes: [
-              { texto: 'Cadastrar produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
-              { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
-              { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
-              { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
-            ],
-          },
-        }
-        setMensagens([saudacao])
+        setMensagens([criarMensagemBoasVindas(nomeUser)])
         setBotoesIniciaisAtivos(true)
         setPrimeiraMensagem(true)
       }
@@ -140,6 +147,60 @@ export default function ChatPrincipal() {
     setArquivo(f)
   }
 
+  const limparEstadoInteracao = () => {
+    setInput('')
+    setArquivo(null)
+    setErroUpload('')
+    setUrlsClicadas(new Set())
+    setClicadosInicial(new Set())
+    setCanaisAlvo([])
+  }
+
+  const selecionarConversa = async (id: string) => {
+    const myId = ++requestIdRef.current
+    setCarregando(true)
+    setSidebarAberta(false)
+
+    try {
+      const res = await fetch(`/api/conversas/${id}/mensagens`)
+      if (myId !== requestIdRef.current) return
+      if (!res.ok) return
+
+      const data = await res.json() as { mensagens?: Array<Mensagem & { id?: string; criado_em?: string }> }
+      const historico = (data.mensagens ?? []).map(m => ({
+        papel: m.papel,
+        conteudo: m.conteudo,
+        acoes_rapidas: m.acoes_rapidas ?? null,
+      }))
+
+      setConversaId(id)
+      setSessaoId(null)
+      setMensagens(historico)
+      setPrimeiraMensagem(false)
+      setBotoesIniciaisAtivos(false)
+      limparEstadoInteracao()
+    } catch {
+      if (myId === requestIdRef.current) {
+        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Não consegui carregar essa conversa agora. Tenta novamente?' }])
+      }
+    } finally {
+      if (myId === requestIdRef.current) setCarregando(false)
+    }
+  }
+
+  const novaConversa = () => {
+    requestIdRef.current += 1
+    setConversaId(null)
+    setSessaoId(null)
+    setMensagens([criarMensagemBoasVindas(nome || 'você')])
+    setPrimeiraMensagem(true)
+    setBotoesIniciaisAtivos(true)
+    setCarregando(false)
+    setUploadando(false)
+    setSidebarAberta(false)
+    limparEstadoInteracao()
+  }
+
   const enviar = async (texto?: string) => {
     const ocupado = carregando || uploadando
     if (ocupado) return
@@ -159,6 +220,7 @@ export default function ChatPrincipal() {
         }
         currentConversaId = String(convData.id)
         setConversaId(currentConversaId)
+        void sidebarRef.current?.refetchConversas()
       } catch {
         setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Erro ao iniciar conversa. Tenta novamente.' }])
         return
@@ -313,13 +375,15 @@ export default function ChatPrincipal() {
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f4f7fb; color: #182233; overflow: hidden; }
-        .app { display: flex; flex-direction: column; height: calc(100vh - 64px); background:
+        .app { display: flex; flex-direction: row; height: calc(100vh - 64px); background:
           radial-gradient(circle at 18% -8%, rgba(26,115,232,0.12), transparent 28%),
           radial-gradient(circle at 88% 4%, rgba(15,159,117,0.10), transparent 26%),
           linear-gradient(180deg, #f8fbff 0%, #f2f6fb 100%);
         }
-        .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 820px; width: 100%; margin: 0 auto; padding: 26px 24px 0; overflow: hidden; }
-        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 2px 4px 18px; }
+        .chat-wrap { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; width: 100%; margin: 0; padding: 26px 24px 0; overflow: hidden; }
+        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 2px 4px 18px; max-width: 820px; width: 100%; margin: 0 auto; }
+        .sidebar-toggle { display: none; position: absolute; top: 14px; left: 16px; z-index: 30; width: 38px; height: 38px; border: 1px solid #d8e4f2; border-radius: 12px; background: rgba(255,255,255,0.92); color: #155bd5; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 24px rgba(15,23,42,0.10); backdrop-filter: blur(14px); }
+        .sidebar-overlay { display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0; border: none; background: rgba(15,23,42,0.38); z-index: 80; cursor: pointer; }
         .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
         .bot { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #1a73e8 0%, #0f9f75 100%); color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 10px 22px rgba(26,115,232,0.20); }
         .bubble { background: rgba(255,255,255,0.96); border: 1px solid #e2e8f0; border-radius: 18px; border-top-left-radius: 6px; padding: 15px 18px; font-size: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #182233; line-height: 1.66; max-width: 560px; box-shadow: 0 10px 30px rgba(15,23,42,0.06); }
@@ -350,7 +414,7 @@ export default function ChatPrincipal() {
         .typing span:nth-child(1) { animation-delay: -0.32s; }
         .typing span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        .input-area { padding: 16px 0 20px; border-top: 1px solid rgba(207,216,228,0.72); background: rgba(248,251,255,0.82); backdrop-filter: blur(14px); }
+        .input-area { padding: 16px 0 20px; border-top: 1px solid rgba(207,216,228,0.72); background: rgba(248,251,255,0.82); backdrop-filter: blur(14px); max-width: 820px; width: 100%; margin: 0 auto; }
         .file-preview { margin-bottom: 8px; }
         .erro-upload { font-size: 12px; color: #ea4335; margin-bottom: 6px; }
         .input-box { background: #fff; border: 1px solid #dbe4ef; border-radius: 18px; display: flex; align-items: center; padding: 7px 7px 7px 8px; gap: 4px; box-shadow: 0 12px 34px rgba(15,23,42,0.08); }
@@ -363,10 +427,25 @@ export default function ChatPrincipal() {
         .send-btn:disabled { background: #9aa0a6; cursor: not-allowed; }
         .send-spinner { animation: spin .8s linear infinite; }
         .hint { font-size: 11px; color: #9aa0a6; text-align: center; margin-top: 8px; }
+        @media (max-width: 1023px) {
+          .chat-wrap { padding-top: 64px; }
+          .sidebar-toggle { display: inline-flex; }
+          .app.sidebar-open .sidebar-overlay { display: block; }
+        }
       `}</style>
 
-      <div className="app">
+      <div className={`app ${sidebarAberta ? 'sidebar-open' : ''}`}>
+        <button className="sidebar-overlay" aria-label="Fechar conversas" onClick={() => setSidebarAberta(false)} />
+        <SidebarConversas
+          ref={sidebarRef}
+          conversaId={conversaId}
+          onSelectConversa={selecionarConversa}
+          onNovaConversa={novaConversa}
+        />
         <div className="chat-wrap">
+          <button className="sidebar-toggle" aria-label="Abrir conversas" onClick={() => setSidebarAberta(true)}>
+            <PanelLeft size={18} strokeWidth={2.4} />
+          </button>
           <div className="messages" ref={messagesRef}>
             {mensagens.map((m, i) => {
               if (m.papel === 'user') {
