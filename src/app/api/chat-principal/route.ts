@@ -193,13 +193,18 @@ export async function POST(request: Request) {
 
     // Mensagens internas de validação não são salvas no histórico do chat
     if (!esMensagemInterna(mensagem)) {
-      const { error: errUser } = await supabase.from('chat_historico').insert({
-        user_id: user.id,
-        papel: 'user',
-        conteudo: mensagem,
-        conversa_id,
-      })
-      if (errUser) console.error('[chat-principal] INSERT user falhou:', errUser)
+      const { data: dataUser, error: errUser, status: statusUser } = await supabase
+        .from('chat_historico')
+        .insert({
+          user_id: user.id,
+          papel: 'user',
+          conteudo: mensagem,
+          conversa_id,
+        })
+        .select()
+
+      console.log('[chat-principal] INSERT user → status:', statusUser, '| error:', JSON.stringify(errUser), '| data:', JSON.stringify(dataUser))
+      if (errUser) console.error('[chat-principal] INSERT user falhou:', JSON.stringify(errUser))
 
       if (
         conversa.titulo === null &&
@@ -517,14 +522,19 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
       acoes = { botoes: [...(acoes?.botoes ?? []), ...botoesDl] }
     }
 
-    const { error: errAssistant } = await supabase.from('chat_historico').insert({
-      user_id: user.id,
-      papel: 'assistant',
-      conteudo: textoLimpo,
-      acoes_rapidas: acoes,
-      conversa_id,
-    })
-    if (errAssistant) console.error('[chat-principal] INSERT assistant falhou:', errAssistant)
+    const { data: dataAssistant, error: errAssistant, status: statusAssistant } = await supabase
+      .from('chat_historico')
+      .insert({
+        user_id: user.id,
+        papel: 'assistant',
+        conteudo: textoLimpo,
+        acoes_rapidas: acoes,
+        conversa_id,
+      })
+      .select()
+
+    console.log('[chat-principal] INSERT assistant → status:', statusAssistant, '| error:', JSON.stringify(errAssistant), '| data:', JSON.stringify(dataAssistant))
+    if (errAssistant) console.error('[chat-principal] INSERT assistant falhou:', JSON.stringify(errAssistant))
 
     return Response.json({ resposta: textoLimpo, acoes })
   } catch (error) {
