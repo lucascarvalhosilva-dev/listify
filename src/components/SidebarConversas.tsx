@@ -1,7 +1,7 @@
 'use client'
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
-import { Archive, MessageSquarePlus, Pencil } from 'lucide-react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { Archive, MessageSquarePlus, Pencil, RotateCcw, Search } from 'lucide-react'
 import { formatarDataHoraCurta, formatarDataRelativa } from '@/lib/data'
 
 type Conversa = {
@@ -9,6 +9,7 @@ type Conversa = {
   titulo: string | null
   criada_em: string
   atualizada_em: string
+  arquivada?: boolean
 }
 
 type SidebarConversasProps = {
@@ -28,6 +29,34 @@ function tituloConversa(conversa: Conversa) {
   return `Conversa de ${formatarDataHoraCurta(conversa.criada_em)}`
 }
 
+function normalizarBusca(valor: string) {
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function inicioDoDia(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function grupoDaConversa(dataIso: string) {
+  const data = new Date(dataIso)
+  if (Number.isNaN(data.getTime())) return 'Mais antigas'
+
+  const hoje = inicioDoDia()
+  const inicio = inicioDoDia(data)
+  const diffDias = Math.floor((hoje.getTime() - inicio.getTime()) / 86400000)
+
+  if (diffDias <= 0) return 'Hoje'
+  if (diffDias === 1) return 'Ontem'
+  if (diffDias < 7) return 'Esta semana'
+  return 'Mais antigas'
+}
+
+const GRUPOS_ORDEM = ['Hoje', 'Ontem', 'Esta semana', 'Mais antigas']
+
 const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(function SidebarConversas(
   { conversaId, onSelectConversa, onNovaConversa },
   ref
@@ -37,12 +66,15 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
   const [erro, setErro] = useState('')
   const [renomeandoId, setRenomeandoId] = useState<string | null>(null)
   const [tituloEditando, setTituloEditando] = useState('')
+  const [busca, setBusca] = useState('')
+  const [mostrarArquivadas, setMostrarArquivadas] = useState(false)
 
   const carregarConversas = useCallback(async () => {
     setCarregando(true)
     setErro('')
     try {
-      const res = await fetch('/api/conversas')
+      const url = mostrarArquivadas ? '/api/conversas?arquivadas=1' : '/api/conversas'
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Erro ao carregar conversas')
 
       const data = await res.json() as Conversa[]
@@ -52,7 +84,7 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
     } finally {
       setCarregando(false)
     }
-  }, [])
+  }, [mostrarArquivadas])
 
   useImperativeHandle(ref, () => ({
     refetchConversas: carregarConversas,
@@ -61,6 +93,24 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
   useEffect(() => {
     void carregarConversas()
   }, [carregarConversas])
+
+  const conversasFiltradas = useMemo(() => {
+    const termo = normalizarBusca(busca)
+    if (!termo) return conversas
+
+    return conversas.filter(conversa => (
+      normalizarBusca(tituloConversa(conversa)).includes(termo)
+    ))
+  }, [busca, conversas])
+
+  const grupos = useMemo(() => (
+    GRUPOS_ORDEM
+      .map(nome => ({
+        nome,
+        conversas: conversasFiltradas.filter(conversa => grupoDaConversa(conversa.atualizada_em) === nome),
+      }))
+      .filter(grupo => grupo.conversas.length > 0)
+  ), [conversasFiltradas])
 
   function iniciarRenomeacao(conversa: Conversa) {
     setRenomeandoId(conversa.id)
@@ -105,7 +155,7 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
       setConversas(prev => prev.map(item => (
         item.id === conversa.id ? { ...item, titulo: tituloAnterior } : item
       )))
-      setErro('Não consegui renomear a conversa.')
+      setErro('Nao consegui renomear a conversa.')
     }
   }
 
@@ -121,9 +171,34 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
       if (!res.ok) throw new Error('Erro ao arquivar')
     } catch {
       setConversas(listaAnterior)
-      setErro('Não consegui arquivar a conversa.')
+      setErro('Nao consegui arquivar a conversa.')
     }
   }
+
+  async function restaurarConversa(conversa: Conversa) {
+    const listaAnterior = conversas
+    setConversas(prev => prev.filter(item => item.id !== conversa.id))
+    setErro('')
+
+    try {
+      const res = await fetch(`/api/conversas/${conversa.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ arquivada: false }),
+      })
+      if (!res.ok) throw new Error('Erro ao restaurar')
+    } catch {
+      setConversas(listaAnterior)
+      setErro('Nao consegui restaurar a conversa.')
+    }
+  }
+
+  const temBusca = busca.trim().length > 0
+  const textoVazio = temBusca
+    ? 'Nenhuma conversa encontrada'
+    : mostrarArquivadas
+      ? 'Nenhuma conversa arquivada'
+      : 'Suas conversas vao aparecer aqui'
 
   return (
     <aside className="sidebar-conversas" aria-label="Conversas">
@@ -167,10 +242,73 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
           box-shadow: 0 14px 28px rgba(26,115,232,0.22);
           filter: brightness(0.98);
         }
+        .sidebar-filtros {
+          display: flex;
+          flex-direction: column;
+          gap: 9px;
+          margin-top: 12px;
+        }
+        .sidebar-busca {
+          min-height: 36px;
+          border: 1px solid #dce6f3;
+          border-radius: 11px;
+          background: #fff;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 0 10px;
+          color: #697386;
+        }
+        .sidebar-busca input {
+          min-width: 0;
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          color: #263241;
+          font-family: inherit;
+          font-size: 12px;
+        }
+        .sidebar-segmentado {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px;
+          padding: 3px;
+          border-radius: 11px;
+          background: #eef3f8;
+        }
+        .sidebar-segmentado button {
+          min-height: 28px;
+          border: none;
+          border-radius: 9px;
+          background: transparent;
+          color: #697386;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: background .15s, color .15s, box-shadow .15s;
+        }
+        .sidebar-segmentado button.ativo {
+          background: #fff;
+          color: #155bd5;
+          box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+        }
         .sidebar-conversas-lista {
           flex: 1;
           overflow-y: auto;
           padding: 10px 8px 14px;
+        }
+        .sidebar-grupo {
+          margin-bottom: 12px;
+        }
+        .sidebar-grupo-label {
+          padding: 8px 10px 5px;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #8a94a6;
         }
         .conversa-item {
           display: flex;
@@ -194,6 +332,9 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
           background: #eaf2ff;
           color: #155bd5;
           box-shadow: inset 0 0 0 1px rgba(26,115,232,0.12), 0 6px 18px rgba(26,115,232,0.10);
+        }
+        .conversa-item.arquivada {
+          cursor: default;
         }
         .conversa-info {
           min-width: 0;
@@ -332,6 +473,35 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
           <MessageSquarePlus size={16} strokeWidth={2.4} />
           Nova conversa
         </button>
+
+        <div className="sidebar-filtros">
+          <label className="sidebar-busca">
+            <Search size={14} strokeWidth={2.2} />
+            <input
+              type="search"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar conversa"
+            />
+          </label>
+
+          <div className="sidebar-segmentado" aria-label="Filtro de conversas">
+            <button
+              type="button"
+              className={!mostrarArquivadas ? 'ativo' : ''}
+              onClick={() => setMostrarArquivadas(false)}
+            >
+              Ativas
+            </button>
+            <button
+              type="button"
+              className={mostrarArquivadas ? 'ativo' : ''}
+              onClick={() => setMostrarArquivadas(true)}
+            >
+              Arquivadas
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="sidebar-conversas-lista">
@@ -346,86 +516,106 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
             {erro}
             <button onClick={() => void carregarConversas()}>Tentar novamente</button>
           </div>
-        ) : conversas.length === 0 ? (
-          <div className="sidebar-empty">Suas conversas vão aparecer aqui</div>
+        ) : conversasFiltradas.length === 0 ? (
+          <div className="sidebar-empty">{textoVazio}</div>
         ) : (
           <>
             {erro && <div className="sidebar-error" style={{ marginBottom: 10 }}>{erro}</div>}
-            {conversas.map(conversa => {
-              const ativa = conversa.id === conversaId
-              const editando = renomeandoId === conversa.id
+            {grupos.map(grupo => (
+              <div className="sidebar-grupo" key={grupo.nome}>
+                <div className="sidebar-grupo-label">{grupo.nome}</div>
+                {grupo.conversas.map(conversa => {
+                  const ativa = !mostrarArquivadas && conversa.id === conversaId
+                  const editando = renomeandoId === conversa.id
 
-              return (
-                <div
-                  key={conversa.id}
-                  className={`conversa-item ${ativa ? 'ativa' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    if (!editando) onSelectConversa(conversa.id)
-                  }}
-                  onKeyDown={(e) => {
-                    if (editando) return
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      onSelectConversa(conversa.id)
-                    }
-                  }}
-                >
-                  <div className="conversa-info">
-                    {editando ? (
-                      <input
-                        className="conversa-input"
-                        value={tituloEditando}
-                        autoFocus
-                        onChange={e => setTituloEditando(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        onBlur={() => void finalizarRenomeacao(conversa)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Escape') {
-                            e.preventDefault()
-                            cancelarRenomeacao()
-                          } else if (e.key === 'Enter') {
-                            e.preventDefault()
-                            e.currentTarget.blur()
-                          }
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <div className="conversa-titulo">{tituloConversa(conversa)}</div>
-                        <div className="conversa-data">{formatarDataRelativa(conversa.atualizada_em)}</div>
-                      </>
-                    )}
-                  </div>
+                  return (
+                    <div
+                      key={conversa.id}
+                      className={`conversa-item ${ativa ? 'ativa' : ''} ${mostrarArquivadas ? 'arquivada' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        if (!editando && !mostrarArquivadas) onSelectConversa(conversa.id)
+                      }}
+                      onKeyDown={(e) => {
+                        if (editando || mostrarArquivadas) return
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onSelectConversa(conversa.id)
+                        }
+                      }}
+                    >
+                      <div className="conversa-info">
+                        {editando ? (
+                          <input
+                            className="conversa-input"
+                            value={tituloEditando}
+                            autoFocus
+                            onChange={e => setTituloEditando(e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                            onBlur={() => void finalizarRenomeacao(conversa)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') {
+                                e.preventDefault()
+                                cancelarRenomeacao()
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault()
+                                e.currentTarget.blur()
+                              }
+                            }}
+                          />
+                        ) : (
+                          <>
+                            <div className="conversa-titulo">{tituloConversa(conversa)}</div>
+                            <div className="conversa-data">{formatarDataRelativa(conversa.atualizada_em)}</div>
+                          </>
+                        )}
+                      </div>
 
-                  {!editando && (
-                    <div className="conversa-acoes" aria-label="Ações da conversa">
-                      <button
-                        className="conversa-acao"
-                        title="Renomear"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          iniciarRenomeacao(conversa)
-                        }}
-                      >
-                        <Pencil size={14} strokeWidth={2.3} />
-                      </button>
-                      <button
-                        className="conversa-acao conversa-acao-danger"
-                        title="Arquivar"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void arquivarConversa(conversa)
-                        }}
-                      >
-                        <Archive size={14} strokeWidth={2.3} />
-                      </button>
+                      {!editando && !mostrarArquivadas && (
+                        <div className="conversa-acoes" aria-label="Acoes da conversa">
+                          <button
+                            className="conversa-acao"
+                            title="Renomear"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              iniciarRenomeacao(conversa)
+                            }}
+                          >
+                            <Pencil size={14} strokeWidth={2.3} />
+                          </button>
+                          <button
+                            className="conversa-acao conversa-acao-danger"
+                            title="Arquivar"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void arquivarConversa(conversa)
+                            }}
+                          >
+                            <Archive size={14} strokeWidth={2.3} />
+                          </button>
+                        </div>
+                      )}
+
+                      {!editando && mostrarArquivadas && (
+                        <div className="conversa-acoes" aria-label="Acoes da conversa">
+                          <button
+                            className="conversa-acao"
+                            title="Restaurar"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              void restaurarConversa(conversa)
+                            }}
+                          >
+                            <RotateCcw size={14} strokeWidth={2.3} />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            ))}
           </>
         )}
       </div>

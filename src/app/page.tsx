@@ -78,10 +78,23 @@ function montarHistoricoContexto(mensagensBase: Mensagem[], limite = HISTORICO_C
     .slice(-limite)
 }
 
+async function carregarMensagensConversa(id: string): Promise<Mensagem[] | null> {
+  const res = await fetch(`/api/conversas/${id}/mensagens`)
+  if (!res.ok) return null
+
+  const data = await res.json() as { mensagens?: Array<Mensagem & { id?: string; criado_em?: string }> }
+  return (data.mensagens ?? []).map(m => ({
+    papel: m.papel,
+    conteudo: m.conteudo,
+    acoes_rapidas: m.acoes_rapidas ?? null,
+  }))
+}
+
 export default function ChatPrincipal() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [carregando, setCarregando] = useState(false)
+  const [carregandoConversa, setCarregandoConversa] = useState(false)
   const [uploadando, setUploadando] = useState(false)
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [erroUpload, setErroUpload] = useState('')
@@ -101,6 +114,10 @@ export default function ChatPrincipal() {
   const router = useRouter()
   const supabase = createClient()
 
+  const atualizarUrlConversa = (id: string | null) => {
+    router.replace(id ? `/?conversa=${encodeURIComponent(id)}` : '/', { scroll: false })
+  }
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -110,6 +127,19 @@ export default function ChatPrincipal() {
       const perfil = await perfilRes.json()
       const nomeUser = perfil.nome || (perfil.email ? perfil.email.split('@')[0] : 'você')
       setNome(nomeUser)
+
+      const conversaInicial = new URLSearchParams(window.location.search).get('conversa')
+      if (conversaInicial) {
+        const historicoConversa = await carregarMensagensConversa(conversaInicial)
+        if (historicoConversa) {
+          setConversaId(conversaInicial)
+          setSessaoId(null)
+          setMensagens(historicoConversa.length > 0 ? historicoConversa : [criarMensagemBoasVindas(nomeUser)])
+          setPrimeiraMensagem(historicoConversa.length === 0)
+          setBotoesIniciaisAtivos(historicoConversa.length === 0)
+          return
+        }
+      }
 
       const histRes = await fetch('/api/chat-historico')
       const { historico, temSessaoAtiva, etapaAtiva, sessaoId: sid, canaisAlvo: ca } = await histRes.json()
@@ -168,20 +198,13 @@ export default function ChatPrincipal() {
 
   const selecionarConversa = async (id: string) => {
     const myId = ++requestIdRef.current
-    setCarregando(true)
+    setCarregandoConversa(true)
     setSidebarAberta(false)
 
     try {
-      const res = await fetch(`/api/conversas/${id}/mensagens`)
+      const historico = await carregarMensagensConversa(id)
       if (myId !== requestIdRef.current) return
-      if (!res.ok) return
-
-      const data = await res.json() as { mensagens?: Array<Mensagem & { id?: string; criado_em?: string }> }
-      const historico = (data.mensagens ?? []).map(m => ({
-        papel: m.papel,
-        conteudo: m.conteudo,
-        acoes_rapidas: m.acoes_rapidas ?? null,
-      }))
+      if (!historico) return
 
       setConversaId(id)
       setSessaoId(null)
@@ -189,12 +212,13 @@ export default function ChatPrincipal() {
       setPrimeiraMensagem(false)
       setBotoesIniciaisAtivos(false)
       limparEstadoInteracao()
+      atualizarUrlConversa(id)
     } catch {
       if (myId === requestIdRef.current) {
         setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Não consegui carregar essa conversa agora. Tenta novamente?' }])
       }
     } finally {
-      if (myId === requestIdRef.current) setCarregando(false)
+      if (myId === requestIdRef.current) setCarregandoConversa(false)
     }
   }
 
@@ -206,13 +230,15 @@ export default function ChatPrincipal() {
     setPrimeiraMensagem(true)
     setBotoesIniciaisAtivos(true)
     setCarregando(false)
+    setCarregandoConversa(false)
     setUploadando(false)
     setSidebarAberta(false)
     limparEstadoInteracao()
+    atualizarUrlConversa(null)
   }
 
   const enviar = async (texto?: string) => {
-    const ocupado = carregando || uploadando
+    const ocupado = carregando || uploadando || carregandoConversa
     if (ocupado) return
 
     let currentConversaId: string | null = conversaId
@@ -230,6 +256,7 @@ export default function ChatPrincipal() {
         }
         currentConversaId = String(convData.id)
         setConversaId(currentConversaId)
+        atualizarUrlConversa(currentConversaId)
         void sidebarRef.current?.refetchConversas()
       } catch {
         setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Erro ao iniciar conversa. Tenta novamente.' }])
@@ -302,6 +329,7 @@ export default function ChatPrincipal() {
           conteudo: data.resposta,
           acoes_rapidas: data.acoes,
         }])
+        void sidebarRef.current?.refetchConversas()
         setPrimeiraMensagem(false)
       } catch {
         setMensagens(prev => [
@@ -347,6 +375,7 @@ export default function ChatPrincipal() {
           acoes_rapidas: data.acoes,
         }])
       }
+      void sidebarRef.current?.refetchConversas()
       setPrimeiraMensagem(false)
     } catch {
       setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Tive um problema para responder. Tenta novamente?' }])
@@ -380,7 +409,8 @@ export default function ChatPrincipal() {
   }
 
   const ocupado = carregando || uploadando
-  const podeSend = !ocupado && (!!arquivo || !!input.trim())
+  const bloqueado = ocupado || carregandoConversa
+  const podeSend = !bloqueado && (!!arquivo || !!input.trim())
 
   return (
     <>
@@ -395,6 +425,8 @@ export default function ChatPrincipal() {
         }
         .chat-wrap { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; width: 100%; margin: 0; padding: 26px 24px 0; overflow: hidden; }
         .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 2px 4px 18px; max-width: 820px; width: 100%; margin: 0 auto; }
+        .conversation-loading { align-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 7px 12px; border: 1px solid #d8e4f2; border-radius: 999px; background: rgba(255,255,255,0.92); color: #5f6f85; font-size: 12px; font-weight: 800; box-shadow: 0 8px 22px rgba(15,23,42,0.08); }
+        .conversation-loading svg { animation: spin .8s linear infinite; color: #155bd5; }
         .sidebar-toggle { display: none; position: absolute; top: 14px; left: 16px; z-index: 30; width: 38px; height: 38px; border: 1px solid #d8e4f2; border-radius: 12px; background: rgba(255,255,255,0.92); color: #155bd5; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 24px rgba(15,23,42,0.10); backdrop-filter: blur(14px); }
         .sidebar-overlay { display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0; border: none; background: rgba(15,23,42,0.38); z-index: 80; cursor: pointer; }
         .msg-ai { display: flex; gap: 12px; align-items: flex-start; }
@@ -427,6 +459,7 @@ export default function ChatPrincipal() {
         .typing span:nth-child(1) { animation-delay: -0.32s; }
         .typing span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .input-area { padding: 16px 0 20px; border-top: 1px solid rgba(207,216,228,0.72); background: rgba(248,251,255,0.82); backdrop-filter: blur(14px); max-width: 820px; width: 100%; margin: 0 auto; }
         .file-preview { margin-bottom: 8px; }
         .erro-upload { font-size: 12px; color: #ea4335; margin-bottom: 6px; }
@@ -460,6 +493,12 @@ export default function ChatPrincipal() {
             <PanelLeft size={18} strokeWidth={2.4} />
           </button>
           <div className="messages" ref={messagesRef}>
+            {carregandoConversa && (
+              <div className="conversation-loading" role="status">
+                <Loader2 size={14} />
+                Carregando conversa
+              </div>
+            )}
             {mensagens.map((m, i) => {
               if (m.papel === 'user') {
                 const arqInfo = parsearArquivoDaMensagem(m.conteudo)
@@ -624,7 +663,7 @@ export default function ChatPrincipal() {
               <button
                 className="clip-btn"
                 onClick={() => { setErroUpload(''); fileInputRef.current?.click() }}
-                disabled={ocupado}
+                disabled={bloqueado}
                 title="Anexar planilha (.xlsx, .xls, .csv)"
               >
                 <Paperclip size={18} />
@@ -635,7 +674,7 @@ export default function ChatPrincipal() {
                 value={arquivo ? '' : input}
                 onChange={e => !arquivo && setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && enviar()}
-                disabled={ocupado}
+                disabled={bloqueado}
               />
               <button className="send-btn" onClick={() => enviar()} disabled={!podeSend}>
                 {uploadando ? <Loader2 size={17} className="send-spinner" /> : <ArrowUp size={18} strokeWidth={2.5} />}

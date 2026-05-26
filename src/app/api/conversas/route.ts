@@ -22,16 +22,19 @@ export async function POST(request: Request) {
   return Response.json(data, { status: 201 })
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
+  const { searchParams } = new URL(request.url)
+  const listarArquivadas = searchParams.get('arquivadas') === '1' || searchParams.get('arquivadas') === 'true'
+
   const { data, error } = await supabase
     .from('conversas')
-    .select('id, titulo, criada_em, atualizada_em')
+    .select('id, titulo, criada_em, atualizada_em, arquivada')
     .eq('user_id', user.id)
-    .eq('arquivada', false)
+    .eq('arquivada', listarArquivadas)
     .order('atualizada_em', { ascending: false })
 
   if (error) {

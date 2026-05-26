@@ -71,8 +71,13 @@ const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|pa
 
 const TITULOS_EXCLUIDOS = new Set([
   'Cadastrar produtos',
+  'quero cadastrar produtos',
+  'quero cadastrar mais produtos',
   'Ver meus catálogos',
   'Tirar uma dúvida',
+  'Tenho uma dúvida',
+  'Quero continuar o cadastro',
+  'Quero cancelar e começar do zero',
   'Ver meu plano',
 ])
 
@@ -99,6 +104,46 @@ function normalizarHistoricoContexto(historico: unknown): HistoricoContexto[] {
     }))
     .filter((item): item is HistoricoContexto => item.papel !== null && item.conteudo.length > 0)
     .slice(-HISTORICO_CONTEXTO_LIMITE)
+}
+
+function normalizarComparacaoTitulo(valor: string) {
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizarTituloConversa(mensagem: unknown): string | null {
+  if (typeof mensagem !== 'string') return null
+
+  let titulo = mensagem.trim().replace(/\s+/g, ' ')
+  if (!titulo || titulo.startsWith('[')) return null
+
+  const comparacao = normalizarComparacaoTitulo(titulo)
+  const excluido = Array.from(TITULOS_EXCLUIDOS).some(item => (
+    normalizarComparacaoTitulo(item) === comparacao
+  ))
+  if (excluido) return null
+
+  if (
+    comparacao.startsWith('baixei o template') ||
+    comparacao.startsWith('canais escolhidos:') ||
+    comparacao.startsWith('como subir no ')
+  ) {
+    return null
+  }
+
+  titulo = titulo
+    .replace(/^(quero|gostaria de|preciso|pode me ajudar a|me ajuda a)\s+/i, '')
+    .replace(/[?.!]+$/g, '')
+    .trim()
+
+  if (titulo.length < 8) return null
+  if (titulo.length > 56) titulo = `${titulo.slice(0, 53).trim()}...`
+
+  return titulo.charAt(0).toUpperCase() + titulo.slice(1)
 }
 
 const INSTRUCOES_UPLOAD: Record<string, string> = {
@@ -228,19 +273,19 @@ export async function POST(request: Request) {
 
       if (errUser) console.error('[chat-principal] INSERT user falhou:', JSON.stringify(errUser))
 
-      if (
-        conversa.titulo === null &&
-        !mensagem.startsWith('[') &&
-        mensagem.length > 15 &&
-        !TITULOS_EXCLUIDOS.has(mensagem)
-      ) {
-        await supabase
-          .from('conversas')
-          .update({ titulo: mensagem.slice(0, 60) })
-          .eq('id', conversa_id)
-          .eq('user_id', user.id)
-          .is('titulo', null)
+      const tituloSugerido = conversa.titulo === null ? normalizarTituloConversa(mensagem) : null
+      const atualizacaoConversa: { atualizada_em: string; titulo?: string } = {
+        atualizada_em: new Date().toISOString(),
       }
+      if (tituloSugerido) atualizacaoConversa.titulo = tituloSugerido
+
+      const { error: errConversa } = await supabase
+        .from('conversas')
+        .update(atualizacaoConversa)
+        .eq('id', conversa_id)
+        .eq('user_id', user.id)
+
+      if (errConversa) console.error('[chat-principal] UPDATE conversa falhou:', JSON.stringify(errConversa))
     }
 
     await cancelarSessoesAntigas(user.id)
