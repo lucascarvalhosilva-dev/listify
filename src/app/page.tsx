@@ -7,6 +7,8 @@ import ChatFileAttachment from '@/components/ChatFileAttachment'
 import SeletorCanais from '@/components/SeletorCanais'
 import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
+import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
+import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
 import SidebarConversas, { type SidebarConversasRef } from '@/components/SidebarConversas'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
@@ -21,7 +23,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'botao_ajuda_upload'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -31,6 +33,19 @@ type Botao = {
   canal?: string
   nome_canal_label?: string
   tamanho_bytes?: number
+  status?: StatusConfianca
+  titulo?: string
+  resumo?: string
+  total_produtos?: number
+  produtos_processados?: number
+  arquivos_gerados?: number
+  canais_solicitados?: number
+  alertas_count?: number
+  campos_obrigatorios_ok?: boolean
+  precos_calculados?: boolean
+  drive_validado?: boolean
+  alertas_preview?: string[]
+  price_guard?: PriceGuardData
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
@@ -530,6 +545,35 @@ export default function ChatPrincipal() {
                     {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
                       m.acoes_rapidas.botoes.some(b => b.acao === 'card_download_arquivo') ? (
                         <div style={{ marginTop: 12, marginLeft: 44 }}>
+                          {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_status_confianca')
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardStatusConfianca
+                                  status={b.status ?? 'atencao'}
+                                  titulo={b.titulo ?? 'Conferência rápida'}
+                                  resumo={b.resumo ?? 'Revise os pontos principais antes de publicar.'}
+                                  total_produtos={b.total_produtos ?? 0}
+                                  produtos_processados={b.produtos_processados ?? 0}
+                                  arquivos_gerados={b.arquivos_gerados ?? 0}
+                                  canais_solicitados={b.canais_solicitados ?? 0}
+                                  alertas_count={b.alertas_count ?? 0}
+                                  campos_obrigatorios_ok={b.campos_obrigatorios_ok ?? false}
+                                  precos_calculados={b.precos_calculados ?? false}
+                                  drive_validado={b.drive_validado ?? false}
+                                  alertas_preview={b.alertas_preview ?? []}
+                                />
+                              </div>
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_price_guard' && b.price_guard)
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardPriceGuard {...b.price_guard!} />
+                              </div>
+                            ))
+                          }
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                             {m.acoes_rapidas.botoes
                               .filter(b => b.acao === 'card_download_arquivo')
@@ -544,10 +588,10 @@ export default function ChatPrincipal() {
                               ))
                             }
                           </div>
-                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo') && (
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard') && (
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
-                                .filter(b => b.acao !== 'card_download_arquivo')
+                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.acao === 'botao_ajuda_upload'

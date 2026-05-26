@@ -27,10 +27,10 @@ Bloqueadores da V1:
 - [x] Cadastro funcionando no chat
 - [x] Histórico de catálogos e conversas
 - [ ] Validador antes do upload
-- [ ] Price Guard simples
+- [x] Price Guard simples
 - [ ] Detector de produto restrito/proibido por canal
 - [ ] Comparador antes/depois do listing
-- [ ] Status de confiança no resultado: fotos encontradas, campos obrigatórios, margem estimada, riscos
+- [x] Status de confiança no resultado: conferência rápida com campos, produtos, preço, arquivos, fotos/Drive e alertas
 - [ ] Instrumentar métricas da V1: arquivo gerado, arquivo baixado, upload aceito, erro reportado, erro corrigido
 - [ ] Beta fechado: 10-30 usuários grátis em troca de feedback
 
@@ -168,4 +168,6 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - RLS policies corretas em `chat_historico`
 - Contexto de conversa preservado ao continuar (Etapa 4)
 - Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
+- Status de confiança pós-geração no chat (campos, produtos, preço, arquivos, Drive e alertas)
+- Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
 - AGENTS.md com diretrizes de workflow

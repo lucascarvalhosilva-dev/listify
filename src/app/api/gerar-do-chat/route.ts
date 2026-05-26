@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
+import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
 
 export const maxDuration = 60
 
@@ -25,6 +26,7 @@ const CONTENT_TYPE: Record<string, string> = {
 const CANAL_LABELS: Record<string, string> = {
   shopee: 'Shopee',
   ml: 'Mercado Livre',
+  tiktok_shop: 'TikTok Shop',
   tiktok: 'TikTok Shop',
   bling: 'Bling',
   magalu: 'Magalu',
@@ -47,16 +49,67 @@ interface ArquivoGerado {
   catalogo_id?: string
 }
 
+interface CardStatusConfianca {
+  acao: 'card_status_confianca'
+  status: 'pronto' | 'atencao'
+  titulo: string
+  resumo: string
+  total_produtos: number
+  produtos_processados: number
+  arquivos_gerados: number
+  canais_solicitados: number
+  alertas_count: number
+  campos_obrigatorios_ok: boolean
+  precos_calculados: boolean
+  drive_validado: boolean
+  alertas_preview: string[]
+}
+
 interface ProcessCatalogResponse {
   status: string
   produtos_processados: number
   alertas: string[]
   arquivos: Record<string, string | null>
+  produtos_revisao?: ProdutoRevisaoPriceGuard[]
 }
 
 function formatarDataLabel(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+function criarCardStatusConfianca(params: {
+  totalProdutos: number
+  produtosProcessados: number
+  arquivosGerados: number
+  canaisSolicitados: number
+  alertas: string[]
+  driveValidado: boolean
+  camposObrigatoriosOk: boolean
+  precosCalculados: boolean
+}): CardStatusConfianca {
+  const tudoProcessado = params.produtosProcessados === params.totalProdutos && params.totalProdutos > 0
+  const todosArquivos = params.arquivosGerados === params.canaisSolicitados && params.canaisSolicitados > 0
+  const semAlertas = params.alertas.length === 0
+  const pronto = tudoProcessado && todosArquivos && params.driveValidado && params.camposObrigatoriosOk && params.precosCalculados && semAlertas
+
+  return {
+    acao: 'card_status_confianca',
+    status: pronto ? 'pronto' : 'atencao',
+    titulo: pronto ? 'Conferência rápida: pronto para upload' : 'Conferência rápida: revise antes do upload',
+    resumo: pronto
+      ? 'Campos obrigatórios, Drive e arquivos passaram na conferência automática.'
+      : 'Os arquivos foram gerados, mas há pontos importantes para revisar antes de publicar.',
+    total_produtos: params.totalProdutos,
+    produtos_processados: params.produtosProcessados,
+    arquivos_gerados: params.arquivosGerados,
+    canais_solicitados: params.canaisSolicitados,
+    alertas_count: params.alertas.length,
+    campos_obrigatorios_ok: params.camposObrigatoriosOk,
+    precos_calculados: params.precosCalculados,
+    drive_validado: params.driveValidado,
+    alertas_preview: params.alertas.slice(0, 3),
+  }
 }
 
 export async function POST(request: Request) {
@@ -256,6 +309,21 @@ export async function POST(request: Request) {
     }
 
     const alertasFinal = [...(processData.alertas ?? []), ...alertasCatalogos]
+    const statusConfianca = criarCardStatusConfianca({
+      totalProdutos: produtos.length,
+      produtosProcessados: processData.produtos_processados,
+      arquivosGerados: arquivosGerados.length,
+      canaisSolicitados: canaisAlvo.length,
+      alertas: alertasFinal,
+      driveValidado: dados.drive_validado === true,
+      camposObrigatoriosOk: produtos.length > 0,
+      precosCalculados: processData.produtos_processados > 0,
+    })
+    const priceGuard = criarCardPriceGuard({
+      produtosRevisao: processData.produtos_revisao ?? [],
+      canais: canaisEngine,
+      regime,
+    })
 
     console.log('[ETAPA] atualizando pra concluida | catalogos salvos:', catalogosIds.length)
     const { error: updateErr } = await supabase
@@ -269,6 +337,8 @@ export async function POST(request: Request) {
           concluida_em: agora.toISOString(),
           arquivos_gerados: arquivosGerados,
           alertas: alertasFinal,
+          status_confianca: statusConfianca,
+          price_guard: priceGuard.price_guard,
           canais_processados: processData.produtos_processados,
           catalogos_ids: catalogosIds,
         },
@@ -300,6 +370,8 @@ export async function POST(request: Request) {
       ].join('\n')
 
       const botoesSucesso = [
+        statusConfianca,
+        priceGuard,
         ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
           path: a.path,
@@ -348,6 +420,8 @@ export async function POST(request: Request) {
         ].join('\n'),
         acoes: {
           botoes: [
+            statusConfianca,
+            priceGuard,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',
               path: a.path,
