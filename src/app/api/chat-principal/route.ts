@@ -176,8 +176,6 @@ export async function POST(request: Request) {
 
     const { mensagem, historico, conversa_id } = await request.json()
 
-    console.log('[chat-principal] conversa_id recebido:', conversa_id, 'tipo:', typeof conversa_id)
-
     if (!conversa_id || typeof conversa_id !== 'string') {
       return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
     }
@@ -203,7 +201,6 @@ export async function POST(request: Request) {
         })
         .select()
 
-      console.log('[chat-principal] INSERT user → status:', statusUser, '| error:', JSON.stringify(errUser), '| data:', JSON.stringify(dataUser))
       if (errUser) console.error('[chat-principal] INSERT user falhou:', JSON.stringify(errUser))
 
       if (
@@ -533,7 +530,6 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
       })
       .select()
 
-    console.log('[chat-principal] INSERT assistant → status:', statusAssistant, '| error:', JSON.stringify(errAssistant), '| data:', JSON.stringify(dataAssistant))
     if (errAssistant) console.error('[chat-principal] INSERT assistant falhou:', JSON.stringify(errAssistant))
 
     return Response.json({ resposta: textoLimpo, acoes })
