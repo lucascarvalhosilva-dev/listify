@@ -406,14 +406,16 @@ Objetivo: vendedor volta toda semana e justifica assinatura recorrente.
 - Publicar em outro canal a partir de catalogo existente
 - Correcao de erros por upload (sobe log do marketplace → Guiamos corrige)
 - Catalog Quality Score
-- Geracao de video curto do produto (Remotion + Cloud Run) — 3-4 semanas so desta feature
-- Remocao de fundo automatica nas fotos
+- Geracao de video curto do produto (Remotion + Cloud Run) — diferencial prioritario para canais que valorizam/exigem video
 - Alertas de qualidade (integrados ao Quality Score)
+- Revisao de preco/margem em catalogos ja gerados
+- Melhorias de titulo/SEO a partir do historico do catalogo
 
 ### Fase 3 — Expansão (pós-lançamento, 3+ meses)
 
 Objetivo: aprofundar diferenciais e expandir nichos.
 
+- Remocao de fundo automatica nas fotos
 - Otimizacao de palavras-chave SEO por marketplace
 - Analise de viabilidade de produto
 - Biblioteca profunda do nicho pesca → expansao pra outros nichos verticais
@@ -511,6 +513,179 @@ Após análise de mercado e discussão de produto, o Lucas confirmou:
 4. **Remoção de fundo automática nas fotos** — Marketplaces top exigem fundo branco. Hoje vendedor depende de apps tipo Remove.bg.
 5. **Otimização de palavras-chave SEO por marketplace** — Cada marketplace tem algoritmo de busca diferente; vendedor pequeno não sabe.
 6. **Análise de viabilidade de produto antes do cadastro** — "Esse produto tem 234 concorrentes no ML, sua margem ficaria 3%. Recomendamos não anunciar nesse canal." Pós-lançamento.
+
+## Revisao critica Codex (2026-05-26)
+
+A tese do Claude esta correta: preparar cadastro e nao virar ERP. O ponto critico e sequenciamento. O documento agora tem diferenciais suficientes para imaginar um produto grande, mas lancar bem exige resistir a tres tentacoes:
+
+1. **Construir features visuais antes de provar upload.** Remocao de fundo pode ficar depois. Video curto sobe de prioridade por ser requisito/diferencial de marketplace, mas deve nascer como MVP simples depois do arquivo base estar confiavel.
+2. **Virar consultoria disfarçada.** Setup assistido e beta concierge ajudam a aprender, mas o produto precisa transformar os aprendizados em regras, templates e validadores reutilizaveis.
+3. **Prometer publicacao automatica cedo.** Publicacao via API aumenta complexidade, suporte e risco de conta. A promessa inicial deve continuar sendo arquivo pronto + validacao + correcao.
+
+Decisao critica: o "momento uau" da V1 nao deve ser dashboard ou monitor de concorrente. Deve ser:
+
+> O usuario enviar poucos dados, baixar um arquivo sem erro e entender claramente que nao vai vender no prejuizo.
+
+Video curto entra como acelerador desse momento quando o canal exigir ou favorecer video, desde que nao bloqueie a entrega da planilha base.
+
+## Decisoes estrategicas adicionais
+
+### 1. North Star da V1
+
+A metrica principal nao deve ser "produtos gerados". Produto gerado pode estar errado. A metrica principal deve ser:
+
+> Percentual de catalogos gerados que viram upload aceito pelo marketplace sem retrabalho manual relevante.
+
+Metricas de suporte:
+
+- tempo ate primeiro arquivo;
+- percentual de arquivos baixados;
+- percentual de upload aceito;
+- quantidade de erros por 100 produtos;
+- percentual de erros corrigidos pelo Guiamos;
+- percentual de catalogos reutilizados em outro canal.
+
+### 2. Beta deve ser concierge, mas medido
+
+Fazer beta gratis com 10-30 usuarios e bom, mas precisa ser tratado como experimento pago em aprendizado. Para cada usuario beta, registrar:
+
+- nicho;
+- canal alvo;
+- produtos enviados;
+- tempo manual estimado antes do Guiamos;
+- problemas encontrados no upload;
+- quanto pagaria se funcionasse;
+- se recomendaria para outro vendedor.
+
+Regra: qualquer intervencao manual feita pelo Lucas durante o beta deve virar uma regra documentada ou uma tarefa de produto. Se nao virar regra, vira custo operacional invisivel.
+
+### 3. Vertical inicial precisa ter vantagem real
+
+Pesca e um bom nicho se o Lucas tiver acesso a produtos, usuarios e conhecimento real. Nao escolher pesca apenas porque parece facil. O nicho inicial deve cumprir pelo menos 4 dos 5 criterios:
+
+- acesso a vendedores reais para entrevistas;
+- variedade de produtos suficiente para testar atributos;
+- dor real de cadastro/foto/preco;
+- margem que justifique pagar ferramenta;
+- baixa complexidade regulatoria comparada a produtos restritos.
+
+Se pesca nao cumprir isso, escolher outro nicho com acesso mais facil vale mais do que insistir em uma tese bonita.
+
+### 4. Plano Free nao pode treinar usuario a nao pagar
+
+O Free deve provar valor, nao substituir o produto. Decisao recomendada:
+
+- Free com 5 produtos totais ou mensais muito limitados;
+- sem correcao automatica de erros;
+- sem publicar em outro canal em massa;
+- com marca/limite operacional discreto;
+- upgrade disparado por "quero gerar mais produtos" ou "quero corrigir erro".
+
+O paywall deve aparecer no momento em que o usuario ja viu valor, nao antes do primeiro arquivo.
+
+### 5. Cobranca deve vender resultado, nao acesso
+
+O plano mensal deve ser explicado como "capacidade operacional", nao como "acesso ao chat". Exemplo:
+
+- Starter: ate 100 produtos prontos por mes.
+- Pro: ate 500 produtos, mais correcao de erro e Price Guard.
+- Growth: volume, multiplos canais e prioridade.
+
+Add-ons entram quando o cliente tem pico de catalogo, nao quando falta uma feature essencial.
+
+### 6. Definir o que e proibido para V1
+
+Para proteger o produto, V1 nao deve incluir:
+
+- publicacao direta via API;
+- gestao de pedidos;
+- emissao fiscal;
+- reprecificacao automatica;
+- monitoramento continuo de concorrentes;
+- dashboard de performance de vendas;
+- geracao de video bloqueando a entrega da planilha base;
+- remocao de fundo obrigatoria para concluir fluxo.
+
+Esses itens podem entrar depois, mas nao devem bloquear o lancamento.
+
+### 7. Erros reais sao o moat
+
+O diferencial mais defensavel nao e "usar IA", porque concorrentes podem copiar. O moat e acumular:
+
+- erros reais por marketplace;
+- regras por categoria;
+- templates versionados;
+- traducoes de campos de cada canal;
+- heuristicas de preco/margem;
+- exemplos de upload aceito.
+
+Cada erro corrigido deve alimentar uma biblioteca. Esse banco vira ativo estrategico e argumento de venda.
+
+### 8. Confiança precisa ser visivel na interface
+
+O usuario nao deve apenas receber uma planilha. Ele precisa ver por que pode confiar nela:
+
+- "Fotos encontradas: 3/3";
+- "Campos obrigatorios: 100%";
+- "Margem estimada: 22%";
+- "Risco: revisar NCM";
+- "Pronto para Shopee";
+- "Mercado Livre exige atributo X".
+
+Isso transforma IA em ferramenta operacional, nao caixa-preta.
+
+### 9. Venda assistida pode ser o primeiro canal
+
+Antes de depender de marketing pago, testar venda direta:
+
+- abordar vendedores pequenos em nichos escolhidos;
+- oferecer "primeiro catalogo pronto";
+- cobrar setup baixo ou fazer beta controlado;
+- medir objecoes reais;
+- transformar objecoes em produto e copy.
+
+Se o usuario nao aceita uma conversa manual de 15 minutos para resolver o problema, provavelmente a dor ainda nao esta clara.
+
+## Gates de decisao antes de construir features grandes
+
+| Decisao | Gate minimo antes de investir |
+|---|---|
+| Lançar planos pagos | 5 usuarios reais geraram arquivo e pelo menos 3 tentaram upload |
+| Subir preco para R$149+ | Usuarios citam economia de tempo ou reducao de erro sem serem induzidos |
+| Construir video curto | Arquivo base validado + 3 produtos reais com fotos aptas para gerar MVP simples de video |
+| Construir remocao de fundo | Pelo menos 30% dos erros ou retrabalhos do beta envolvem foto/fundo |
+| Construir integracao Bling/Tiny | Pelo menos 5 usuarios beta ja usam Bling/Tiny e pedem import/export |
+| Construir publicacao direta | Upload por planilha ja tem taxa alta de sucesso e suporte esta controlado |
+| Expandir alem de pesca | Pesca validou upload, preco e recorrencia; ou outro nicho prova acesso comercial melhor |
+
+## Riscos estrategicos e mitigacoes
+
+| Risco | Por que importa | Mitigacao |
+|---|---|---|
+| IA preencher campo errado | Pode gerar prejuizo, rejeicao ou perda de confianca | Validacao, score, campos com baixa confianca e revisao explicita |
+| Regras dos marketplaces mudam | Templates e taxas ficam obsoletos | Templates versionados e rotina mensal de revisao |
+| Cliente usar uma vez e cancelar | Cadastro inicial e episodico | Publicar em outro canal, correcao de erros, revisao de margem e catalogo vivo |
+| Suporte virar manual demais | Margem do SaaS some | Registrar toda intervencao e converter em regra/produto |
+| Concorrente copiar "IA para anuncios" | IA generica nao e defensavel | Focar em regras brasileiras, erros reais, upload aceito e preco por canal |
+| Produto parecer complexo | Vendedor pequeno abandona | Chat central + cards operacionais simples + proximo passo claro |
+| Promessa fiscal/tributaria perigosa | Preco e imposto podem ter implicacoes | Comunicar "estimativa operacional" e pedir revisao contábil quando necessario |
+
+## Ordem de prioridade revisada
+
+1. Upload aceito e arquivo correto.
+2. Price Guard e margem visivel.
+3. Validador pre-upload.
+4. Detector de produto restrito/proibido por canal.
+5. Comparador antes/depois (confianca visivel na V1).
+6. Publicar em outro canal a partir do mesmo catalogo.
+7. Correcao de erros por upload.
+8. Video curto do produto.
+9. Quality Score.
+10. Import/export com ERP.
+11. Remocao de fundo.
+12. Viabilidade, concorrencia e reprecificacao.
+
+Essa ordem deve guiar produto, nao apenas roadmap. Se uma feature nova nao melhora upload, confianca, margem ou recorrencia, ela provavelmente fica para depois.
 
 ## Fontes pesquisadas
 
