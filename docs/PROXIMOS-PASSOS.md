@@ -1,97 +1,120 @@
 # Próximos Passos — Roadmap até Lançamento
 
-> Lançamento previsto: ~4 semanas. Plano vivo, atualizar conforme avança.
+> Lançamento revisado: 3-4 meses (set/out 2026). Plano vivo, atualizar conforme avança.
+> Posicionamento: "Camada inteligente de preparação de cadastro para marketplaces brasileiros".
+> Detalhes do modelo de negócio: docs/09-modelo-negocio-diferenciacao.md
 
-## Semana 1 — Modelo de negócio e diferenciação (em decisão)
+## Fase 0 — Validação com usuários (próximas 2 semanas)
 
-Antes de codar mais coisa, decidir no chat (não no Claude Code):
+Antes de codar features novas, validar hipóteses com vendedores reais.
 
-* Modelo de cobrança: assinatura mensal? Crédito por geração? Freemium? Vitalício? Reavaliar a estrutura atual de Starter/Profissional/Agência.
-* Posicionamento: o que faz Guiamos ser escolhido vs concorrente? Qual a entrega que ninguém mais faz?
-* Persona ideal: vendedor pequeno (1-10 produtos)? Médio (50+)? Agência?
-* Pricing: valor de cada plano, gatilhos de upgrade, política de gratuito.
+- Prospectar 5-10 vendedores reais de marketplace (LinkedIn, grupos, Reddit)
+- Entrevistar cada um (30-45min) sobre: tempo gasto cadastrando, maior dor, modelo de pagamento preferido, percepção do "momento uau"
+- Documentar respostas em docs/VALIDACAO-USUARIOS.md (a criar)
+- Decidir quais features da Fase 1 são confirmadas e quais precisam ajuste
 
-Output esperado: documento curto em `docs/MODELO-NEGOCIO.md` com decisão tomada (criar arquivo novo, deixar a estrutura — uma seção por tópico acima).
+Output esperado: relatório curto com 8 hipóteses validadas/refutadas (lista em 09-modelo-negocio-diferenciacao.md, seção "Hipoteses a validar com usuarios").
 
----
+## Fase 1 — Beta vendável (4-6 semanas)
 
-## Semana 2 — Polimento de produto
+Foco: vendedor sai de "tenho produto e fotos" para "tenho cadastro pronto e validado".
 
-Foco: produto sem bugs, fluxo testado ponta a ponta, visual coeso.
+- [x] Cadastro funcionando no chat
+- [x] Histórico de catálogos e conversas
+- [ ] Validador antes do upload
+- [ ] Price Guard simples
+- [ ] Detector de produto restrito/proibido por canal
+- [ ] Comparador antes/depois do listing
+- [ ] Polimento visual (seguir docs/08-design-ui.md, sem bugs visíveis)
+- [ ] Streaming de progresso durante geração (pendente do bloco 3)
+- [ ] Beta fechado: 10-30 usuários grátis em troca de feedback
 
-* Testar fluxo completo logado: cadastro → onboarding → chat → geração de cada canal (Shopee, ML, etc) → download → ciclo de correção de erros
-* Identificar e corrigir todos os bugs encontrados durante o teste
-* Garantir consistência visual (seguir `docs/08-design-ui.md`)
-* Streaming de progresso durante geração (pendente)
-* Hosting próprio de fotos (Cloudflare R2) — ver `05-fotos.md`, ainda não decidido se entra nesta semana ou backlog
-* Favicon Guiamos (SVG com letra G em fundo azul `#1a73e8`)
+Output esperado: usuários do beta usam o produto sem assistência e geram cadastros publicáveis.
 
-Output esperado: checklist de bugs zerado, fluxo gravado em vídeo de demonstração interno.
+## Fase 2 — Recorrência (6-8 semanas)
 
----
+Foco: vendedor volta toda semana e justifica pagar mensalidade.
 
-## Semana 3 — Checkout e onboarding pago
+- [ ] Publicar em outro canal a partir de catálogo existente
+- [ ] Correção de erros por upload (sobe log do marketplace → Guiamos corrige)
+- [ ] Catalog Quality Score
+- [ ] Geração de vídeo curto do produto (Remotion + Cloud Run) — 3-4 semanas só desta feature
+- [ ] Remoção de fundo automática nas fotos
+- [ ] Alertas de qualidade integrados ao Quality Score
+- [ ] Hosting próprio de fotos (Cloudflare R2) — ver docs/05-fotos.md
+- [ ] Favicon Guiamos (SVG com letra G em fundo azul `#1a73e8`)
+
+Output esperado: usuários do beta voltam ao produto pelo menos 1x/semana após cadastro inicial.
+
+## Fase 3 — Checkout e lançamento pago (2 semanas)
 
 Foco: usuário consegue assinar plano pago e o sistema reage corretamente.
 
-* Decisão a tomar antes: Mercado Pago vs Stripe (Lucas mencionou interesse em Stripe; trade-offs precisam ser avaliados — MP tem Pix nativo e conversão melhor pro público BR; Stripe exige conta US ou empresa BR homologada).
-* Implementar provider escolhido
-* Webhook de confirmação → atualizar coluna `plano` em `profiles`
-* Página `/upgrade` já tem UI, falta backend
-* Fluxo de assinatura recorrente (renovação, cancelamento, downgrade)
-* Email transacional de confirmação de pagamento (Resend já configurado)
-* Página de gerenciamento de assinatura
+- [ ] Decisão: Stripe vs Mercado Pago (Lucas sinalizou Stripe; precisa avaliar trade-offs — Stripe exige conta US ou empresa BR; MP tem Pix nativo, conversão BR melhor)
+- [ ] Implementar provider escolhido
+- [ ] Webhook de confirmação → atualizar coluna `plano` em `profiles`
+- [ ] Página `/upgrade` já tem UI, falta backend
+- [ ] Fluxo de assinatura recorrente (renovação, cancelamento, downgrade)
+- [ ] Email transacional de confirmação de pagamento (Resend já configurado)
+- [ ] Página de gerenciamento de assinatura
+- [ ] Migrar usuários do beta para plano pago (com período promocional)
 
-Output esperado: usuário consegue pagar plano em produção e funcionalidades pagas são liberadas automaticamente.
+## Fase 4 — Marketing e materiais de lançamento (paralelo às últimas semanas)
 
----
+Foco: material pronto pra atrair primeiros clientes pagantes.
 
-## Semana 4 — Marketing e materiais de lançamento
-
-Foco: material pronto pra anunciar e atrair primeiros clientes.
-
-* Vídeos para anúncios (Lucas precisa de ferramenta — decisão a tomar: Remotion vs CapCut/Canva manual vs freela. Discutir no chat antes de implementar.)
-* Landing `/sobre` revisada com copy de venda forte
-* Material orgânico (posts pra Instagram do Guiamos, exemplos de geração reais)
-* Configurar tracking de conversão (GA4 ou Plausible) — decidir no chat
-* Onboarding email sequence (primeira semana do usuário) — decidir no chat
-
-Output esperado: tudo pronto pra ligar tráfego pago e captar primeiros clientes.
+- [ ] Landing `/sobre` revisada com copy de venda forte (mensagens da seção "Mensagens de venda para testar" em 09-modelo-negocio-diferenciacao.md)
+- [ ] Vídeos de demonstração do produto (decisão: Remotion próprio vs CapCut manual vs freela — discutir em chat)
+- [ ] Material orgânico para Instagram/TikTok do Guiamos
+- [ ] Tracking de conversão (decisão: GA4 ou Plausible — discutir em chat)
+- [ ] Email sequence de onboarding (primeira semana do usuário)
 
 ---
 
 ## Backlog pós-lançamento (não bloqueia o lançamento)
 
-* Integração Bling API (importar catálogo sem CSV)
-* Dashboard de performance (margem real por canal)
-* Geração de copies pra Meta Ads / Google Ads baseada nos produtos
-* Pesquisa de concorrência (preço médio de mercado)
-* Suporte a variações de produto (cor, tamanho, modelo)
-* White-label completo (plano Agência)
-* App mobile (foto com câmera → cadastro)
-* API pública pra ERPs parceiros
-* Suporte a Casas Bahia / Via Varejo
-* Pricing dinâmico baseado em concorrência
-* Chat absorvendo mais ações sem redirecionar (avaliar caso a caso)
-* Refinamento de prompts do system message em `/api/chat-principal` (contínuo)
+- Otimização de palavras-chave SEO por marketplace
+- Análise de viabilidade de produto antes do cadastro
+- Biblioteca profunda do nicho pesca → expansão pra outros nichos
+- Suporte a variações de produto (cor, tamanho, modelo)
+- Reprecificação automática
+- Monitor de concorrência
+- Otimização contínua de listagem baseada em performance
+- Integração Bling API (importar catálogo sem CSV)
+- Dashboard de performance (margem real por canal) — avaliar se entra ou se fica fora do escopo
+- Pesquisa de concorrência (preço médio de mercado)
+- White-label completo (plano Agência)
+- App mobile (foto com câmera → cadastro)
+- API pública pra ERPs parceiros
+- Suporte a Casas Bahia / Via Varejo
+- Pricing dinâmico baseado em concorrência
+- Chat absorvendo mais ações sem redirecionar (avaliar caso a caso)
+- Refinamento contínuo de prompts do system message
+
+---
+
+## Removido do escopo (referência)
+
+- Geração de copies para anúncios Meta/Google Ads (fora do escopo "preparação de cadastro")
+- Tradução automática multi-país (PT→EN/ES) — não relevante pro nicho inicial brasileiro
+- Dashboard executivo de vendas/performance (vira ERP, sai do posicionamento)
 
 ---
 
 ## ✅ Já concluído (referência rápida)
 
-* Domínio guiamos.com.br ativo na Vercel
-* Email transacional via Resend (`noreply@guiamos.com.br`) com DMARC
-* Plano Free funcional (5 produtos, Shopee+ML, 1 catálogo)
-* Travas de uso por plano
-* Sistema de aprendizado de erros (3 camadas)
-* Chat principal como interface principal substituindo painel
-* Onboarding 5 telas
-* Email de confirmação e reset em PT-BR
-* Página `/configuracoes`
-* Varredura completa: nome "Listify" substituído por "Guiamos" em todo o projeto
-* Histórico de conversas (sidebar estilo Claude com busca, arquivar, restaurar, URL persistente)
-* RLS policies corretas em `chat_historico` (correção crítica)
-* Contexto de conversa preservado ao continuar (Etapa 4)
-* Trigger automático de `atualizada_em` em conversas
-* Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
-* AGENTS.md atualizado com 4 novas diretrizes de workflow
+- Domínio guiamos.com.br ativo na Vercel
+- Email transacional via Resend (`noreply@guiamos.com.br`) com DMARC
+- Plano Free funcional (5 produtos, Shopee+ML, 1 catálogo)
+- Travas de uso por plano
+- Sistema de aprendizado de erros (3 camadas)
+- Chat principal como interface principal
+- Onboarding 5 telas
+- Email de confirmação e reset em PT-BR
+- Página `/configuracoes`
+- Varredura completa: nome "Listify" substituído por "Guiamos"
+- Histórico de conversas (sidebar estilo Claude com busca, arquivar, restaurar, URL persistente)
+- RLS policies corretas em `chat_historico`
+- Contexto de conversa preservado ao continuar (Etapa 4)
+- Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
+- AGENTS.md com diretrizes de workflow
