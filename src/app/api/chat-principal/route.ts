@@ -76,6 +76,31 @@ const TITULOS_EXCLUIDOS = new Set([
   'Ver meu plano',
 ])
 
+const HISTORICO_CONTEXTO_LIMITE = 12
+
+type HistoricoContexto = {
+  papel: 'user' | 'assistant'
+  conteudo: string
+}
+
+function normalizarHistoricoContexto(historico: unknown): HistoricoContexto[] {
+  if (!Array.isArray(historico)) return []
+
+  return historico
+    .filter((item): item is { papel: unknown; conteudo: unknown } => (
+      item !== null &&
+      typeof item === 'object' &&
+      'papel' in item &&
+      'conteudo' in item
+    ))
+    .map(item => ({
+      papel: item.papel === 'user' ? 'user' as const : item.papel === 'assistant' ? 'assistant' as const : null,
+      conteudo: typeof item.conteudo === 'string' ? item.conteudo.trim() : '',
+    }))
+    .filter((item): item is HistoricoContexto => item.papel !== null && item.conteudo.length > 0)
+    .slice(-HISTORICO_CONTEXTO_LIMITE)
+}
+
 const INSTRUCOES_UPLOAD: Record<string, string> = {
   'Shopee': `O usuário pediu ajuda pra subir o arquivo no Shopee. Explique passo a passo, com clareza e formatação Markdown:
 1. **Pré-requisito:** Configurações → Envio → Canal Logístico → Correios ATIVO (toggle verde)
@@ -446,10 +471,11 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
 
     const systemPrompt = SYSTEM_PROMPT_BASE + contextoEtapa
     const mensagemParaClaude = limparParaClaude(mensagem)
+    const historicoContexto = normalizarHistoricoContexto(historico)
 
     const messages = [
-      ...(historico || []).map((h: { papel: string; conteudo: string }) => ({
-        role: h.papel === 'user' ? 'user' : 'assistant',
+      ...historicoContexto.map(h => ({
+        role: h.papel,
         content: limparParaClaude(h.conteudo),
       })),
       { role: 'user' as const, content: mensagemParaClaude },

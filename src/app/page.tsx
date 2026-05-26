@@ -33,6 +33,9 @@ type Botao = {
   tamanho_bytes?: number
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
+type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
+
+const HISTORICO_CONTEXTO_LIMITE = 12
 
 const MENSAGEM_RETOMADA: Record<string, string> = {
   aguardando_planilha: 'Notei que você começou um cadastro, mas ainda não enviou a planilha. Quer continuar de onde parou ou começar do zero?',
@@ -66,6 +69,13 @@ function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: nu
   } catch {
     return null
   }
+}
+
+function montarHistoricoContexto(mensagensBase: Mensagem[], limite = HISTORICO_CONTEXTO_LIMITE): HistoricoContexto[] {
+  return mensagensBase
+    .filter(m => !m.temporaria && !m.isWelcome && m.conteudo.trim().length > 0)
+    .map(m => ({ papel: m.papel, conteudo: m.conteudo }))
+    .slice(-limite)
 }
 
 export default function ChatPrincipal() {
@@ -230,7 +240,7 @@ export default function ChatPrincipal() {
     if (arquivo) {
       const arq = arquivo
       const marcador = `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arq.name, tamanho: arq.size })}]`
-      const historicoSnapshot = mensagens.map(m => ({ papel: m.papel, conteudo: m.conteudo }))
+      const historicoSnapshot = montarHistoricoContexto(mensagens)
 
       setArquivo(null)
       setInput('')
@@ -276,7 +286,10 @@ export default function ChatPrincipal() {
           mensagemInterna = `[VALIDACAO_ERRO: ${valData.erros_resumo}]`
         }
 
-        const historicoComArquivo = [...historicoSnapshot, { papel: 'user', conteudo: marcador }]
+        const historicoComArquivo = [
+          ...historicoSnapshot,
+          { papel: 'user' as const, conteudo: marcador },
+        ].slice(-HISTORICO_CONTEXTO_LIMITE)
         const res = await fetch('/api/chat-principal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -311,7 +324,7 @@ export default function ChatPrincipal() {
     setMensagens(prev => [...prev, { papel: 'user', conteudo: mensagem }])
 
     try {
-      const historicoEnvio = primeiraMensagem ? [] : mensagens.map(m => ({ papel: m.papel, conteudo: m.conteudo }))
+      const historicoEnvio = primeiraMensagem ? [] : montarHistoricoContexto(mensagens)
       const res = await fetch('/api/chat-principal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
