@@ -155,7 +155,7 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
       setConversas(prev => prev.map(item => (
         item.id === conversa.id ? { ...item, titulo: tituloAnterior } : item
       )))
-      setErro('Nao consegui renomear a conversa.')
+      setErro('Não consegui renomear a conversa.')
     }
   }
 
@@ -171,7 +171,7 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
       if (!res.ok) throw new Error('Erro ao arquivar')
     } catch {
       setConversas(listaAnterior)
-      setErro('Nao consegui arquivar a conversa.')
+      setErro('Não consegui arquivar a conversa.')
     }
   }
 
@@ -189,16 +189,25 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
       if (!res.ok) throw new Error('Erro ao restaurar')
     } catch {
       setConversas(listaAnterior)
-      setErro('Nao consegui restaurar a conversa.')
+      setErro('Não consegui restaurar a conversa.')
     }
+  }
+
+  function trocarFiltroArquivadas(proximoValor: boolean) {
+    setMostrarArquivadas(proximoValor)
+    setBusca('')
+    setRenomeandoId(null)
+    setTituloEditando('')
   }
 
   const temBusca = busca.trim().length > 0
   const textoVazio = temBusca
-    ? 'Nenhuma conversa encontrada'
+    ? mostrarArquivadas
+      ? 'Nenhuma conversa arquivada encontrada'
+      : 'Nenhuma conversa ativa encontrada'
     : mostrarArquivadas
       ? 'Nenhuma conversa arquivada'
-      : 'Suas conversas vao aparecer aqui'
+      : 'Suas conversas vão aparecer aqui'
 
   return (
     <aside className="sidebar-conversas" aria-label="Conversas">
@@ -489,14 +498,14 @@ const SidebarConversas = forwardRef<SidebarConversasRef, SidebarConversasProps>(
             <button
               type="button"
               className={!mostrarArquivadas ? 'ativo' : ''}
-              onClick={() => setMostrarArquivadas(false)}
+              onClick={() => trocarFiltroArquivadas(false)}
             >
               Ativas
             </button>
             <button
               type="button"
               className={mostrarArquivadas ? 'ativo' : ''}
-              onClick={() => setMostrarArquivadas(true)}
+              onClick={() => trocarFiltroArquivadas(true)}
             >
               Arquivadas
             </button>

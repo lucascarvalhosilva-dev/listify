@@ -27,7 +27,7 @@ export default function SobrePage() {
         .nav-links a:hover { color: #202124; }
         .nav-cta { background: #1a73e8; color: #fff; font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 24px; text-decoration: none; }
         .nav-cta:hover { background: #1557b0; }
-        .hero { background: #fff; padding: 96px 40px 80px; text-align: center; }
+        .hero { background: #fff; padding: 82px 40px 54px; text-align: center; }
         .hero-badge { display: inline-block; border: 1px solid #e8eaed; font-size: 12px; color: #5f6368; padding: 6px 16px; border-radius: 24px; margin-bottom: 28px; }
         .hero h1 { font-size: 52px; font-weight: 700; color: #202124; line-height: 1.12; max-width: 680px; margin: 0 auto 20px; }
         .hero h1 em { color: #1a73e8; font-style: normal; }
@@ -37,6 +37,20 @@ export default function SobrePage() {
         .btn-primary:hover { background: #1557b0; }
         .btn-outline { border: 1.5px solid #1a73e8; color: #1a73e8; padding: 14px 32px; border-radius: 28px; font-size: 15px; font-weight: 500; text-decoration: none; }
         .btn-outline:hover { background: #f0f4ff; }
+        .product-preview { max-width: 900px; margin: 46px auto 0; border: 1px solid #dfe7f1; border-radius: 22px; overflow: hidden; background: #f8fbff; box-shadow: 0 22px 54px rgba(15,23,42,0.10); text-align: left; }
+        .preview-bar { height: 42px; background: #fff; border-bottom: 1px solid #e8edf4; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .preview-dots { display: flex; gap: 6px; }
+        .preview-dots span { width: 9px; height: 9px; border-radius: 50%; background: #d8e1ed; }
+        .preview-status { color: #0f7b58; background: #e6f4ea; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 700; }
+        .preview-body { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; padding: 22px; }
+        .preview-chat, .preview-files { background: #fff; border: 1px solid #e6edf6; border-radius: 16px; padding: 18px; }
+        .preview-msg { color: #182233; font-size: 14px; line-height: 1.55; margin-bottom: 14px; }
+        .preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .preview-pill { border: 1px solid #b9d3ff; color: #155bd5; border-radius: 999px; padding: 8px 11px; font-size: 12px; font-weight: 700; }
+        .preview-file { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e6edf6; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .preview-file strong { font-size: 13px; color: #182233; }
+        .preview-file span { font-size: 11px; color: #697386; }
+        .preview-download { background: #1a73e8; color: #fff; border-radius: 999px; padding: 7px 11px; font-size: 12px; font-weight: 700; white-space: nowrap; }
         .channels { background: #f8f9fa; border-top: 1px solid #e8eaed; border-bottom: 1px solid #e8eaed; padding: 24px 40px; text-align: center; }
         .channels-label { font-size: 11px; color: #5f6368; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
         .channels-list { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; }
@@ -96,8 +110,14 @@ export default function SobrePage() {
         .footer-links a:hover { color: #fff; }
         .footer-copy { font-size: 12px; color: #9aa0a6; }
         @media (max-width: 768px) {
+          .nav { padding: 0 16px; }
+          .nav-logo .tagline { display: none; }
+          .nav-cta { padding: 10px 18px; font-weight: 600; }
+          .hero { padding: 76px 18px 42px; }
           .hero h1 { font-size: 34px; }
           .hero-btns { flex-direction: column; align-items: center; }
+          .product-preview { margin-top: 34px; }
+          .preview-body { grid-template-columns: 1fr; padding: 14px; }
           .grid3 { grid-template-columns: 1fr; }
           .grid6 { grid-template-columns: 1fr 1fr; }
           .pricing-grid { grid-template-columns: 1fr; }
@@ -108,7 +128,7 @@ export default function SobrePage() {
 
       {/* NAV */}
       <nav className="nav">
-        <a href="/sobre" className="nav-logo"><span style={{fontWeight:800,letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span><span className="tagline" style={{marginLeft:'10px',letterSpacing:'.02em'}}>by Anthropic Claude</span></a>
+        <a href="/sobre" className="nav-logo"><span style={{fontWeight:800,letterSpacing:'-1.5px',lineHeight:'1'}}><span style={{color:'#202124'}}>Gu</span><span style={{color:'#1a73e8'}}>ia</span><span style={{color:'#202124'}}>mos</span></span><span className="tagline" style={{marginLeft:'10px',letterSpacing:'.02em'}}>cadastro automatizado</span></a>
         <ul className="nav-links">
           <li><a href="#funcionalidades">Funcionalidades</a></li>
           <li><a href="#precos">Preços</a></li>
@@ -119,12 +139,41 @@ export default function SobrePage() {
 
       {/* HERO */}
       <section className="hero">
-        <div className="hero-badge">Powered by Claude AI — Anthropic</div>
+        <div className="hero-badge">IA para vendedores de marketplace</div>
         <h1>Cadastre produtos em marketplaces em <em>minutos</em>, não em horas</h1>
         <p>Você informa o produto, as fotos e o custo. A Guiamos gera título SEO, descrição, preço calculado e arquivo pronto para upload — automaticamente.</p>
         <div className="hero-btns">
           <Link href="/cadastro" className="btn-primary">Começar agora</Link>
           <a href="#como-funciona" className="btn-outline">Ver como funciona</a>
+        </div>
+        <div className="product-preview" aria-label="Prévia do Guiamos">
+          <div className="preview-bar">
+            <div className="preview-dots"><span /><span /><span /></div>
+            <div className="preview-status">planilha pronta</div>
+          </div>
+          <div className="preview-body">
+            <div className="preview-chat">
+              <div className="preview-msg">
+                <strong>Guiamos</strong><br />
+                Pronto. Gerei os cadastros para Shopee e Mercado Livre com títulos, descrições, preços e campos obrigatórios.
+              </div>
+              <div className="preview-actions">
+                <span className="preview-pill">Cadastrar produtos</span>
+                <span className="preview-pill">Ver catálogos</span>
+                <span className="preview-pill">Tirar dúvida</span>
+              </div>
+            </div>
+            <div className="preview-files">
+              <div className="preview-file">
+                <div><strong>Shopee</strong><br /><span>3 produtos · XLSX · pronto para upload</span></div>
+                <div className="preview-download">Baixar</div>
+              </div>
+              <div className="preview-file">
+                <div><strong>Mercado Livre</strong><br /><span>3 produtos · XLSX · salvo no catálogo</span></div>
+                <div className="preview-download">Baixar</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -283,7 +332,7 @@ export default function SobrePage() {
             <a href="#">Privacidade</a>
             <a href="#">Suporte</a>
           </div>
-          <div className="footer-copy">© 2026 Guiamos. Powered by Claude AI — Anthropic</div>
+          <div className="footer-copy">© 2026 Guiamos.</div>
         </div>
       </footer>
     </>

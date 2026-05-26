@@ -145,11 +145,11 @@ export default function Configuracoes() {
           <div className="cfg-section-title">Minha conta</div>
           <div className="cfg-field">
             <label className="cfg-label">Nome de exibição</label>
-            <input className="cfg-input" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" />
+            <input className="cfg-input" name="display-name" autoComplete="name" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" />
           </div>
           <div className="cfg-field">
             <label className="cfg-label">E-mail</label>
-            <input className="cfg-input" value={email} disabled />
+            <input className="cfg-input" name="email" autoComplete="email" value={email} disabled />
           </div>
           <div style={{display:'flex', justifyContent:'flex-end', marginTop:'8px'}}>
             <button className="btn-save" onClick={salvarPerfil} disabled={salvando}>
@@ -163,16 +163,16 @@ export default function Configuracoes() {
           <div className="cfg-section-title">Trocar senha</div>
           <div className="cfg-field">
             <label className="cfg-label">Senha atual</label>
-            <input className="cfg-input" type="password" value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="••••••••" />
+            <input className="cfg-input" name="current-password" type="password" autoComplete="current-password" value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="Senha atual" />
           </div>
           <div className="cfg-row">
             <div className="cfg-field">
               <label className="cfg-label">Nova senha</label>
-              <input className="cfg-input" type="password" value={senhaNova} onChange={e => setSenhaNova(e.target.value)} placeholder="••••••••" />
+              <input className="cfg-input" name="new-password" type="password" autoComplete="new-password" value={senhaNova} onChange={e => setSenhaNova(e.target.value)} placeholder="Nova senha" />
             </div>
             <div className="cfg-field">
               <label className="cfg-label">Confirmar nova senha</label>
-              <input className="cfg-input" type="password" value={senhaConfirm} onChange={e => setSenhaConfirm(e.target.value)} placeholder="••••••••" />
+              <input className="cfg-input" name="confirm-new-password" type="password" autoComplete="new-password" value={senhaConfirm} onChange={e => setSenhaConfirm(e.target.value)} placeholder="Repita a nova senha" />
             </div>
           </div>
           <div style={{display:'flex', justifyContent:'flex-end', marginTop:'8px'}}>

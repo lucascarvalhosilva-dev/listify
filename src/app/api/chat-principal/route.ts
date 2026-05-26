@@ -26,7 +26,7 @@ REGRAS IMPORTANTES:
 
 INTENÇÕES E REDIRECIONAMENTOS:
 - Ver catálogos / meus catálogos → redirect: /painel?aba=catalogos
-- Ver histórico → redirect: /painel?aba=historico
+- Ver conversas antigas / histórico de conversa → orientar a usar a sidebar de conversas do chat, sem redirecionar
 - Ver plano / fazer upgrade → redirect: /upgrade
 - Configurações → redirect: /configuracoes
 

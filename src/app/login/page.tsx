@@ -71,11 +71,13 @@ export default function LoginPage() {
           <p style={{ fontSize: 14, color: '#5f6368' }}>Acesse sua conta</p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+        <form onSubmit={handleSubmit} autoComplete="on" style={{ display: 'flex', flexDirection: 'column' }}>
           <label htmlFor="email" style={labelStyle}>Email</label>
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="username"
             required
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -88,7 +90,9 @@ export default function LoginPage() {
           <label htmlFor="password" style={labelStyle}>Senha</label>
           <input
             id="password"
+            name="current-password"
             type="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={e => setPassword(e.target.value)}

@@ -142,9 +142,20 @@ export default function ChatPrincipal() {
       }
 
       const histRes = await fetch('/api/chat-historico')
-      const { historico, temSessaoAtiva, etapaAtiva, sessaoId: sid, canaisAlvo: ca } = await histRes.json()
+      const {
+        historico,
+        temSessaoAtiva,
+        etapaAtiva,
+        sessaoId: sid,
+        conversaId: conversaAtivaId,
+        canaisAlvo: ca,
+      } = await histRes.json()
       if (sid) setSessaoId(sid)
       if (ca?.length > 0) setCanaisAlvo(ca)
+      if (conversaAtivaId) {
+        setConversaId(conversaAtivaId)
+        atualizarUrlConversa(conversaAtivaId)
+      }
 
       if (historico && historico.length > 0) {
         setMensagens(historico)

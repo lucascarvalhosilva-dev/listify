@@ -117,11 +117,13 @@ export default function CadastroPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+        <form onSubmit={handleSubmit} autoComplete="on" style={{ display: 'flex', flexDirection: 'column' }}>
           <label htmlFor="email" style={labelStyle}>Email</label>
           <input
             id="email"
+            name="email"
             type="email"
+            autoComplete="email"
             required
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -134,7 +136,9 @@ export default function CadastroPage() {
           <label htmlFor="password" style={labelStyle}>Senha</label>
           <input
             id="password"
+            name="new-password"
             type="password"
+            autoComplete="new-password"
             required
             value={password}
             onChange={e => setPassword(e.target.value)}
@@ -147,7 +151,9 @@ export default function CadastroPage() {
           <label htmlFor="confirmPassword" style={labelStyle}>Confirmar senha</label>
           <input
             id="confirmPassword"
+            name="confirm-new-password"
             type="password"
+            autoComplete="new-password"
             required
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
