@@ -69,6 +69,13 @@ Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planil
 
 const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
 
+const TITULOS_EXCLUIDOS = new Set([
+  'Cadastrar produtos',
+  'Ver meus catálogos',
+  'Tirar uma dúvida',
+  'Ver meu plano',
+])
+
 const INSTRUCOES_UPLOAD: Record<string, string> = {
   'Shopee': `O usuário pediu ajuda pra subir o arquivo no Shopee. Explique passo a passo, com clareza e formatação Markdown:
 1. **Pré-requisito:** Configurações → Envio → Canal Logístico → Correios ATIVO (toggle verde)
@@ -167,7 +174,20 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
-    const { mensagem, historico } = await request.json()
+    const { mensagem, historico, conversa_id } = await request.json()
+
+    if (!conversa_id || typeof conversa_id !== 'string') {
+      return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
+    }
+
+    const { data: conversa } = await supabase
+      .from('conversas')
+      .select('id, titulo')
+      .eq('id', conversa_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!conversa) return Response.json({ error: 'conversa não encontrada' }, { status: 403 })
 
     // Mensagens internas de validação não são salvas no histórico do chat
     if (!esMensagemInterna(mensagem)) {
@@ -175,7 +195,22 @@ export async function POST(request: Request) {
         user_id: user.id,
         papel: 'user',
         conteudo: mensagem,
+        conversa_id,
       })
+
+      if (
+        conversa.titulo === null &&
+        !mensagem.startsWith('[') &&
+        mensagem.length > 15 &&
+        !TITULOS_EXCLUIDOS.has(mensagem)
+      ) {
+        await supabase
+          .from('conversas')
+          .update({ titulo: mensagem.slice(0, 60) })
+          .eq('id', conversa_id)
+          .eq('user_id', user.id)
+          .is('titulo', null)
+      }
     }
 
     await cancelarSessoesAntigas(user.id)
@@ -248,6 +283,7 @@ export async function POST(request: Request) {
           papel: 'assistant',
           conteudo: resposta,
           acoes_rapidas: acoes,
+          conversa_id,
         })
         return Response.json({ resposta, acoes })
       }
@@ -311,6 +347,7 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           papel: 'assistant',
           conteudo: procesandoTexto,
           acoes_rapidas: null,
+          conversa_id,
         })
 
         let geracaoOk = false
@@ -324,7 +361,7 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           const gerarResp = await fetch(gerarUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
-            body: JSON.stringify({ sessao_id: sessaoAtiva.id }),
+            body: JSON.stringify({ sessao_id: sessaoAtiva.id, conversa_id }),
           })
           console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
           geracaoOk = gerarResp.ok
@@ -480,6 +517,7 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
       papel: 'assistant',
       conteudo: textoLimpo,
       acoes_rapidas: acoes,
+      conversa_id,
     })
 
     return Response.json({ resposta: textoLimpo, acoes })

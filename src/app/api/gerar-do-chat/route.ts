@@ -65,10 +65,21 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
-    const { sessao_id } = await request.json()
+    const { sessao_id, conversa_id } = await request.json()
     if (!sessao_id || typeof sessao_id !== 'string') {
       return Response.json({ error: 'sessao_id inválido' }, { status: 400 })
     }
+    if (!conversa_id || typeof conversa_id !== 'string') {
+      return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
+    }
+
+    const { data: conversa } = await supabase
+      .from('conversas')
+      .select('id')
+      .eq('id', conversa_id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!conversa) return Response.json({ error: 'conversa não encontrada' }, { status: 403 })
 
     const { data: sessao, error: sessaoErr } = await supabase
       .from('sessoes_geracao')
@@ -116,6 +127,7 @@ export async function POST(request: Request) {
     const { error: markErr } = await supabase
       .from('sessoes_geracao')
       .update({
+        conversa_id,
         dados_planilha: {
           ...dados,
           geracao_disparada: true,
@@ -314,6 +326,7 @@ export async function POST(request: Request) {
         papel: 'assistant',
         conteudo: conteudoSucesso,
         acoes_rapidas: { botoes: botoesSucesso },
+        conversa_id,
       })
       if (histErr) console.error('[GERAR-DO-CHAT] erro ao inserir mensagem de sucesso:', histErr)
       else console.log('[GERAR-DO-CHAT] mensagem de sucesso inserida no histórico')

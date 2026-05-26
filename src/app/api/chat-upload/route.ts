@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File | null
     if (!arquivo) return Response.json({ error: 'Nenhum arquivo enviado.' }, { status: 400 })
+    const conversa_id = formData.get('conversa_id') as string | null
+    if (!conversa_id) return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
 
     const ext = arquivo.name.split('.').pop()?.toLowerCase() ?? ''
     if (!EXTENSOES_VALIDAS.has(ext)) {
@@ -65,6 +67,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       papel: 'user',
       conteudo: `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arquivo.name, tamanho: arquivo.size })}]`,
+      conversa_id,
     })
 
     return Response.json({

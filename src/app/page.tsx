@@ -64,6 +64,7 @@ export default function ChatPrincipal() {
   const [botoesIniciaisAtivos, setBotoesIniciaisAtivos] = useState(false)
   const [clicadosInicial, setClicadosInicial] = useState<Set<number>>(new Set())
   const [sessaoId, setSessaoId] = useState<string | null>(null)
+  const [conversaId, setConversaId] = useState<string | null>(null)
   const [canaisAlvo, setCanaisAlvo] = useState<string[]>([])
   const messagesRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -79,6 +80,14 @@ export default function ChatPrincipal() {
       const perfil = await perfilRes.json()
       const nomeUser = perfil.nome || (perfil.email ? perfil.email.split('@')[0] : 'você')
       setNome(nomeUser)
+
+      const convRes = await fetch('/api/conversas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const convData = await convRes.json()
+      if (convData.id) setConversaId(convData.id)
 
       const histRes = await fetch('/api/chat-historico')
       const { historico, temSessaoAtiva, etapaAtiva, sessaoId: sid, canaisAlvo: ca } = await histRes.json()
@@ -157,6 +166,7 @@ export default function ChatPrincipal() {
       try {
         const fd = new FormData()
         fd.append('arquivo', arq)
+        if (conversaId) fd.append('conversa_id', conversaId)
         const upRes = await fetch('/api/chat-upload', { method: 'POST', body: fd })
         const upData = await upRes.json()
 
@@ -195,7 +205,7 @@ export default function ChatPrincipal() {
         const res = await fetch('/api/chat-principal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mensagem: mensagemInterna, historico: historicoComArquivo }),
+          body: JSON.stringify({ mensagem: mensagemInterna, historico: historicoComArquivo, conversa_id: conversaId }),
         })
         const data = await res.json()
 
@@ -230,15 +240,15 @@ export default function ChatPrincipal() {
       const res = await fetch('/api/chat-principal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem, historico: historicoEnvio }),
+        body: JSON.stringify({ mensagem, historico: historicoEnvio, conversa_id: conversaId }),
       })
       const data = await res.json()
 
       if (data.recarregar_historico) {
         // Geração concluída: gerar-do-chat já inseriu a mensagem de sucesso no histórico.
         // Recarregar para exibir "processando" + "🎉 Pronto!" como mensagens separadas.
-        const histRes = await fetch('/api/chat-historico')
-        const { historico: novoHistorico } = await histRes.json()
+        const histRes = await fetch(`/api/conversas/${conversaId}/mensagens`)
+        const { mensagens: novoHistorico } = await histRes.json()
         if (novoHistorico?.length > 0) {
           setMensagens(novoHistorico)
         }
