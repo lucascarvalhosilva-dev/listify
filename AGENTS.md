@@ -19,6 +19,30 @@ O usuário principal é vendedor de marketplace no Brasil. Priorize clareza, con
 - Rode `git status` antes de editar.
 - Não reverta mudanças de outro agente sem autorização.
 
+## Manutenção do roadmap (docs/PROXIMOS-PASSOS.md)
+
+O arquivo `docs/PROXIMOS-PASSOS.md` é a fonte de verdade do roadmap. Manter sempre alinhado com o estado real do projeto. Atualizar nas seguintes situações:
+
+1. **Ao concluir uma tarefa listada no roadmap:**
+   - Mover o item da seção da semana correspondente para a seção "✅ Já concluído (referência rápida)"
+   - Resumir em 1 linha o que foi entregue (não copiar a descrição inteira)
+   - Fazer essa atualização no MESMO commit da tarefa concluída, ou em commit subsequente isolado tipo `docs: update roadmap after <feature>`
+
+2. **Ao identificar nova tarefa relevante durante o trabalho:**
+   - Se for crítica pro lançamento: adicionar na semana apropriada (1, 2, 3 ou 4) — confirmar com o usuário antes
+   - Se for melhoria futura: adicionar ao backlog pós-lançamento sem precisar de confirmação
+   - Nunca inventar tarefa nova SEM o usuário pedir explicitamente — só registrar ideias que surgiram naturalmente do trabalho
+
+3. **Ao mudar escopo/prioridade de uma tarefa existente:**
+   - Editar diretamente o item, não duplicar
+   - Se mover entre semanas, justificar em 1 linha o motivo (ex: "movido pra Semana 3 porque depende de checkout funcionando")
+
+4. **Ao encontrar item obsoleto (algo que não faz mais sentido):**
+   - Mover pro backlog em vez de apagar, com nota `[descontinuado: motivo]`
+   - Só apagar de fato se o usuário confirmar
+
+5. **Não mexer no arquivo sem motivo real.** Atualização de roadmap é consequência de trabalho concluído ou nova decisão de produto, não tarefa autônoma.
+
 ## Git
 
 - Trabalhe em mudanças pequenas.
