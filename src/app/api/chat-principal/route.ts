@@ -243,7 +243,8 @@ function limparParaClaude(conteudo: string): string {
 function esMensagemInterna(mensagem: string): boolean {
   return (
     mensagem.startsWith('[VALIDACAO_OK:') ||
-    mensagem.startsWith('[VALIDACAO_ERRO:')
+    mensagem.startsWith('[VALIDACAO_ERRO:') ||
+    mensagem.startsWith('[FOTOS_ENVIADAS:')
   )
 }
 
@@ -368,6 +369,22 @@ export async function POST(request: Request) {
       sessaoAtiva?.etapa === 'aguardando_drive'
 
     if (eGerarSemFotos && sessaoAtiva) {
+      await supabase
+        .from('sessoes_geracao')
+        .update({
+          etapa: 'processando',
+          drive_url: 'sem_fotos',
+          dados_planilha: { ...(sessaoAtiva.dados_planilha ?? {}), drive_validado: false },
+        })
+        .eq('id', sessaoAtiva.id)
+      sessaoAtiva = { ...sessaoAtiva, etapa: 'processando', drive_url: 'sem_fotos' }
+    }
+
+    // ── Fotos enviadas diretamente: avança sessão sem Drive URL ──────────────
+    const eFotosEnviadas = mensagem.startsWith('[FOTOS_ENVIADAS:') &&
+      sessaoAtiva?.etapa === 'aguardando_drive'
+
+    if (eFotosEnviadas && sessaoAtiva) {
       await supabase
         .from('sessoes_geracao')
         .update({

@@ -473,6 +473,36 @@ export default function ChatPrincipal() {
     void sidebarRef.current?.refetchConversas()
   }
 
+  const handleFotosUploadadas = async (novas: Record<string, string[]>) => {
+    setFotosUploadadas(prev => ({ ...prev, ...novas }))
+    if (!conversaId) return
+    setCarregando(true)
+    try {
+      const res = await fetch('/api/chat-principal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: '[FOTOS_ENVIADAS: OK]',
+          historico: [],
+          conversa_id: conversaId,
+        }),
+      })
+      const data = await res.json()
+      if (data.resposta) {
+        setMensagens(prev => [...prev, {
+          papel: 'assistant' as const,
+          conteudo: data.resposta,
+          acoes_rapidas: data.acoes,
+        }])
+        void sidebarRef.current?.refetchConversas()
+      }
+    } catch {
+      // fotos salvas com sucesso — apenas o avanço de fluxo falhou silenciosamente
+    } finally {
+      setCarregando(false)
+    }
+  }
+
   const ocupado = carregando || uploadando
   const bloqueado = ocupado || carregandoConversa
   const podeSend = !bloqueado && (!!arquivo || !!input.trim())
@@ -718,7 +748,7 @@ export default function ChatPrincipal() {
                               <div key={j} style={{ marginBottom: 8 }}>
                                 <CardUploadFotosML
                                   produtos={b.produtos!}
-                                  onFotosUploaded={novas => setFotosUploadadas(prev => ({ ...prev, ...novas }))}
+                                  onFotosUploaded={handleFotosUploadadas}
                                 />
                               </div>
                             ))
