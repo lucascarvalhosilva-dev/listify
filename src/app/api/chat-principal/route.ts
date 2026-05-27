@@ -26,6 +26,7 @@ REGRAS IMPORTANTES:
 
 INTENÇÕES E REDIRECIONAMENTOS:
 - Ver catálogos / meus catálogos → redirect: /painel?aba=catalogos
+- Ajustar preços / Price Guard / margem / reprecificar produtos → redirect: /precos
 - Ver conversas antigas / histórico de conversa → orientar a usar a sidebar de conversas do chat, sem redirecionar
 - Ver plano / fazer upgrade → redirect: /upgrade
 - Configurações → redirect: /configuracoes
@@ -74,6 +75,7 @@ const TITULOS_EXCLUIDOS = new Set([
   'quero cadastrar produtos',
   'quero cadastrar mais produtos',
   'Ver meus catálogos',
+  'Ajustar preços',
   'Tirar uma dúvida',
   'Tenho uma dúvida',
   'Quero continuar o cadastro',

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, CreditCard, FolderOpen, LogOut, MessageCircle, Settings } from 'lucide-react'
+import { ChevronDown, CircleDollarSign, CreditCard, FolderOpen, LogOut, MessageCircle, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type NavbarProps = {
@@ -43,6 +43,7 @@ export default function Navbar({ activeAba = '' }: NavbarProps) {
   const tabs = [
     { label: 'Chat', href: '/', icon: MessageCircle },
     { label: 'Meus Catálogos', href: '/painel?aba=catalogos', aba: 'catalogos', icon: FolderOpen },
+    { label: 'Preços', href: '/precos', icon: CircleDollarSign },
     { label: 'Meu Plano', href: '/upgrade', icon: CreditCard },
   ]
 

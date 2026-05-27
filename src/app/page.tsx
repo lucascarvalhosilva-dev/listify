@@ -73,6 +73,7 @@ function criarMensagemBoasVindas(nomeUser: string): Mensagem {
         { texto: 'Cadastrar produtos', acao: 'mensagem', valor: 'quero cadastrar produtos' },
         { texto: 'Ver meus catálogos', acao: 'redirect', destino: '/painel?aba=catalogos' },
         { texto: 'Tirar uma dúvida', acao: 'mensagem', valor: 'Tenho uma dúvida' },
+        { texto: 'Ajustar preços', acao: 'redirect', destino: '/precos' },
         { texto: 'Ver meu plano', acao: 'redirect', destino: '/upgrade' },
       ],
     },

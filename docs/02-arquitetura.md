@@ -45,6 +45,7 @@
 | `/onboarding` | `src/app/onboarding/page.tsx` | 5 telas apresentando o chat como ferramenta principal |
 | `/chat` | `src/app/chat/page.tsx` | **Interface principal** — chat em tela cheia, proativo, com histórico |
 | `/painel` | `src/app/painel/page.tsx` | Painel antigo (oculto do menu, ainda funcional) com 4 abas |
+| `/precos` | `src/app/precos/page.tsx` | Price Guard recorrente para ajustar preços de catálogos existentes |
 | `/adicionar-produtos` | `src/app/adicionar-produtos/page.tsx` | Fluxo 3 steps para SKUs novos (acessível só via `?cat=id`) |
 | `/upgrade` | `src/app/upgrade/page.tsx` | Página de planos pagos |
 | `/configuracoes` | `src/app/configuracoes/page.tsx` | Perfil, senha, preferências, plano |
@@ -60,6 +61,8 @@
 | `/api/delete-catalog/[id]` | Deleta catálogo |
 | `/api/get-history` | Histórico de gerações |
 | `/api/validar-drive` | Valida acesso a pasta do Google Drive |
+| `/api/precos/catalogos` | Lista catálogos com diagnóstico Price Guard |
+| `/api/precos/ajustar` | Ajusta preços de um catálogo existente e regenera a planilha |
 | `/api/help-chat` | Chat de suporte (HelpChat) — painel lateral deslizante |
 
 ## Variáveis de ambiente (Vercel)

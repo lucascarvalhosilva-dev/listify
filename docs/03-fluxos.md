@@ -41,6 +41,10 @@ Características:
 
 Rota `/adicionar-produtos?cat=<id>`. Fluxo de 3 steps para adicionar SKUs novos a um catálogo já criado. Acessível apenas via link com `?cat=id` (não há entrada direta no menu).
 
+## Fluxo de ajuste de preços
+
+Rota `/precos`. O usuário escolhe um catálogo existente, revisa o diagnóstico do Price Guard, simula margem mínima, percentual ou valor fixo e gera uma planilha ajustada sem cadastrar produtos novamente. A nova planilha substitui o arquivo atual do catálogo em **Meus Catálogos**.
+
 ## Estados onboarding vs chat vs sessão
 
 ⚠️ **Bug conhecido tratado**: na sessão `aguardando_drive` (e outras intermediárias), o componente de chat precisa carregar o histórico de `chat_historico` ao montar a página, independente de ter sessão ativa. Sem isso, F5 em estado intermediário renderiza tela vazia.

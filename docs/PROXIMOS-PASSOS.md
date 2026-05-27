@@ -170,5 +170,6 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Status de confiança pós-geração no chat (campos, produtos, preço, arquivos, Drive e alertas)
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
 - Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
+- Área `/precos` na navegação para ajustar preços de catálogos existentes sem cadastrar produtos novamente
 - Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados
 - AGENTS.md com diretrizes de workflow
