@@ -17,6 +17,7 @@ export interface DownloadFallbackML {
 }
 
 export interface PublicacaoMLPayload {
+  sku: string
   titulo: string
   preco: number
   moeda: 'BRL'
@@ -48,8 +49,10 @@ export interface PublicacaoMLCardData {
   nickname?: string | null
   total_produtos: number
   produto_preview: ProdutoResumoPublicacaoML | null
+  produtos_preview: ProdutoResumoPublicacaoML[]
   bloqueios: string[]
   payloads?: PublicacaoMLPayload[]
+  payloads_pendentes?: PublicacaoMLPayload[]
   fallback_download?: DownloadFallbackML
 }
 
@@ -130,7 +133,7 @@ function extrairFotosPublicas(produto: ProdutoRevisaoPriceGuard): string[] {
 function montarPayload(
   produto: ProdutoRevisaoPriceGuard,
   original?: ProdutoFontePublicacaoML
-): { payload: PublicacaoMLPayload | null; resumo: ProdutoResumoPublicacaoML; bloqueios: string[] } {
+): { payload: PublicacaoMLPayload | null; payloadSemFotos: PublicacaoMLPayload | null; resumo: ProdutoResumoPublicacaoML; bloqueios: string[] } {
   const titulo = texto(produto.titulo_ml) || texto(produto.nome) || texto(original?.nome)
   const descricao = texto(produto.descricao_ml)
   const preco = numero(produto.preco_ml)
@@ -156,23 +159,33 @@ function montarPayload(
     quantidade_fotos: fotos.length,
   }
 
-  if (bloqueios.length > 0 || !preco || !estoque || !categoriaML) {
-    return { payload: null, resumo, bloqueios }
+  const dadosBasicosOk = Boolean(titulo && descricao && preco && preco > 0 && estoque && estoque > 0 && categoriaML)
+  const payloadBase: Omit<PublicacaoMLPayload, 'fotos'> | null = dadosBasicosOk ? {
+    sku: produto.sku,
+    titulo: titulo!,
+    preco: preco!,
+    moeda: 'BRL',
+    quantidade: estoque!,
+    condicao: 'new',
+    categoria_ml: categoriaML!,
+    descricao: descricao!,
+  } : null
+
+  const payloadSemFotos: PublicacaoMLPayload | null = payloadBase ? { ...payloadBase, fotos: [] } : null
+
+  if (!dadosBasicosOk) {
+    return { payload: null, payloadSemFotos: null, resumo, bloqueios }
+  }
+
+  if (fotos.length === 0) {
+    return { payload: null, payloadSemFotos, resumo, bloqueios }
   }
 
   return {
     resumo,
     bloqueios,
-    payload: {
-      titulo,
-      preco,
-      moeda: 'BRL',
-      quantidade: estoque,
-      condicao: 'new',
-      categoria_ml: categoriaML,
-      descricao,
-      fotos,
-    },
+    payloadSemFotos,
+    payload: { ...payloadBase!, fotos },
   }
 }
 
@@ -181,8 +194,10 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
   const resultados = params.produtosRevisao.map(produto => montarPayload(produto, originaisPorSku.get(produto.sku)))
   const bloqueiosDados = resultados.flatMap(resultado => resultado.bloqueios).slice(0, 6)
   const payloads = resultados.map(resultado => resultado.payload).filter((payload): payload is PublicacaoMLPayload => Boolean(payload))
+  const payloadsPendentes = resultados.map(r => r.payloadSemFotos).filter((p): p is PublicacaoMLPayload => p !== null)
   const total = params.produtosRevisao.length
-  const produtoPreview = resultados[0]?.resumo ?? null
+  const produtosPreview = resultados.map(r => r.resumo)
+  const produtoPreview = produtosPreview[0] ?? null
 
   if (!params.conectado) {
     return {
@@ -194,6 +209,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
       badge: 'Conectar conta',
       total_produtos: total,
       produto_preview: produtoPreview,
+      produtos_preview: produtosPreview,
       bloqueios: ['Mercado Livre ainda não conectado ao Guiamos.'],
       fallback_download: params.fallbackDownload ?? undefined,
     }
@@ -210,6 +226,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
       nickname: params.nickname,
       total_produtos: 0,
       produto_preview: null,
+      produtos_preview: [],
       bloqueios: ['Nenhum produto processado foi encontrado para publicar.'],
       fallback_download: params.fallbackDownload ?? undefined,
     }
@@ -228,7 +245,9 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
       nickname: params.nickname,
       total_produtos: total,
       produto_preview: produtoPreview,
+      produtos_preview: produtosPreview,
       bloqueios: bloqueiosDados.length > 0 ? bloqueiosDados : ['Revise os dados obrigatórios antes de publicar.'],
+      payloads_pendentes: payloadsPendentes.length > 0 ? payloadsPendentes : undefined,
       fallback_download: params.fallbackDownload ?? undefined,
     }
   }
@@ -245,6 +264,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
     nickname: params.nickname,
     total_produtos: total,
     produto_preview: produtoPreview,
+    produtos_preview: produtosPreview,
     bloqueios: [],
     payloads,
     fallback_download: params.fallbackDownload ?? undefined,

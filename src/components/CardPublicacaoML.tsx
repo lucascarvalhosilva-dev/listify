@@ -36,14 +36,25 @@ function traduzirErroML(erro: string): string {
   return erro || 'O Mercado Livre recusou a publicação. Revise os dados e tente novamente.'
 }
 
-export default function CardPublicacaoML(data: PublicacaoMLCardData) {
+interface CardPublicacaoMLProps extends PublicacaoMLCardData {
+  fotosInjetadas?: Record<string, string[]>
+}
+
+export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublicacaoMLProps) {
   const [publicando, setPublicando] = useState(false)
   const [baixando, setBaixando] = useState(false)
   const [erro, setErro] = useState('')
   const [resultados, setResultados] = useState<ResultadoPublicacao[]>([])
   const [erroDownload, setErroDownload] = useState('')
 
-  const pronto = data.status === 'pronto'
+  const temFotosInjetadas = fotosInjetadas && Object.keys(fotosInjetadas).length > 0
+  const payloadsEfetivos = temFotosInjetadas && data.payloads_pendentes?.length
+    ? data.payloads_pendentes.map(p => ({ ...p, fotos: fotosInjetadas[p.sku] ?? p.fotos }))
+    : data.payloads
+
+  const prontoEfetivo = data.status === 'pronto' ||
+    (temFotosInjetadas && Boolean(payloadsEfetivos?.length) && payloadsEfetivos!.every(p => p.fotos.length > 0))
+  const pronto = prontoEfetivo
   const desconectado = data.status === 'desconectado'
   const cor = pronto ? '#0f7b58' : desconectado ? '#155bd5' : '#a16207'
   const fundo = pronto ? '#ecfdf5' : desconectado ? '#eaf2ff' : '#fff8e6'
@@ -51,14 +62,14 @@ export default function CardPublicacaoML(data: PublicacaoMLCardData) {
   const Icone = pronto ? Rocket : desconectado ? Store : AlertTriangle
 
   const publicar = async () => {
-    if (!data.payloads?.length || publicando) return
+    if (!payloadsEfetivos?.length || publicando) return
     setPublicando(true)
     setErro('')
     setResultados([])
 
     try {
       const publicados: ResultadoPublicacao[] = []
-      for (const payload of data.payloads) {
+      for (const payload of payloadsEfetivos) {
         const res = await fetch('/api/ml/publicar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -261,7 +272,7 @@ export default function CardPublicacaoML(data: PublicacaoMLCardData) {
             Conectar Mercado Livre
           </a>
         ) : (
-          <button type="button" onClick={publicar} disabled={!pronto || publicando} style={primaryButtonStyle(!pronto || publicando)}>
+          <button type="button" onClick={publicar} disabled={!prontoEfetivo || publicando} style={primaryButtonStyle(!prontoEfetivo || publicando)}>
             {publicando ? <Loader2 size={14} className="spin" /> : <Rocket size={14} strokeWidth={2.4} />}
             {publicando ? 'Publicando' : 'Publicar no Mercado Livre'}
           </button>

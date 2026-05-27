@@ -419,15 +419,22 @@ export async function POST(request: Request) {
       if (error) console.error('[GERAR-DO-CHAT] erro ao consultar ml_contas:', error)
       contaML = data
     }
-    const publicacaoMLAction = temMercadoLivre
-      ? [criarCardPublicacaoML({
+    const publicacaoMLCard = temMercadoLivre
+      ? criarCardPublicacaoML({
           conectado: Boolean(contaML),
           nickname: contaML?.nickname ?? null,
           produtosOriginais: produtos,
           produtosRevisao,
           driveUrl: sessao.drive_url,
           fallbackDownload: arquivoMercadoLivre ?? null,
-        })]
+        })
+      : null
+    const publicacaoMLAction = publicacaoMLCard ? [publicacaoMLCard] : []
+    const uploadFotosAction = publicacaoMLCard?.status === 'pendente' && Boolean(contaML)
+      ? [{
+          acao: 'card_upload_fotos_ml' as const,
+          produtos: produtos.map(p => ({ sku: p.sku, nome: p.nome })),
+        }]
       : []
 
     // ── Inserir mensagem de sucesso no histórico do chat ──────────────────────
@@ -447,6 +454,7 @@ export async function POST(request: Request) {
         ...comparadorListingAction,
         ...validadorUploadAction,
         priceGuardAction,
+        ...uploadFotosAction,
         ...publicacaoMLAction,
         ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
@@ -501,6 +509,7 @@ export async function POST(request: Request) {
             ...validadorUploadAction,
             ...comparadorListingAction,
             priceGuardAction,
+            ...uploadFotosAction,
             ...publicacaoMLAction,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',

@@ -10,6 +10,7 @@ import CardEnvioDrive from '@/components/CardEnvioDrive'
 import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
 import CardComparadorListing, { type ComparadorListingData } from '@/components/CardComparadorListing'
 import CardPublicacaoML from '@/components/CardPublicacaoML'
+import CardUploadFotosML from '@/components/CardUploadFotosML'
 import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
 import CardValidadorUpload from '@/components/CardValidadorUpload'
 import MiniEditorPrecos, { type MensagemAjustePrecos } from '@/components/MiniEditorPrecos'
@@ -29,7 +30,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'card_comparador_listing' | 'card_publicacao_ml' | 'botao_ajuda_upload'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'card_comparador_listing' | 'card_publicacao_ml' | 'card_upload_fotos_ml' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -60,6 +61,7 @@ type Botao = {
   produtos_preview?: ComparadorListingData['produtos_preview']
   produtos_com_titulo?: number
   produtos_com_descricao?: number
+  produtos?: { sku: string; nome: string }[]
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
@@ -145,6 +147,7 @@ export default function ChatPrincipal() {
   const requestIdRef = useRef(0)
   const [sidebarAberta, setSidebarAberta] = useState(false)
   const [editorPrecosAberto, setEditorPrecosAberto] = useState<string | null>(null)
+  const [fotosUploadadas, setFotosUploadadas] = useState<Record<string, string[]>>({})
   const router = useRouter()
   const supabase = createClient()
 
@@ -657,10 +660,24 @@ export default function ChatPrincipal() {
                             })
                           }
                           {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_upload_fotos_ml' && b.produtos?.length)
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardUploadFotosML
+                                  produtos={b.produtos!}
+                                  onFotosUploaded={novas => setFotosUploadadas(prev => ({ ...prev, ...novas }))}
+                                />
+                              </div>
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes
                             .filter(b => b.acao === 'card_publicacao_ml')
                             .map((b, j) => (
                               <div key={j} style={{ marginBottom: 8 }}>
-                                <CardPublicacaoML {...(b as unknown as PublicacaoMLCardData)} />
+                                <CardPublicacaoML
+                                  {...(b as unknown as PublicacaoMLCardData)}
+                                  fotosInjetadas={fotosUploadadas}
+                                />
                               </div>
                             ))
                           }
@@ -678,10 +695,10 @@ export default function ChatPrincipal() {
                               ))
                             }
                           </div>
-                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml') && (
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml' && b.acao !== 'card_upload_fotos_ml') && (
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
-                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml')
+                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml' && b.acao !== 'card_upload_fotos_ml')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.acao === 'botao_ajuda_upload'
