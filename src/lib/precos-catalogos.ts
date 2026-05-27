@@ -64,6 +64,8 @@ export function normalizarProdutosPreco(produtos: unknown): ProdutoRevisaoPriceG
     .map(produto => ({
       sku: texto(produto.sku, '-'),
       nome: texto(produto.nome, 'Produto sem nome'),
+      marca: texto(produto.marca),
+      categoria: texto(produto.categoria),
       custo: numero(produto.custo),
       estoque: numero(produto.estoque),
       embalagem: numero(produto.embalagem),

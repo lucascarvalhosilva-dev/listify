@@ -195,6 +195,8 @@ export async function POST(request: Request) {
     const produtosEngine = produtos.map(p => ({
       sku: p.sku,
       nome: p.nome,
+      marca: p.marca,
+      categoria: p.categoria,
       custo: p.custo,
       estoque: p.estoque,
     }))

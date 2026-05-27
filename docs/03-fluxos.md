@@ -43,7 +43,7 @@ Rota `/adicionar-produtos?cat=<id>`. Fluxo de 3 steps para adicionar SKUs novos 
 
 ## Fluxo de ajuste de preços
 
-No chat, após gerar a planilha, o usuário recebe a validação pré-upload (V1 para Shopee e Mercado Livre), o Price Guard e os arquivos para baixar. Na rota `/precos`, ele pode consultar o mesmo diagnóstico depois, escolher um catálogo existente, simular margem mínima, percentual ou valor fixo e gerar uma planilha ajustada sem cadastrar produtos novamente. A nova planilha substitui o arquivo atual do catálogo em **Meus Catálogos**.
+No chat, após gerar a planilha, o usuário recebe a validação pré-upload (V1 para Shopee e Mercado Livre, incluindo sinais de produto restrito/proibido), o Price Guard e os arquivos para baixar. Na rota `/precos`, ele pode consultar o mesmo diagnóstico depois, escolher um catálogo existente, simular margem mínima, percentual ou valor fixo e gerar uma planilha ajustada sem cadastrar produtos novamente. A nova planilha substitui o arquivo atual do catálogo em **Meus Catálogos**.
 
 ## Estados onboarding vs chat vs sessão
 

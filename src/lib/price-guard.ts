@@ -15,6 +15,8 @@ export type CampoPrecoProduto =
 export interface ProdutoRevisaoPriceGuard {
   sku: string
   nome: string
+  marca?: string
+  categoria?: string
   custo: number
   estoque?: number
   embalagem?: number

@@ -4,6 +4,7 @@ import {
   type ProdutoRevisaoPriceGuard,
 } from '@/lib/price-guard'
 import { normalizarCanalParaEngine } from '@/lib/normalizar-canais'
+import { detectarRestricoesProduto } from '@/lib/detector-produtos-restritos'
 
 export type ValidadorUploadStatus = 'pronto' | 'atencao' | 'bloqueado'
 export type ValidadorUploadNivel = 'ok' | 'aviso' | 'erro'
@@ -180,6 +181,18 @@ export function validarPreUploadCatalogo(params: {
 
     validarTitulo({ itens, produto, canal })
     validarDescricao({ itens, produto, canal })
+
+    const restricoes = detectarRestricoesProduto({ produto, canal })
+    for (const restricao of restricoes) {
+      adicionarItem(
+        itens,
+        restricao.nivel === 'proibido' ? 'erro' : 'aviso',
+        restricao.nivel === 'proibido' ? 'Produto possivelmente proibido' : 'Produto possivelmente restrito',
+        `${restricao.categoria}: ${restricao.motivo} Termo encontrado: "${restricao.termo}".`,
+        produto,
+        'restricao_produto'
+      )
+    }
   }
 
   const erros = itens.filter(item => item.nivel === 'erro')
@@ -191,6 +204,7 @@ export function validarPreUploadCatalogo(params: {
   const precosOk = !itens.some(item => item.nivel === 'erro' && (item.campo ?? '').startsWith('preco'))
   const arquivoOk = Boolean(params.arquivoPath)
   const fotosOk = canal === 'shopee' ? textoValido(params.driveUrl) : true
+  const restricoesOk = !itens.some(item => item.campo === 'restricao_produto' && item.nivel === 'erro')
 
   return {
     status,
@@ -215,6 +229,7 @@ export function validarPreUploadCatalogo(params: {
       { label: 'Preços', valor: precosOk ? 'ok' : 'revisar', ok: precosOk },
       { label: 'Dimensões', valor: dimensoesOk ? 'ok' : 'revisar', ok: dimensoesOk },
       { label: 'Fotos', valor: fotosOk ? 'ok' : 'revisar', ok: fotosOk },
+      { label: 'Restrições', valor: restricoesOk ? 'ok' : 'bloqueio', ok: restricoesOk },
       { label: 'Arquivo', valor: arquivoOk ? 'pronto' : 'ausente', ok: arquivoOk },
     ],
     itens_preview: [...erros, ...avisos].slice(0, 6),
@@ -229,7 +244,7 @@ export function consolidarValidadoresUpload(validadores: ValidadorUploadData[]):
   const avisosCount = validadores.reduce((acc, item) => acc + item.avisos_count, 0)
   const status: ValidadorUploadStatus = errosCount > 0 ? 'bloqueado' : avisosCount > 0 ? 'atencao' : 'pronto'
   const canaisLabel = validadores.map(item => item.nome_canal_label).join(', ')
-  const checks = ['Campos', 'Títulos', 'Preços', 'Dimensões', 'Fotos', 'Arquivo'].map(label => {
+  const checks = ['Campos', 'Títulos', 'Preços', 'Dimensões', 'Fotos', 'Restrições', 'Arquivo'].map(label => {
     const relacionados = validadores.flatMap(item => item.checks.filter(check => check.label === label))
     const ok = relacionados.every(check => check.ok)
     return {

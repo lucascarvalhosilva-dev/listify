@@ -28,7 +28,7 @@ Bloqueadores da V1:
 - [x] Histórico de catálogos e conversas
 - [x] Validador antes do upload (V1 Shopee + Mercado Livre)
 - [x] Price Guard simples
-- [ ] Detector de produto restrito/proibido por canal
+- [x] Detector de produto restrito/proibido por canal (V1 heurística no validador pré-upload)
 - [ ] Comparador antes/depois do listing
 - [x] Status de confiança no resultado: conferência rápida com campos, produtos, preço, arquivos, fotos/Drive e alertas
 - [ ] Instrumentar métricas da V1: arquivo gerado, arquivo baixado, upload aceito, erro reportado, erro corrigido
@@ -171,6 +171,7 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Status de confiança pós-geração substituído no chat pelo Validador pré-upload, mantendo diagnóstico operacional sem cards duplicados
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
 - Validador pré-upload V1 no chat e em `/precos` para Shopee e Mercado Livre, com status pronto/revisar/bloqueado por catálogo
+- Detector V1 de produto restrito/proibido por canal integrado ao validador pré-upload, com bloqueio para sinais fortes e avisos para categorias reguladas
 - Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
 - Área `/precos` na navegação para ajustar preços de catálogos existentes sem cadastrar produtos novamente, incluindo seleção manual de SKUs e filtros por status/margem
 - Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados
