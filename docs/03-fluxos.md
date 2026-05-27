@@ -4,7 +4,7 @@
 
 1. Usuário acessa `/cadastro`
 2. Preenche nome, email, senha, regime tributário (MEI ou Simples Nacional)
-3. Recebe email de confirmação (Resend, template em PT-BR via `noreply@guiamos.com.br`)
+3. Recebe email de confirmação (Resend, template em PT-BR via `noreply@guiamos-marketplace.com.br`)
 4. Clica no link → vai pra `/onboarding`
 
 ## Fluxo de onboarding (5 telas)

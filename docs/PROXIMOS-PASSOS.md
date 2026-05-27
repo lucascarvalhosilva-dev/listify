@@ -153,8 +153,8 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 
 ## ✅ Já concluído (referência rápida)
 
-- Domínio guiamos.com.br ativo na Vercel
-- Email transacional via Resend (`noreply@guiamos.com.br`) com DMARC
+- Domínio `guiamos.com.br` reservado para outro projeto; Guiamos Marketplace usa apenas `guiamos-marketplace.com.br`
+- Email transacional via Resend/DMARC alinhado ao remetente novo `noreply@guiamos-marketplace.com.br`
 - Plano Free funcional (5 produtos, Shopee+ML, 1 catálogo)
 - Travas de uso por plano
 - Sistema de aprendizado de erros (3 camadas)
@@ -170,4 +170,5 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Status de confiança pós-geração no chat (campos, produtos, preço, arquivos, Drive e alertas)
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
 - Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
+- Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados
 - AGENTS.md com diretrizes de workflow

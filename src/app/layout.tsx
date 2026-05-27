@@ -4,10 +4,23 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const APP_URL = "https://guiamos-marketplace.com.br";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: "Guiamos — Cadastro Automatizado para Marketplaces",
   description: "Informe o produto, as fotos, o estoque e o custo. A Guiamos gera título, descrição, preço e planilha pronta para upload em ML, Shopee, Amazon e mais.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Guiamos — Cadastro Automatizado para Marketplaces",
+    description: "Informe o produto, as fotos, o estoque e o custo. A Guiamos gera título, descrição, preço e planilha pronta para upload em ML, Shopee, Amazon e mais.",
+    siteName: "Guiamos",
+    url: APP_URL,
+    locale: "pt_BR",
+    type: "website",
+  },
   icons: {
     icon: '/favicon.svg',
   },

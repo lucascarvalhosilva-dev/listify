@@ -10,8 +10,8 @@
 | Auth | Supabase Auth |
 | Deploy | Vercel (plano Pro) + GitHub (deploy automático no push pra `main`) |
 | IA | Anthropic API — modelo `claude-sonnet-4-5` |
-| Email transacional | Resend com domínio `guiamos.com.br` (`noreply@guiamos.com.br`) |
-| DNS | Cloudflare (domínio `guiamos.com.br`) |
+| Email transacional | Resend com domínio `guiamos-marketplace.com.br` (`noreply@guiamos-marketplace.com.br`) |
+| DNS | Cloudflare (domínio `guiamos-marketplace.com.br`) |
 
 ## Identidade visual
 
@@ -71,8 +71,21 @@
 
 ## Supabase — URL Configuration
 
-- **Site URL**: `https://guiamos.com.br`
+- **Site URL**: `https://guiamos-marketplace.com.br`
 - **Redirect URLs**: `/onboarding`, `/chat`, `/painel`, `/login`
+
+## Domínio canônico
+
+- Produção: `https://guiamos-marketplace.com.br`
+- `www.guiamos-marketplace.com.br` deve redirecionar para `https://guiamos-marketplace.com.br`
+- `guiamos.com.br` e `www.guiamos.com.br` pertencem a outro projeto e não devem ser configurados neste app
+- DNS externo configurado:
+  - `A guiamos-marketplace.com.br 76.76.21.21`
+  - `A www.guiamos-marketplace.com.br 76.76.21.21`
+- Configurações externas alinhadas:
+  - Vercel: domínio principal e redirects 308
+  - Supabase Auth: Site URL e Redirect URLs
+  - Resend: domínio, DKIM e DMARC do remetente `noreply@guiamos-marketplace.com.br`
 
 ## Repositório
 
