@@ -6,6 +6,7 @@ import {
   type RegimePriceGuard,
 } from '@/lib/price-guard'
 import { normalizarCanalParaEngine } from '@/lib/normalizar-canais'
+import { validarPreUploadCatalogo, type ValidadorUploadData } from '@/lib/validador-pre-upload'
 
 export interface CatalogoPrecoRow {
   id: string
@@ -33,6 +34,7 @@ export interface CatalogoPrecoItem {
   total_produtos: number
   produtos: ProdutoRevisaoPriceGuard[]
   price_guard: PriceGuardData
+  validador_upload: ValidadorUploadData
   editavel: boolean
   motivo_bloqueio?: string
 }
@@ -103,6 +105,13 @@ export function montarCatalogoPreco(row: CatalogoPrecoRow): CatalogoPrecoItem {
   const canais = canal ? [canal] : []
   const card = criarCardPriceGuard({ produtosRevisao: produtos, canais, regime })
   const driveUrl = row.drive_url ?? ''
+  const arquivoPath = row.arquivo_path ?? null
+  const validadorUpload = validarPreUploadCatalogo({
+    produtos,
+    canal,
+    driveUrl,
+    arquivoPath,
+  })
   const editavel = produtos.length > 0 && canais.length > 0 && Boolean(driveUrl)
 
   return {
@@ -115,10 +124,11 @@ export function montarCatalogoPreco(row: CatalogoPrecoRow): CatalogoPrecoItem {
     regime_tributario: row.regime_tributario ?? regime,
     regime,
     drive_url: driveUrl,
-    arquivo_path: row.arquivo_path ?? null,
+    arquivo_path: arquivoPath,
     total_produtos: produtos.length,
     produtos,
     price_guard: card.price_guard,
+    validador_upload: validadorUpload,
     editavel,
     motivo_bloqueio: editavel
       ? undefined

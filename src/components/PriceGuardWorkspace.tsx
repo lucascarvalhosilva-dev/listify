@@ -9,6 +9,8 @@ import {
   FileSpreadsheet,
   ListChecks,
   Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -16,6 +18,7 @@ import {
   Wand2,
 } from 'lucide-react'
 import CardPriceGuard from '@/components/CardPriceGuard'
+import CardValidadorUpload from '@/components/CardValidadorUpload'
 import {
   aplicarAjustePrecos,
   calcularMetricasPriceGuard,
@@ -47,6 +50,7 @@ interface AjustarResponse {
 }
 
 type FiltroProdutoStatus = 'todos' | 'alerta' | 'risco' | 'ok' | 'selecionados'
+type AbaPrecos = 'visao' | 'simulador'
 
 function formatarMoeda(valor: number | null | undefined): string {
   if (valor === null || valor === undefined || !Number.isFinite(valor)) return '-'
@@ -110,6 +114,8 @@ export default function PriceGuardWorkspace() {
   const [filtroProdutoStatus, setFiltroProdutoStatus] = useState<FiltroProdutoStatus>('todos')
   const [margemMenorQue, setMargemMenorQue] = useState('')
   const [skusSelecionados, setSkusSelecionados] = useState<string[]>([])
+  const [abaPrecos, setAbaPrecos] = useState<AbaPrecos>('visao')
+  const [catalogosRecolhidos, setCatalogosRecolhidos] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [tipo, setTipo] = useState<TipoAjustePreco>('margem_minima')
@@ -236,6 +242,7 @@ export default function PriceGuardWorkspace() {
 
   const selecionarCatalogo = (id: string) => {
     setCatalogoId(id)
+    setAbaPrecos('visao')
     setErroAcao('')
     setSucesso(null)
     setBuscaProduto('')
@@ -376,7 +383,37 @@ export default function PriceGuardWorkspace() {
           )}
         </header>
 
-        <div className="precos-main-grid" style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+        <div style={{
+          border: '1px solid #dfe7f1',
+          borderRadius: 18,
+          background: 'rgba(255,255,255,0.86)',
+          boxShadow: '0 10px 26px rgba(15,23,42,0.045)',
+          padding: 8,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => setAbaPrecos('visao')} style={botaoAbaPrecos(abaPrecos === 'visao')}>
+              <ShieldCheck size={15} strokeWidth={2.4} />
+              Visão geral
+            </button>
+            <button type="button" onClick={() => setAbaPrecos('simulador')} style={botaoAbaPrecos(abaPrecos === 'simulador')}>
+              <SlidersHorizontal size={15} strokeWidth={2.4} />
+              Simular ajuste
+            </button>
+          </div>
+
+          <button type="button" onClick={() => setCatalogosRecolhidos(prev => !prev)} style={botaoSecundarioCompacto()}>
+            {catalogosRecolhidos ? <PanelLeftOpen size={15} strokeWidth={2.4} /> : <PanelLeftClose size={15} strokeWidth={2.4} />}
+            {catalogosRecolhidos ? 'Mostrar catálogos' : 'Ocultar catálogos'}
+          </button>
+        </div>
+
+        <div className="precos-main-grid" style={{ display: 'grid', gridTemplateColumns: catalogosRecolhidos ? 'minmax(0, 1fr)' : '320px minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+          {!catalogosRecolhidos && (
           <aside style={{
             border: '1px solid #dfe7f1',
             borderRadius: 18,
@@ -454,6 +491,7 @@ export default function PriceGuardWorkspace() {
               )}
             </div>
           </aside>
+          )}
 
           <section style={{ minWidth: 0 }}>
             {!catalogo ? (
@@ -461,23 +499,29 @@ export default function PriceGuardWorkspace() {
             ) : (
               <div className="precos-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 520px) minmax(340px, 1fr)', gap: 16, alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <CardPriceGuard {...catalogo.price_guard} />
+                  {abaPrecos === 'visao' && (
+                    <>
+                      <CardPriceGuard {...catalogo.price_guard} />
+                      <CardValidadorUpload {...catalogo.validador_upload} />
 
-                  <div style={{
-                    border: '1px solid #dfe7f1',
-                    borderRadius: 16,
-                    background: 'rgba(255,255,255,0.95)',
-                    padding: 14,
-                    boxShadow: '0 10px 28px rgba(15,23,42,0.05)',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: 9,
-                  }} className="precos-inline-metrics">
-                    <ResumoMetric label="Canal" value={catalogo.nome_canal_label} compact />
-                    <ResumoMetric label="Alertas" value={totalAlertas} destaque={totalAlertas > 0} compact />
-                    <ResumoMetric label="Menor margem" value={menorMargem === null ? '-' : `${menorMargem.toFixed(1).replace('.', ',')}%`} destaque={catalogo.price_guard.status !== 'ok'} compact />
-                  </div>
+                      <div style={{
+                        border: '1px solid #dfe7f1',
+                        borderRadius: 16,
+                        background: 'rgba(255,255,255,0.95)',
+                        padding: 14,
+                        boxShadow: '0 10px 28px rgba(15,23,42,0.05)',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                        gap: 9,
+                      }} className="precos-inline-metrics">
+                        <ResumoMetric label="Canal" value={catalogo.nome_canal_label} compact />
+                        <ResumoMetric label="Alertas" value={totalAlertas} destaque={totalAlertas > 0} compact />
+                        <ResumoMetric label="Menor margem" value={menorMargem === null ? '-' : `${menorMargem.toFixed(1).replace('.', ',')}%`} destaque={catalogo.price_guard.status !== 'ok'} compact />
+                      </div>
+                    </>
+                  )}
 
+                  {abaPrecos === 'simulador' && (
                   <div style={{
                     border: '1px solid #dfe7f1',
                     borderRadius: 16,
@@ -607,8 +651,62 @@ export default function PriceGuardWorkspace() {
                       </div>
                     </div>
                   </div>
+                  )}
                 </div>
 
+                {abaPrecos === 'visao' ? (
+                  <div style={{
+                    border: '1px solid #dfe7f1',
+                    borderRadius: 18,
+                    background: 'rgba(255,255,255,0.96)',
+                    boxShadow: '0 12px 32px rgba(15,23,42,0.06)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ padding: '16px 18px', borderBottom: '1px solid #e8edf4', background: '#fbfdff', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      <span style={{ width: 38, height: 38, borderRadius: 13, background: '#eaf2ff', color: '#155bd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <FileSpreadsheet size={19} strokeWidth={2.4} />
+                      </span>
+                      <div>
+                        <div style={{ color: '#182233', fontSize: 16, fontWeight: 900 }}>Resumo do catálogo</div>
+                        <div style={{ color: '#586174', fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
+                          Veja se o arquivo está pronto e avance para ajustar apenas o que precisa.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <ResumoMetric label="Catálogo" value={catalogo.nome} compact />
+                      <div className="precos-inline-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 9 }}>
+                        <ResumoMetric label="Produtos" value={catalogo.total_produtos} compact />
+                        <ResumoMetric label="Regime" value={catalogo.regime} compact />
+                        <ResumoMetric label="Status" value={statusLabel(catalogo.price_guard.status)} destaque={catalogo.price_guard.status !== 'ok'} compact />
+                        <ResumoMetric label="Atualizado" value={formatarData(catalogo.atualizado_em)} compact />
+                      </div>
+
+                      <div style={{ border: '1px solid #dfe7f1', borderRadius: 14, background: '#fbfdff', padding: 12 }}>
+                        <div style={{ color: '#182233', fontSize: 13, fontWeight: 900, marginBottom: 6 }}>Próximo passo recomendado</div>
+                        <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.5 }}>
+                          {totalAlertas > 0
+                            ? 'Existem produtos com alerta. Use o simulador para corrigir margem antes de subir a planilha.'
+                            : 'O catálogo está saudável. Você pode baixar a planilha atual ou simular um novo preço se quiser.'}
+                        </div>
+                      </div>
+
+                      {erroAcao && <AlertaErro>{erroAcao}</AlertaErro>}
+
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <button type="button" onClick={() => baixarArquivo(catalogo.arquivo_path ?? undefined)} disabled={!catalogo.arquivo_path || baixando} style={botaoSecundario()}>
+                          {baixando ? <Loader2 size={15} className="send-spinner" /> : <Download size={15} strokeWidth={2.4} />}
+                          Baixar planilha atual
+                        </button>
+                        <button type="button" onClick={() => setAbaPrecos('simulador')} style={botaoPrimario(false)}>
+                          <SlidersHorizontal size={15} strokeWidth={2.4} />
+                          Simular ajuste
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <div style={{
                   border: '1px solid #dfe7f1',
                   borderRadius: 18,
@@ -798,6 +896,7 @@ export default function PriceGuardWorkspace() {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             )}
           </section>
@@ -884,6 +983,43 @@ function botaoSecundario() {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  }
+}
+
+function botaoSecundarioCompacto() {
+  return {
+    border: '1px solid #dfe7f1',
+    background: '#fff',
+    color: '#586174',
+    borderRadius: 999,
+    padding: '8px 12px',
+    fontSize: 12,
+    fontWeight: 850,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  }
+}
+
+function botaoAbaPrecos(ativo: boolean) {
+  return {
+    border: `1px solid ${ativo ? '#bfd4f5' : 'transparent'}`,
+    background: ativo ? '#eaf2ff' : 'transparent',
+    color: ativo ? '#155bd5' : '#586174',
+    borderRadius: 12,
+    padding: '9px 12px',
+    fontSize: 13,
+    fontWeight: 900,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 38,
   }
 }
 

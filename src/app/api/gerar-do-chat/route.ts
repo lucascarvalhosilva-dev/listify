@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
+import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 
 export const maxDuration = 60
 
@@ -331,6 +332,21 @@ export async function POST(request: Request) {
       conversa_id,
       canais: canaisEngine,
     }
+    const validadoresUpload = arquivosGerados.map(arquivo =>
+      validarPreUploadCatalogo({
+        produtos: produtosRevisao,
+        canal: arquivo.canal,
+        driveUrl: sessao.drive_url,
+        arquivoPath: arquivo.path,
+      })
+    )
+    const validadorUploadChat = consolidarValidadoresUpload(validadoresUpload)
+    const validadorUploadAction = validadorUploadChat
+      ? [{
+          acao: 'card_validador_upload' as const,
+          validador_upload: validadorUploadChat,
+        }]
+      : []
 
     console.log('[ETAPA] atualizando pra concluida | catalogos salvos:', catalogosIds.length)
     const { error: updateErr } = await supabase
@@ -345,6 +361,7 @@ export async function POST(request: Request) {
           arquivos_gerados: arquivosGerados,
           alertas: alertasFinal,
           status_confianca: statusConfianca,
+          validadores_upload: validadoresUpload,
           price_guard: priceGuard.price_guard,
           produtos_revisao: produtosRevisao,
           canais_engine: canaisEngine,
@@ -381,7 +398,7 @@ export async function POST(request: Request) {
       ].join('\n')
 
       const botoesSucesso = [
-        statusConfianca,
+        ...validadorUploadAction,
         priceGuardAction,
         ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
@@ -431,7 +448,7 @@ export async function POST(request: Request) {
         ].join('\n'),
         acoes: {
           botoes: [
-            statusConfianca,
+            ...validadorUploadAction,
             priceGuardAction,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',

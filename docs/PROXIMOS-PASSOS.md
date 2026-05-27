@@ -26,7 +26,7 @@ Bloqueadores da V1:
 
 - [x] Cadastro funcionando no chat
 - [x] Histórico de catálogos e conversas
-- [ ] Validador antes do upload
+- [x] Validador antes do upload (V1 Shopee + Mercado Livre)
 - [x] Price Guard simples
 - [ ] Detector de produto restrito/proibido por canal
 - [ ] Comparador antes/depois do listing
@@ -168,8 +168,9 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - RLS policies corretas em `chat_historico`
 - Contexto de conversa preservado ao continuar (Etapa 4)
 - Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
-- Status de confiança pós-geração no chat (campos, produtos, preço, arquivos, Drive e alertas)
+- Status de confiança pós-geração substituído no chat pelo Validador pré-upload, mantendo diagnóstico operacional sem cards duplicados
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
+- Validador pré-upload V1 no chat e em `/precos` para Shopee e Mercado Livre, com status pronto/revisar/bloqueado por catálogo
 - Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
 - Área `/precos` na navegação para ajustar preços de catálogos existentes sem cadastrar produtos novamente, incluindo seleção manual de SKUs e filtros por status/margem
 - Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados

@@ -9,10 +9,12 @@ import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
 import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
 import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
+import CardValidadorUpload from '@/components/CardValidadorUpload'
 import MiniEditorPrecos, { type MensagemAjustePrecos } from '@/components/MiniEditorPrecos'
 import SidebarConversas, { type SidebarConversasRef } from '@/components/SidebarConversas'
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
+import type { ValidadorUploadData } from '@/lib/validador-pre-upload'
 
 const CANAL_LABELS: Record<string, string> = {
   shopee: 'Shopee',
@@ -24,7 +26,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'botao_ajuda_upload'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -49,6 +51,7 @@ type Botao = {
   drive_validado?: boolean
   alertas_preview?: string[]
   price_guard?: PriceGuardData
+  validador_upload?: ValidadorUploadData
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
@@ -589,6 +592,14 @@ export default function ChatPrincipal() {
                             ))
                           }
                           {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_validador_upload' && b.validador_upload)
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardValidadorUpload {...b.validador_upload!} />
+                              </div>
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes
                             .filter(b => b.acao === 'card_price_guard' && b.price_guard)
                             .map((b, j) => {
                               const editorKey = `${i}-price-${j}`
@@ -631,10 +642,10 @@ export default function ChatPrincipal() {
                               ))
                             }
                           </div>
-                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard') && (
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload') && (
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
-                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard')
+                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.acao === 'botao_ajuda_upload'
