@@ -26,6 +26,7 @@ interface AjustarCatalogoBody {
   percentual?: number
   valor_fixo?: number
   arredondar_90?: boolean
+  skus_selecionados?: string[]
 }
 
 function isTipoAjuste(tipo: unknown): tipo is TipoAjustePreco {
@@ -75,16 +76,31 @@ export async function POST(request: Request) {
     }
 
     const regime = normalizarRegimePreco(catalogo.regime_tributario)
+    const aplicarEm: AplicarAjusteEm =
+      body.aplicar_em === 'todos'
+        ? 'todos'
+        : body.aplicar_em === 'selecionados'
+          ? 'selecionados'
+          : 'com_risco'
+    const skusSelecionados = Array.isArray(body.skus_selecionados)
+      ? body.skus_selecionados.filter((sku): sku is string => typeof sku === 'string' && sku.trim().length > 0)
+      : []
+
+    if (aplicarEm === 'selecionados' && skusSelecionados.length === 0) {
+      return Response.json({ error: 'selecione ao menos um produto para ajustar' }, { status: 400 })
+    }
+
     const resultado = aplicarAjustePrecos({
       produtos,
       canais: [canal],
       regime,
       tipo: body.tipo,
-      aplicarEm: body.aplicar_em === 'todos' ? 'todos' : 'com_risco',
+      aplicarEm,
       margemMinimaPercentual: body.margem_minima,
       percentual: body.percentual,
       valorFixo: body.valor_fixo,
       arredondarFinal90: body.arredondar_90 !== false,
+      skusSelecionados,
     })
 
     if (resultado.alteracoes.length === 0) {

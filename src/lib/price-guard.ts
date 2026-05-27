@@ -2,7 +2,7 @@ import { normalizarCanalParaEngine } from '@/lib/normalizar-canais'
 
 export type PriceGuardStatus = 'ok' | 'atencao' | 'risco'
 export type RegimePriceGuard = 'MEI' | 'SN'
-export type AplicarAjusteEm = 'todos' | 'com_risco'
+export type AplicarAjusteEm = 'todos' | 'com_risco' | 'selecionados'
 export type TipoAjustePreco = 'margem_minima' | 'percentual' | 'valor_fixo' | 'preco_manual'
 export type CampoPrecoProduto =
   | 'preco_ml'
@@ -125,6 +125,7 @@ export interface AplicarAjustePrecosParams {
   valorFixo?: number
   arredondarFinal90?: boolean
   ajustesManuais?: AjustePrecoManual[]
+  skusSelecionados?: string[]
 }
 
 export interface AlteracaoPreco {
@@ -326,6 +327,7 @@ export function aplicarAjustePrecos(params: AplicarAjustePrecosParams): AplicarA
   const produtos = params.produtos.map(produto => ({ ...produto }))
   const alteracoes: AlteracaoPreco[] = []
   const margemAlvo = Math.max(1, Math.min(80, Number(params.margemMinimaPercentual ?? 10)))
+  const skusSelecionados = new Set((params.skusSelecionados ?? []).map(sku => sku.trim()).filter(Boolean))
 
   if (params.tipo === 'preco_manual') {
     for (const ajuste of params.ajustesManuais ?? []) {
@@ -356,6 +358,8 @@ export function aplicarAjustePrecos(params: AplicarAjustePrecosParams): AplicarA
   }
 
   for (const produto of produtos) {
+    if (params.aplicarEm === 'selecionados' && !skusSelecionados.has(produto.sku)) continue
+
     for (const canal of params.canais) {
       const campoPreco = getCampoPrecoPorCanal(canal)
       if (!campoPreco) continue

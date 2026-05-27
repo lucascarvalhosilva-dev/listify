@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   Download,
   FileSpreadsheet,
+  ListChecks,
   Loader2,
   RefreshCw,
   Search,
@@ -17,8 +18,11 @@ import {
 import CardPriceGuard from '@/components/CardPriceGuard'
 import {
   aplicarAjustePrecos,
+  calcularMetricasPriceGuard,
+  getCampoPrecoPorCanal,
   type AlteracaoPreco,
   type AplicarAjusteEm,
+  type PriceGuardStatus,
   type TipoAjustePreco,
 } from '@/lib/price-guard'
 import type { CatalogoPrecoItem } from '@/lib/precos-catalogos'
@@ -74,6 +78,11 @@ function modoLabel(tipo: TipoAjustePreco) {
   return 'Garantir margem mínima'
 }
 
+function margemLabel(valor: number | null | undefined): string {
+  if (valor === null || valor === undefined || !Number.isFinite(valor)) return '-'
+  return `${valor.toFixed(1).replace('.', ',')}%`
+}
+
 const estiloBotaoModo = (ativo: boolean) => ({
   border: `1px solid ${ativo ? '#155bd5' : '#dfe7f1'}`,
   background: ativo ? '#eaf2ff' : '#fff',
@@ -95,6 +104,8 @@ export default function PriceGuardWorkspace() {
   const [catalogos, setCatalogos] = useState<CatalogoPrecoItem[]>([])
   const [catalogoId, setCatalogoId] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
+  const [buscaProduto, setBuscaProduto] = useState('')
+  const [skusSelecionados, setSkusSelecionados] = useState<string[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [tipo, setTipo] = useState<TipoAjustePreco>('margem_minima')
@@ -137,6 +148,7 @@ export default function PriceGuardWorkspace() {
   }, [busca, catalogos])
 
   const catalogo = catalogos.find(item => item.id === catalogoId) ?? catalogosFiltrados[0] ?? null
+  const skusSelecionadosSet = useMemo(() => new Set(skusSelecionados), [skusSelecionados])
 
   const preview = useMemo(() => {
     if (!catalogo?.editavel) return null
@@ -150,13 +162,16 @@ export default function PriceGuardWorkspace() {
       percentual,
       valorFixo,
       arredondarFinal90: arredondar90,
+      skusSelecionados,
     })
-  }, [catalogo, tipo, aplicarEm, margemMinima, percentual, valorFixo, arredondar90])
+  }, [catalogo, tipo, aplicarEm, margemMinima, percentual, valorFixo, arredondar90, skusSelecionados])
 
   const alteracoesPreview = preview?.alteracoes ?? []
   const podeGerarPlanilha = Boolean(catalogo?.editavel && !salvando && alteracoesPreview.length > 0)
   const dicaGerarPlanilha = !catalogo?.editavel
     ? 'Este catálogo ainda não está disponível para ajuste.'
+    : aplicarEm === 'selecionados' && skusSelecionados.length === 0
+      ? 'Selecione ao menos um produto para gerar uma nova planilha.'
     : alteracoesPreview.length === 0
       ? 'Altere a regra ou aplique em todos os produtos para gerar uma nova planilha.'
       : 'Gerar uma nova planilha com os preços simulados.'
@@ -165,11 +180,60 @@ export default function PriceGuardWorkspace() {
     .map(canal => canal.margem_minima_percentual)
     .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor))
     .sort((a, b) => a - b)[0] ?? null
+  const produtosDoCatalogo = useMemo(() => {
+    if (!catalogo) return []
+    const termo = buscaProduto.trim().toLowerCase()
+    const campoPreco = getCampoPrecoPorCanal(catalogo.canal)
+
+    return catalogo.produtos
+      .map(produto => {
+        const metricas = calcularMetricasPriceGuard(produto, catalogo.canal, catalogo.regime)
+        const preco = campoPreco ? Number(produto[campoPreco]) : NaN
+        const status: PriceGuardStatus = !metricas
+          ? 'atencao'
+          : metricas.lucro_estimado <= 0
+            ? 'risco'
+            : metricas.margem_percentual < margemMinima
+              ? 'atencao'
+              : 'ok'
+
+        return {
+          sku: produto.sku,
+          nome: produto.nome,
+          preco: Number.isFinite(preco) ? preco : null,
+          margem: metricas?.margem_percentual ?? null,
+          status,
+        }
+      })
+      .filter(produto => {
+        if (!termo) return true
+        return `${produto.sku} ${produto.nome}`.toLowerCase().includes(termo)
+      })
+  }, [catalogo, buscaProduto, margemMinima])
 
   const selecionarCatalogo = (id: string) => {
     setCatalogoId(id)
     setErroAcao('')
     setSucesso(null)
+    setBuscaProduto('')
+    setSkusSelecionados([])
+  }
+
+  const alternarProduto = (sku: string) => {
+    setSucesso(null)
+    setAplicarEm('selecionados')
+    setSkusSelecionados(prev => prev.includes(sku) ? prev.filter(item => item !== sku) : [...prev, sku])
+  }
+
+  const selecionarTodosProdutosVisiveis = () => {
+    setSucesso(null)
+    setAplicarEm('selecionados')
+    setSkusSelecionados(produtosDoCatalogo.map(produto => produto.sku))
+  }
+
+  const limparSelecaoProdutos = () => {
+    setSucesso(null)
+    setSkusSelecionados([])
   }
 
   const gerarPlanilha = async () => {
@@ -190,6 +254,7 @@ export default function PriceGuardWorkspace() {
           percentual,
           valor_fixo: valorFixo,
           arredondar_90: arredondar90,
+          skus_selecionados: skusSelecionados,
         }),
       })
       const data = await res.json() as AjustarResponse
@@ -387,6 +452,96 @@ export default function PriceGuardWorkspace() {
                     <ResumoMetric label="Alertas" value={totalAlertas} destaque={totalAlertas > 0} compact />
                     <ResumoMetric label="Menor margem" value={menorMargem === null ? '-' : `${menorMargem.toFixed(1).replace('.', ',')}%`} destaque={catalogo.price_guard.status !== 'ok'} compact />
                   </div>
+
+                  <div style={{
+                    border: '1px solid #dfe7f1',
+                    borderRadius: 16,
+                    background: 'rgba(255,255,255,0.95)',
+                    boxShadow: '0 10px 28px rgba(15,23,42,0.05)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ padding: '13px 14px', borderBottom: '1px solid #e8edf4', display: 'flex', gap: 10, alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                        <span style={{ width: 30, height: 30, borderRadius: 10, background: '#eaf2ff', color: '#155bd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <ListChecks size={16} strokeWidth={2.4} />
+                        </span>
+                        <div>
+                          <div style={{ color: '#182233', fontSize: 14, fontWeight: 900 }}>Produtos do catálogo</div>
+                          <div style={{ color: '#697386', fontSize: 11, lineHeight: 1.4, marginTop: 2 }}>
+                            Marque produtos para ajustar apenas alguns SKUs.
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ color: '#155bd5', fontSize: 11, fontWeight: 900 }}>
+                        {skusSelecionados.length} selecionado{skusSelecionados.length === 1 ? '' : 's'}
+                      </div>
+                    </div>
+
+                    <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #dfe7f1', borderRadius: 12, background: '#fff', padding: '0 10px' }}>
+                        <Search size={14} color="#697386" strokeWidth={2.3} />
+                        <input
+                          value={buscaProduto}
+                          onChange={e => setBuscaProduto(e.target.value)}
+                          placeholder="Buscar SKU ou produto"
+                          style={{ border: 'none', outline: 'none', minWidth: 0, flex: 1, height: 36, fontSize: 12, color: '#182233', fontFamily: 'inherit', background: 'transparent' }}
+                        />
+                      </label>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button type="button" onClick={selecionarTodosProdutosVisiveis} style={botaoTexto()}>
+                          Selecionar visíveis
+                        </button>
+                        <button type="button" onClick={limparSelecaoProdutos} style={botaoTexto()}>
+                          Limpar seleção
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 280, overflowY: 'auto' }}>
+                        {produtosDoCatalogo.length === 0 ? (
+                          <div style={{ color: '#697386', fontSize: 12, padding: '8px 2px' }}>Nenhum produto encontrado.</div>
+                        ) : (
+                          produtosDoCatalogo.map(produto => {
+                            const selecionado = skusSelecionadosSet.has(produto.sku)
+                            const corStatus = statusColor(produto.status)
+                            return (
+                              <label
+                                key={produto.sku}
+                                style={{
+                                  border: `1px solid ${selecionado ? '#bfd4f5' : '#e8edf4'}`,
+                                  borderRadius: 12,
+                                  background: selecionado ? '#f3f7ff' : '#fff',
+                                  padding: '9px 10px',
+                                  display: 'grid',
+                                  gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+                                  gap: 9,
+                                  alignItems: 'center',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selecionado}
+                                  onChange={() => alternarProduto(produto.sku)}
+                                />
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ color: '#182233', fontSize: 12, fontWeight: 900, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {produto.sku} · {produto.nome}
+                                  </div>
+                                  <div style={{ color: '#697386', fontSize: 11, marginTop: 3 }}>
+                                    {formatarMoeda(produto.preco)} · margem {margemLabel(produto.margem)}
+                                  </div>
+                                </div>
+                                <span style={{ color: corStatus, background: '#fff', border: '1px solid #dfe7f1', borderRadius: 999, padding: '3px 7px', fontSize: 10, fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                  {statusLabel(produto.status)}
+                                </span>
+                              </label>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{
@@ -477,10 +632,15 @@ export default function PriceGuardWorkspace() {
                           }}
                         >
                           <option value="com_risco">Com alerta</option>
+                          <option value="selecionados">Selecionados</option>
                           <option value="todos">Todos</option>
                         </select>
                         <span style={{ color: '#697386', fontSize: 10, lineHeight: 1.35 }}>
-                          {aplicarEm === 'com_risco' ? 'Corrige somente produtos em risco.' : 'Atualiza todos os produtos do catálogo.'}
+                          {aplicarEm === 'com_risco'
+                            ? 'Corrige somente produtos em risco.'
+                            : aplicarEm === 'selecionados'
+                              ? 'Atualiza apenas os produtos marcados.'
+                              : 'Atualiza todos os produtos do catálogo.'}
                         </span>
                       </label>
                     </div>
@@ -502,7 +662,9 @@ export default function PriceGuardWorkspace() {
 
                       {alteracoesPreview.length === 0 ? (
                         <div style={{ color: '#697386', fontSize: 12, lineHeight: 1.5 }}>
-                          Nenhum preço muda com os critérios atuais. Altere a regra ou aplique em todos os produtos.
+                          {aplicarEm === 'selecionados' && skusSelecionados.length === 0
+                            ? 'Selecione um ou mais produtos na lista para simular o ajuste.'
+                            : 'Nenhum preço muda com os critérios atuais. Altere a regra ou aplique em todos os produtos.'}
                         </div>
                       ) : (
                         <>
@@ -657,6 +819,20 @@ function botaoSecundario() {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  }
+}
+
+function botaoTexto() {
+  return {
+    border: '1px solid #dfe7f1',
+    background: '#fff',
+    color: '#155bd5',
+    borderRadius: 999,
+    padding: '6px 10px',
+    fontSize: 11,
+    fontWeight: 850,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   }
 }
 
