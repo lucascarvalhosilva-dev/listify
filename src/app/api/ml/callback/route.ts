@@ -31,9 +31,16 @@ export async function GET(request: NextRequest) {
   console.log('[ML callback] request body type: form-urlencoded')
   console.log('[ML callback] body string:', requestBody.toString())
 
+  const requestHeaders = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/x-www-form-urlencoded',
+  }
+
+  console.log('[ML callback] request headers:', requestHeaders)
+
   const tokenRes = await fetch('https://api.mercadolibre.com/oauth/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: requestHeaders,
     body: requestBody,
   })
 
