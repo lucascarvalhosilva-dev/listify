@@ -78,7 +78,7 @@ function pareceCategoriaML(valor: string): boolean {
 function extrairCategoriaML(produto: ProdutoRevisaoPriceGuard, original?: ProdutoFontePublicacaoML): string | null {
   const bruto = produto as unknown as Record<string, unknown>
   const candidatos = [
-    bruto.categoria_ml,
+    produto.categoria_ml,
     bruto.category_id,
     bruto.categoriaMl,
     original?.categoria,

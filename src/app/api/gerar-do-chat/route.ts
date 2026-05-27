@@ -5,6 +5,7 @@ import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
+import { buscarCategoriaML } from '@/lib/ml/categoria'
 
 export const maxDuration = 60
 
@@ -241,7 +242,17 @@ export async function POST(request: Request) {
 
     const processData = await processResp.json() as ProcessCatalogResponse
     console.log('[GERAR-DO-CHAT] process-catalog ok, produtos_processados:', processData.produtos_processados)
-    const produtosRevisao = processData.produtos_revisao ?? []
+
+    const temML = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
+    const produtosRevisaoBase = processData.produtos_revisao ?? []
+    const produtosRevisao = temML
+      ? await Promise.all(
+          produtosRevisaoBase.map(async (p) => {
+            const cat = await buscarCategoriaML(p.nome).catch(() => null)
+            return cat ? { ...p, categoria_ml: cat.id } : p
+          })
+        )
+      : produtosRevisaoBase
 
     // ── Upload de arquivos para bucket 'geracoes' ─────────────────────────────
     const ts = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
