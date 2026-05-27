@@ -23,12 +23,15 @@ export async function GET(request: NextRequest) {
     }),
   })
 
+  const tokenRaw = await tokenRes.text()
+  console.log('[ML callback] token response status:', tokenRes.status)
+  console.log('[ML callback] token response body:', tokenRaw)
+
   if (!tokenRes.ok) {
-    console.error('[ML CALLBACK] token error:', await tokenRes.text())
     return Response.json({ error: 'falha ao obter token' }, { status: 502 })
   }
 
-  const token = await tokenRes.json() as {
+  const token = JSON.parse(tokenRaw) as {
     access_token: string
     refresh_token: string
     expires_in: number
