@@ -8,6 +8,7 @@ import SeletorCanais from '@/components/SeletorCanais'
 import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
 import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
+import CardComparadorListing, { type ComparadorListingData } from '@/components/CardComparadorListing'
 import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
 import CardValidadorUpload from '@/components/CardValidadorUpload'
 import MiniEditorPrecos, { type MensagemAjustePrecos } from '@/components/MiniEditorPrecos'
@@ -26,7 +27,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'botao_ajuda_upload'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'card_comparador_listing' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -52,6 +53,10 @@ type Botao = {
   alertas_preview?: string[]
   price_guard?: PriceGuardData
   validador_upload?: ValidadorUploadData
+  comparador_listing?: ComparadorListingData
+  produtos_preview?: ComparadorListingData['produtos_preview']
+  produtos_com_titulo?: number
+  produtos_com_descricao?: number
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
@@ -571,6 +576,23 @@ export default function ChatPrincipal() {
                       m.acoes_rapidas.botoes.some(b => b.acao === 'card_download_arquivo') ? (
                         <div style={{ marginTop: 12, marginLeft: 44 }}>
                           {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_comparador_listing')
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardComparadorListing
+                                  acao="card_comparador_listing"
+                                  titulo={b.titulo ?? 'Antes e depois do cadastro'}
+                                  resumo={b.resumo ?? 'Veja o que o Guiamos transformou a partir dos dados básicos.'}
+                                  total_produtos={b.total_produtos ?? 0}
+                                  produtos_com_titulo={b.produtos_com_titulo ?? 0}
+                                  produtos_com_descricao={b.produtos_com_descricao ?? 0}
+                                  canais={b.canais ?? []}
+                                  produtos_preview={b.produtos_preview ?? []}
+                                />
+                              </div>
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes
                             .filter(b => b.acao === 'card_status_confianca')
                             .map((b, j) => (
                               <div key={j} style={{ marginBottom: 8 }}>
@@ -642,10 +664,10 @@ export default function ChatPrincipal() {
                               ))
                             }
                           </div>
-                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload') && (
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing') && (
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
-                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload')
+                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.acao === 'botao_ajuda_upload'

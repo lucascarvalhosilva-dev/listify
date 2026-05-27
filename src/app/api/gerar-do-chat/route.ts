@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
+import { criarComparadorListing } from '@/lib/comparador-listing'
 
 export const maxDuration = 60
 
@@ -349,6 +350,12 @@ export async function POST(request: Request) {
           validador_upload: validadorUploadChat,
         }]
       : []
+    const comparadorListing = criarComparadorListing({
+      produtosOriginais: produtos,
+      produtosRevisao,
+      canais: canaisEngine,
+    })
+    const comparadorListingAction = comparadorListing ? [comparadorListing] : []
 
     console.log('[ETAPA] atualizando pra concluida | catalogos salvos:', catalogosIds.length)
     const { error: updateErr } = await supabase
@@ -364,6 +371,7 @@ export async function POST(request: Request) {
           alertas: alertasFinal,
           status_confianca: statusConfianca,
           validadores_upload: validadoresUpload,
+          comparador_listing: comparadorListing,
           price_guard: priceGuard.price_guard,
           produtos_revisao: produtosRevisao,
           canais_engine: canaisEngine,
@@ -400,6 +408,7 @@ export async function POST(request: Request) {
       ].join('\n')
 
       const botoesSucesso = [
+        ...comparadorListingAction,
         ...validadorUploadAction,
         priceGuardAction,
         ...arquivosGerados.map(a => ({
@@ -451,6 +460,7 @@ export async function POST(request: Request) {
         acoes: {
           botoes: [
             ...validadorUploadAction,
+            ...comparadorListingAction,
             priceGuardAction,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',
