@@ -1,26 +1,39 @@
 # Próximos Passos — Roadmap até Lançamento
 
 > Lançamento revisado: 3-4 meses (set/out 2026). Plano vivo, atualizar conforme avança.
-> Posicionamento: "Camada inteligente de preparação de cadastro para marketplaces brasileiros".
+> Posicionamento: "Copiloto de cadastro e publicacao multicanal para marketplaces brasileiros".
 > Detalhes do modelo de negócio: docs/09-modelo-negocio-diferenciacao.md
-> Regra de prioridade: nada deve passar na frente de upload aceito, preço seguro, validação visível e correção de erro.
+> Regra de prioridade: nada deve passar na frente de publicacao segura, preco protegido, validacao visivel e erro traduzido.
+
+## Decisao estrategica atual — pivot API-first
+
+Decisao aprovada em 2026-05-27: o Guiamos deve evoluir de gerador de planilha pronta para copiloto que prepara, valida e publica produtos por API nos marketplaces conectados. Planilha continua como fallback/exportacao, nao como promessa principal.
+
+Ordem estrategica:
+
+1. Mercado Livre API como primeiro conector real.
+2. Bling como integracao auxiliar de catalogo/estoque, nao canal de venda.
+3. Shopee ou Magalu como segundo marketplace, dependendo de acesso real e API liberada.
+4. TikTok Shop depois de confirmar escopo Brasil e Product API.
+5. Amazon por ultimo entre os grandes, por causa da complexidade da SP-API e Product Type Definitions.
 
 ## Fase 0 — Validação com usuários (próximas 2 semanas)
 
 Antes de codar features novas, validar hipóteses com vendedores reais.
 
 - Prospectar 5-10 vendedores reais de marketplace (grupos de Shopee/ML, WhatsApp, Facebook, LinkedIn, clientes/fornecedores próximos)
-- Entrevistar cada um (30-45min) sobre: tempo gasto cadastrando, maior dor, modelo de pagamento preferido, percepção do "momento uau"
+- Entrevistar cada um (30-45min) sobre: tempo gasto cadastrando, maior dor, modelo de pagamento preferido, percepção do "momento uau" e interesse em conectar conta do marketplace
 - Fazer pelo menos 3 testes guiados com produto/fotos reais do vendedor
+- Levantar pré-requisitos reais: conta Mercado Livre, CNPJ/MEI, Mercado Envios, GTIN/marca, fotos públicas e permissão para app externo
 - Documentar respostas em docs/VALIDACAO-USUARIOS.md (a criar)
 - Decidir quais features da Fase 1 são confirmadas e quais precisam ajuste
 - Registrar qualquer ajuda manual do Lucas como regra futura de produto, não como "caso isolado"
 
-Output esperado: relatório curto com 8 hipóteses validadas/refutadas (lista em 09-modelo-negocio-diferenciacao.md, seção "Hipoteses a validar com usuarios") e pelo menos 3 tentativas reais de upload ou simulação de upload.
+Output esperado: relatório curto com hipóteses validadas/refutadas, pelo menos 3 testes reais de cadastro e decisão clara: seguir primeiro com Mercado Livre API, planilha fallback, ou manter planilha por mais uma fase.
 
 ## Fase 1 — Beta vendável (4-6 semanas)
 
-Foco: vendedor sai de "tenho produto e fotos" para "tenho cadastro pronto e validado".
+Foco: vendedor sai de "tenho produto e fotos" para "tenho cadastro pronto, validado e com publicação assistida em pelo menos um canal".
 
 Bloqueadores da V1:
 
@@ -29,9 +42,17 @@ Bloqueadores da V1:
 - [x] Validador antes do upload (V1 Shopee + Mercado Livre)
 - [x] Price Guard simples
 - [x] Detector de produto restrito/proibido por canal (V1 heurística no validador pré-upload)
-- [ ] Comparador antes/depois do listing
+- [x] Comparador antes/depois do listing (V1 no chat pós-geração)
 - [x] Status de confiança no resultado: conferência rápida com campos, produtos, preço, arquivos, fotos/Drive e alertas
-- [ ] Instrumentar métricas da V1: arquivo gerado, arquivo baixado, upload aceito, erro reportado, erro corrigido
+- [ ] Arquitetura API-first: contas conectadas, tokens seguros, jobs de publicação, listings externos e eventos
+- [ ] Decisão de fila/worker para jobs assíncronos (avaliar Supabase Edge Functions com cron, Upstash QStash ou trigger.dev — Vercel serverless não serve para jobs longos)
+- [ ] Política de token expirado: comportamento quando refresh token falha no meio de publicação em lote (pausar job, notificar usuário, retomar após reconexão)
+- [ ] Cláusula LGPD para armazenamento de token de terceiro (Mercado Livre, Shopee, etc) — atualizar política de privacidade
+- [ ] Estratégia de rollback: se publicação em massa der erro parcial, como reverter ou marcar anúncios criados incorretamente
+- [ ] POC Mercado Livre API: publicar 1 produto simples com aprovação humana, fotos, preço, estoque, categoria e status salvo
+- [ ] Tela/fluxo "Conexões" para conectar Mercado Livre e ver status da conta
+- [ ] Card no chat "Revisar e publicar" quando Mercado Livre estiver conectado; manter "Baixar planilha" como fallback
+- [ ] Instrumentar métricas da V1: rascunho gerado, conta conectada, publicação aprovada, publicação concluída, rejeição por canal, arquivo fallback baixado, erro corrigido
 - [ ] Beta fechado: 10-30 usuários grátis em troca de feedback
 
 Importante, mas não deve bloquear o beta:
@@ -47,7 +68,10 @@ Output esperado: usuários do beta geram cadastros publicáveis com assistência
 Foco: vendedor volta toda semana e justifica pagar mensalidade.
 
 - [ ] Publicar em outro canal a partir de catálogo existente
-- [ ] Correção de erros por upload (sobe log do marketplace → Guiamos corrige)
+- [ ] Correção de erros por API/upload (retorno do marketplace → Guiamos corrige)
+- [ ] Atualização de preço e estoque por API nos canais conectados
+- [ ] Segundo conector marketplace: Shopee ou Magalu, escolhido por acesso real e maturidade da API
+- [ ] Integração Bling como fonte de catálogo: importar produtos, custo, estoque e fotos para reduzir atrito de onboarding (não tratar como canal de venda)
 - [ ] Catalog Quality Score
 - [ ] Geração de vídeo curto do produto (Remotion + Cloud Run) — diferencial prioritário para canais que valorizam/exigem vídeo
 - [ ] Alertas de qualidade integrados ao Quality Score
@@ -55,7 +79,7 @@ Foco: vendedor volta toda semana e justifica pagar mensalidade.
 - [ ] Biblioteca de erros reais por marketplace e categoria
 - [ ] Hosting próprio de fotos (Cloudflare R2) somente se Google Drive gerar atrito recorrente — ver docs/05-fotos.md
 
-Output esperado: usuários do beta voltam ao produto pelo menos 1x/semana após cadastro inicial ou reutilizam um catálogo em outro canal.
+Output esperado: usuários do beta voltam ao produto pelo menos 1x/semana após cadastro inicial, reutilizam um catálogo em outro canal ou atualizam preço/estoque em anúncio já publicado.
 
 ## Fase 3 — Checkout mínimo e lançamento pago (2 semanas)
 
@@ -91,12 +115,13 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 | Avanço | Gate mínimo |
 |---|---|
 | Entrar no beta fechado | 3 testes guiados com produtos reais e problemas documentados |
-| Abrir planos pagos | 5 usuários reais geraram arquivo e pelo menos 3 tentaram upload |
+| Abrir planos pagos | 5 usuários reais geraram cadastro e pelo menos 3 chegaram a upload aceito ou publicação assistida |
 | Subir preço para Pro R$149+ | Usuários citam economia de tempo/redução de erro sem serem induzidos |
 | Construir remoção de fundo | Pelo menos 30% dos erros/retrabalhos envolvem foto/fundo |
 | Construir vídeo curto | Arquivo base validado + 3 produtos reais com fotos aptas para gerar MVP simples de vídeo |
-| Construir integração Bling/Tiny | 5 usuários beta já usam Bling/Tiny e pedem import/export |
-| Construir publicação direta via API | Upload por planilha tem alta taxa de sucesso e suporte está controlado |
+| Construir integração Bling como fonte de catálogo | ML API MVP estável + pelo menos 3 usuários do beta já usam Bling |
+| Construir Mercado Livre API MVP | App/conta dev aprovado + 1 produto simples publicado com revisão humana e log salvo |
+| Expandir API para segundo marketplace | ML API MVP estável + acesso real aprovado no segundo canal + erros traduzidos |
 
 ---
 
@@ -111,12 +136,12 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Monitor de concorrência
 - Upgrade futuro da tela `/precos`: reprecificação automática, análise de concorrência, regras por categoria, agendamento de ajustes e histórico avançado de versões
 - Otimização contínua de listagem baseada em performance
-- Integração Bling API (importar catálogo sem CSV)
 - Dashboard de performance (margem real por canal) — só se não virar ERP
 - Pesquisa de concorrência (preço médio de mercado)
 - White-label completo (plano Agência)
 - App mobile (foto com câmera → cadastro)
 - API pública pra ERPs parceiros
+- Publicação API em Amazon e TikTok Shop após validação de Mercado Livre + segundo canal
 - Suporte a Casas Bahia / Via Varejo
 - Pricing dinâmico baseado em concorrência
 - Chat absorvendo mais ações sem redirecionar (avaliar caso a caso)
@@ -129,7 +154,8 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Geração de copies para anúncios Meta/Google Ads (fora do escopo "preparação de cadastro")
 - Tradução automática multi-país (PT→EN/ES) — não relevante pro nicho inicial brasileiro
 - Dashboard executivo de vendas/performance (vira ERP, sai do posicionamento)
-- Publicação direta via API na V1
+- Publicação direta via API em todos os canais na V1
+- Publicação sem revisão humana
 - Gestão de pedidos, emissão fiscal, expedição e conciliação financeira
 - Reprecificação automática antes de validar Price Guard manual/assistido
 
@@ -137,18 +163,20 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 
 ## Ordem de prioridade operacional
 
-1. Upload aceito e arquivo correto.
-2. Price Guard e margem visível.
-3. Validador pré-upload.
-4. Detector de produto restrito/proibido por canal.
-5. Comparador antes/depois (confiança visível na V1).
-6. Publicar em outro canal a partir do mesmo catálogo.
-7. Correção de erros por upload.
-8. Vídeo curto do produto.
-9. Quality Score.
-10. Import/export com ERP.
-11. Remoção de fundo.
-12. Viabilidade, concorrência e reprecificação.
+1. Arquitetura API-first segura: contas conectadas, tokens, jobs, listings e eventos.
+2. Mercado Livre API MVP com publicação assistida e planilha fallback.
+3. Price Guard e margem visível antes de publicar.
+4. Validador pré-publicação: campos, fotos, atributos, restrições e arquivo fallback.
+5. Detector de produto restrito/proibido por canal.
+6. Comparador antes/depois (confiança visível na V1).
+7. Publicar em outro canal a partir do mesmo catálogo.
+8. Correção de erros por API/upload.
+9. Atualização de preço e estoque por API.
+10. Vídeo curto do produto.
+11. Quality Score.
+12. Import/export com ERP.
+13. Remoção de fundo.
+14. Viabilidade, concorrência e reprecificação.
 
 ---
 
@@ -172,6 +200,7 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
 - Validador pré-upload V1 no chat e em `/precos` para Shopee e Mercado Livre, com status pronto/revisar/bloqueado por catálogo
 - Detector V1 de produto restrito/proibido por canal integrado ao validador pré-upload, com bloqueio para sinais fortes e avisos para categorias reguladas
+- Comparador antes/depois V1 no chat pós-geração, mostrando o que foi transformado dos dados básicos para o cadastro otimizado
 - Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
 - Área `/precos` na navegação para ajustar preços de catálogos existentes sem cadastrar produtos novamente, incluindo seleção manual de SKUs e filtros por status/margem
 - Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados

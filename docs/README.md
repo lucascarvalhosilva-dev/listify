@@ -4,7 +4,7 @@
 
 ## O que é o Guiamos
 
-SaaS que automatiza o cadastro de produtos em marketplaces brasileiros usando Claude AI. Antes chamado Listify, agora **Guiamos**. Domínio oficial: **guiamos-marketplace.com.br**.
+SaaS que automatiza o cadastro e a publicacao assistida de produtos em marketplaces brasileiros usando Claude AI. Antes chamado Listify, agora **Guiamos**. Dominio oficial: **guiamos-marketplace.com.br**.
 
 ## Mapa de arquivos — onde achar cada coisa
 
@@ -35,7 +35,7 @@ SaaS que automatiza o cadastro de produtos em marketplaces brasileiros usando Cl
 
 1. **Mínimo real**: 5 inputs do usuário (nome, fotos, estoque, custo, regime tributário). IA infere o resto.
 2. **Canais independentes**: cada marketplace é um módulo separado. Não há ordem obrigatória.
-3. **Templates internos**: usuário nunca baixa template. Recebe arquivo pronto pra upload.
+3. **API-first com fallback**: o objetivo e publicar por API quando a conta estiver conectada. Planilha pronta continua como fallback/exportacao para canais sem API ou contas ainda nao conectadas.
 
 ## Convenções desta documentação
 
