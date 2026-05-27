@@ -301,7 +301,14 @@ export async function POST(request: Request) {
 
     let sessaoAtiva = await buscarSessaoAtiva(user.id)
 
-    if (detectarIntencaoCadastro(mensagem) && !sessaoAtiva) {
+    if (detectarIntencaoCadastro(mensagem)) {
+      if (sessaoAtiva) {
+        await supabase
+          .from('sessoes_geracao')
+          .update({ etapa: 'cancelada' })
+          .eq('id', sessaoAtiva.id)
+        sessaoAtiva = null
+      }
       sessaoAtiva = await criarSessao(user.id)
     }
 
