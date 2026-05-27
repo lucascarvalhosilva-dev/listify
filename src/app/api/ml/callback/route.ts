@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Troca code por tokens
-  const tokenRes = await fetch('https://api.mercadolivre.com.br/oauth/token', {
+  const tokenRes = await fetch('https://api.mercadolibre.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Busca dados do usuário ML
-  const meRes = await fetch('https://api.mercadolivre.com.br/users/me', {
+  const meRes = await fetch('https://api.mercadolibre.com/users/me', {
     headers: { Authorization: `Bearer ${token.access_token}` },
   })
 
