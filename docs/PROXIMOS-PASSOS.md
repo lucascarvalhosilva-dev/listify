@@ -109,6 +109,7 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - Suporte a variações de produto (cor, tamanho, modelo)
 - Reprecificação automática
 - Monitor de concorrência
+- Upgrade futuro da tela `/precos`: reprecificação automática, análise de concorrência, regras por categoria, agendamento de ajustes e histórico avançado de versões
 - Otimização contínua de listagem baseada em performance
 - Integração Bling API (importar catálogo sem CSV)
 - Dashboard de performance (margem real por canal) — só se não virar ERP
