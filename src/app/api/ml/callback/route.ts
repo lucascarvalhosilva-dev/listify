@@ -15,11 +15,6 @@ export async function GET(request: NextRequest) {
   const clientSecret = process.env.ML_CLIENT_SECRET ?? ''
   const redirectUri = process.env.ML_REDIRECT_URI ?? ''
 
-  console.log('[ML callback] client_id length:', clientId.length, 'value:', clientId)
-  console.log('[ML callback] client_secret length:', clientSecret.length, 'first4:', clientSecret.slice(0, 4), 'last4:', clientSecret.slice(-4))
-  console.log('[ML callback] redirect_uri:', redirectUri)
-  console.log('[ML callback] code:', code)
-
   const requestBody = new URLSearchParams({
     grant_type: 'authorization_code',
     client_id: clientId,
@@ -28,25 +23,16 @@ export async function GET(request: NextRequest) {
     code,
   })
 
-  console.log('[ML callback] request body type: form-urlencoded')
-  console.log('[ML callback] body string:', requestBody.toString())
-
-  const requestHeaders = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/x-www-form-urlencoded',
-  }
-
-  console.log('[ML callback] request headers:', requestHeaders)
-
   const tokenRes = await fetch('https://api.mercadolibre.com/oauth/token', {
     method: 'POST',
-    headers: requestHeaders,
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
     body: requestBody,
   })
 
   const tokenRaw = await tokenRes.text()
-  console.log('[ML callback] token response status:', tokenRes.status)
-  console.log('[ML callback] token response body:', tokenRaw)
 
   if (!tokenRes.ok) {
     return Response.json({ error: 'falha ao obter token' }, { status: 502 })
@@ -72,9 +58,6 @@ export async function GET(request: NextRequest) {
   const me = await meRes.json() as { id: number; nickname: string }
 
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString()
-
-  console.log('[ML callback] user_id from state:', userId)
-  console.log('[ML callback] ml_user_id:', me.id)
 
   const supabase = createServiceClient()
   const { error } = await supabase
