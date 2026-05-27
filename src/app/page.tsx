@@ -710,6 +710,32 @@ export default function ChatPrincipal() {
                             </div>
                           )}
                         </div>
+                      ) : m.acoes_rapidas.botoes.some(b => b.acao === 'card_upload_fotos_ml') ? (
+                        <div style={{ marginTop: 12, marginLeft: 44 }}>
+                          {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_upload_fotos_ml' && b.produtos?.length)
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardUploadFotosML
+                                  produtos={b.produtos!}
+                                  onFotosUploaded={novas => setFotosUploadadas(prev => ({ ...prev, ...novas }))}
+                                />
+                              </div>
+                            ))
+                          }
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_upload_fotos_ml') && (
+                            <div className="quick-actions" style={{ marginLeft: 0, marginTop: 8 }}>
+                              {m.acoes_rapidas.botoes
+                                .filter(b => b.acao !== 'card_upload_fotos_ml')
+                                .map((b, j) => (
+                                  <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
+                                    {b.texto}
+                                  </button>
+                                ))
+                              }
+                            </div>
+                          )}
+                        </div>
                       ) : m.acoes_rapidas.botoes.some(b => b.acao === 'card_envio_drive') ? (
                         <div style={{ marginTop: 12, marginLeft: 44 }}>
                           {m.acoes_rapidas.botoes

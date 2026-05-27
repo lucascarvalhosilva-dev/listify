@@ -363,6 +363,22 @@ export async function POST(request: Request) {
       }
     }
 
+    // ── Gerar sem fotos: avança sessão sem Drive URL ──────────────────────────
+    const eGerarSemFotos = mensagem === 'Gerar sem fotos por enquanto' &&
+      sessaoAtiva?.etapa === 'aguardando_drive'
+
+    if (eGerarSemFotos && sessaoAtiva) {
+      await supabase
+        .from('sessoes_geracao')
+        .update({
+          etapa: 'processando',
+          drive_url: 'sem_fotos',
+          dados_planilha: { ...(sessaoAtiva.dados_planilha ?? {}), drive_validado: false },
+        })
+        .eq('id', sessaoAtiva.id)
+      sessaoAtiva = { ...sessaoAtiva, etapa: 'processando', drive_url: 'sem_fotos' }
+    }
+
     // ── Seleção de canais: short-circuit quando processando sem canais ────────
     if (sessaoAtiva?.etapa === 'processando') {
       const canaisAlvo: string[] = sessaoAtiva.canais_alvo ?? []
@@ -522,7 +538,7 @@ O usuário acabou de enviar um arquivo de produtos (nome: ${infoPlanilha.nome}).
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O arquivo de produtos foi validado com sucesso. Total de produtos encontrados: ${infoValidacaoOk.total}. Etapa atual: aguardando_drive. Parabenize o usuário pelo arquivo estar correto, mencione o número de produtos detectados, e explique a próxima etapa: ele precisa enviar o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem estar nomeadas como SKU_01.jpg (capa), SKU_02.jpg (extras), e a pasta precisa estar compartilhada como 'Qualquer pessoa com o link → Visualizador'. Peça o link do Drive de forma clara.`
+O arquivo de produtos foi validado com sucesso. Total de produtos encontrados: ${infoValidacaoOk.total}. Parabenize o usuário de forma breve e mencione o número de produtos detectados. Diga que o próximo passo é enviar as fotos — um card aparece automaticamente abaixo com as opções de envio. Seja breve e positivo. NÃO explique ainda o fluxo do Google Drive.`
     } else if (infoValidacaoErro !== null) {
       contextoEtapa = `
 
@@ -583,6 +599,20 @@ O arquivo de produtos tem erros e precisa ser corrigido. Etapa atual: aguardando
       }))
       const aiAcoes = acoes?.botoes ?? []
       acoes = { botoes: [...cardBotoes, ...aiAcoes] }
+    } else if (infoValidacaoOk) {
+      const produtosSessao = ((sessaoAtiva?.dados_planilha as Record<string, unknown>)?.produtos as Array<{ sku: string; nome: string }>) ?? []
+      const uploadCard: Record<string, unknown> = {
+        acao: 'card_upload_fotos_ml',
+        produtos: produtosSessao.map(p => ({ sku: p.sku, nome: p.nome })),
+      }
+      acoes = {
+        botoes: [
+          uploadCard,
+          ...(acoes?.botoes ?? []),
+          { acao: 'mensagem', texto: 'Usar link do Google Drive', valor: 'Prefiro usar Google Drive para as fotos' },
+          { acao: 'mensagem', texto: 'Gerar sem fotos', valor: 'Gerar sem fotos por enquanto' },
+        ],
+      }
     } else if (sessaoAtiva?.etapa === 'aguardando_drive') {
       // Injeta card de input de Drive — cobre: estado inicial, retry após URL inválida,
       // e mensagem genérica enquanto aguarda. URL da tentativa anterior vai em valor.
@@ -591,7 +621,7 @@ O arquivo de produtos tem erros e precisa ser corrigido. Etapa atual: aguardando
       if (valorUrl) cardBotao.valor = valorUrl
       const aiAcoes = (acoes?.botoes ?? []).filter(b => (b as Record<string, unknown>)['acao'] !== 'card_envio_drive')
       acoes = { botoes: [cardBotao, ...aiAcoes] }
-    } else if (infoPlanilha || infoValidacaoOk || infoValidacaoErro !== null) {
+    } else if (infoPlanilha || infoValidacaoErro !== null) {
       // Etapa já foi gerenciada pelo chat-upload / validar-planilha
     } else if (urlDrive !== null) {
       // URL de Drive válida: etapa avançou para processando, short-circuit já retornou
