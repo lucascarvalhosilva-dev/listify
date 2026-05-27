@@ -49,6 +49,9 @@ export async function GET(request: NextRequest) {
 
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString()
 
+  console.log('[ML callback] user_id from state:', userId)
+  console.log('[ML callback] ml_user_id:', me.id)
+
   const supabase = createServiceClient()
   const { error } = await supabase
     .from('ml_contas')
@@ -65,8 +68,8 @@ export async function GET(request: NextRequest) {
     )
 
   if (error) {
-    console.error('[ML CALLBACK] upsert error:', error)
-    return Response.json({ error: 'falha ao salvar conta ML' }, { status: 500 })
+    console.error('[ML callback] upsert error:', JSON.stringify(error))
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   return NextResponse.redirect(
