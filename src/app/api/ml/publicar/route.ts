@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getValidMLToken } from '@/lib/ml/token'
+import { prepararFotosML } from '@/lib/ml/fotos'
 
 interface PublicarBody {
   titulo: string
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json() as PublicarBody
 
+  const fotosPublicas = await prepararFotosML(body.fotos, user.id)
+
   const payload = {
     title: body.titulo,
     price: body.preco,
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     category_id: body.categoria_ml,
     listing_type_id: 'gold_special',
     description: { plain_text: body.descricao },
-    pictures: body.fotos.map(url => ({ source: url })),
+    pictures: fotosPublicas.map(url => ({ source: url })),
     ...(body.atributos?.length ? { attributes: body.atributos } : {}),
   }
 
