@@ -27,12 +27,12 @@ Características:
 ## Fluxo de geração de catálogo (caminho feliz)
 
 1. Usuário no chat pede pra gerar pra um canal (ex: "quero publicar na Shopee")
-2. Chat redireciona pra fluxo de geração (no painel ou subindo planilha)
-3. Upload de planilha `.xlsx` com produtos
+2. Chat inicia o fluxo guiado de cadastro
+3. Envio do arquivo de produtos (`.xlsx` ou `.csv`) com SKU, nome, custo e estoque
 4. Seleção de canal(is) — limitada pelo plano do usuário (ver `04-precificacao.md`)
 5. **Processamento em batches de 5 produtos** via Claude API (`/api/process-catalog`)
    - Tela de loading (progresso granular ainda não implementado)
-6. **Geração de arquivos** + download
+6. **Cadastros preparados** + card de publicação quando houver conector ativo
 
 > Revisão de preços e dimensões: planejado mas não implementado ainda.
 > `/api/fix-errors`: planejado mas não implementado.
@@ -43,7 +43,7 @@ Rota `/adicionar-produtos?cat=<id>`. Fluxo de 3 steps para adicionar SKUs novos 
 
 ## Fluxo de ajuste de preços
 
-No chat, após gerar a planilha, o usuário recebe o comparador antes/depois do cadastro, a validação pré-upload (V1 para Shopee e Mercado Livre, incluindo sinais de produto restrito/proibido), o Price Guard e os arquivos para baixar. Na rota `/precos`, ele pode consultar o mesmo diagnóstico depois, escolher um catálogo existente, simular margem mínima, percentual ou valor fixo e gerar uma planilha ajustada sem cadastrar produtos novamente. A nova planilha substitui o arquivo atual do catálogo em **Meus Catálogos**.
+No chat, após preparar o cadastro, o usuário recebe o comparador antes/depois, a validação pré-publicação (V1 para Shopee e Mercado Livre, incluindo sinais de produto restrito/proibido), o Price Guard e, quando aplicável, o card de publicação direta por API. Na rota `/precos`, ele pode consultar o mesmo diagnóstico depois, escolher um catálogo existente, simular margem mínima, percentual ou valor fixo e gerar um cadastro ajustado sem cadastrar produtos novamente. A nova versão substitui o arquivo atual do catálogo em **Meus Catálogos**.
 
 ## Estados onboarding vs chat vs sessão
 

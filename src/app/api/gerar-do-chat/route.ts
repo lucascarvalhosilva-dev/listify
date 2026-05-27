@@ -4,6 +4,7 @@ import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib
 import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 import { criarComparadorListing } from '@/lib/comparador-listing'
+import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 
 export const maxDuration = 60
 
@@ -98,10 +99,10 @@ function criarCardStatusConfianca(params: {
   return {
     acao: 'card_status_confianca',
     status: pronto ? 'pronto' : 'atencao',
-    titulo: pronto ? 'Conferência rápida: pronto para upload' : 'Conferência rápida: revise antes do upload',
+    titulo: pronto ? 'Conferência rápida: pronto para publicar' : 'Conferência rápida: revise antes de publicar',
     resumo: pronto
-      ? 'Campos obrigatórios, Drive e arquivos passaram na conferência automática.'
-      : 'Os arquivos foram gerados, mas há pontos importantes para revisar antes de publicar.',
+      ? 'Campos obrigatórios, fotos e cadastros passaram na conferência automática.'
+      : 'Os cadastros foram preparados, mas há pontos importantes para revisar antes de publicar.',
     total_produtos: params.totalProdutos,
     produtos_processados: params.produtosProcessados,
     arquivos_gerados: params.arquivosGerados,
@@ -302,7 +303,7 @@ export async function POST(request: Request) {
         if (catErr || !cat) {
           console.error('[CATALOGOS] falha no insert canal=' + arquivo.canal + ':', JSON.stringify(catErr))
           alertasCatalogos.push(
-            `Catálogo para ${nomeCanal} não foi salvo automaticamente. Os arquivos estão disponíveis para download.`
+            `Catálogo para ${nomeCanal} não foi salvo automaticamente. A exportação técnica ficou disponível como apoio.`
           )
         } else {
           const catId = (cat as { id: string }).id
@@ -395,22 +396,47 @@ export async function POST(request: Request) {
       tamanho_bytes: a.tamanho_bytes,
       catalogo_id: a.catalogo_id ?? null,
     }))
+    const temMercadoLivre = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
+    const arquivoMercadoLivre = arquivosBaixaveis.find(a => normalizarCanalParaEngine(a.canal) === 'ml')
+    let contaML: { nickname?: string | null; ml_user_id?: string | null } | null = null
+    if (temMercadoLivre) {
+      const { data, error } = await supabase
+        .from('ml_contas')
+        .select('nickname, ml_user_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (error) console.error('[GERAR-DO-CHAT] erro ao consultar ml_contas:', error)
+      contaML = data
+    }
+    const publicacaoMLAction = temMercadoLivre
+      ? [criarCardPublicacaoML({
+          conectado: Boolean(contaML),
+          nickname: contaML?.nickname ?? null,
+          produtosOriginais: produtos,
+          produtosRevisao,
+          driveUrl: sessao.drive_url,
+          fallbackDownload: arquivoMercadoLivre ?? null,
+        })]
+      : []
 
     // ── Inserir mensagem de sucesso no histórico do chat ──────────────────────
     if (arquivosGerados.length > 0) {
       const n = arquivosGerados.length
       const conteudoSucesso = [
-        `🎉 **Pronto!** Seus arquivos foram gerados com sucesso!`,
+        `🎉 **Pronto!** Seus cadastros foram preparados com sucesso!`,
         ``,
-        `Você tem **${n} arquivo${n > 1 ? 's' : ''}** pronto${n > 1 ? 's' : ''} para baixar abaixo. Eles também foram salvos automaticamente em **Meus Catálogos** para você acessar sempre que precisar.`,
+        `Você tem **${n} cadastro${n > 1 ? 's' : ''}** salvo${n > 1 ? 's' : ''} automaticamente em **Meus Catálogos** para revisar e reutilizar sempre que precisar.`,
         ``,
-        `👇 Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, é só clicar nos botões abaixo!`,
+        temMercadoLivre
+          ? `Revise o card do Mercado Livre abaixo para publicar pela API. Para canais sem conector ativo, deixei a exportação técnica disponível como apoio.`
+          : `Para canais sem conector ativo, deixei a exportação técnica disponível como apoio enquanto a publicação direta não está liberada.`,
       ].join('\n')
 
       const botoesSucesso = [
         ...comparadorListingAction,
         ...validadorUploadAction,
         priceGuardAction,
+        ...publicacaoMLAction,
         ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
           path: a.path,
@@ -424,7 +450,7 @@ export async function POST(request: Request) {
             acao: 'botao_ajuda_upload',
             canal: canalChat,
             nome_canal_label: nomeLabel,
-            texto: `📚 Como subir no ${nomeLabel}?`,
+            texto: `📚 Como publicar no ${nomeLabel}?`,
           }
         }),
         { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },
@@ -451,17 +477,20 @@ export async function POST(request: Request) {
       arquivos_baixaveis: arquivosBaixaveis,
       mensagem_sucesso: arquivosGerados.length > 0 ? {
         conteudo: [
-          `**Pronto!** Seus arquivos foram gerados com sucesso!`,
+          `**Pronto!** Seus cadastros foram preparados com sucesso!`,
           ``,
-          `Você tem **${arquivosGerados.length} arquivo${arquivosGerados.length > 1 ? 's' : ''}** pronto${arquivosGerados.length > 1 ? 's' : ''} para baixar abaixo. Eles também foram salvos automaticamente em **Meus Catálogos** para você acessar sempre que precisar.`,
+          `Você tem **${arquivosGerados.length} cadastro${arquivosGerados.length > 1 ? 's' : ''}** salvo${arquivosGerados.length > 1 ? 's' : ''} automaticamente em **Meus Catálogos** para revisar e reutilizar sempre que precisar.`,
           ``,
-          `Baixe os arquivos e, se precisar de ajuda pra subir em algum marketplace, é só clicar nos botões abaixo!`,
+          temMercadoLivre
+            ? `Revise o card do Mercado Livre abaixo para publicar pela API. Para canais sem conector ativo, deixei a exportação técnica disponível como apoio.`
+            : `Para canais sem conector ativo, deixei a exportação técnica disponível como apoio enquanto a publicação direta não está liberada.`,
         ].join('\n'),
         acoes: {
           botoes: [
             ...validadorUploadAction,
             ...comparadorListingAction,
             priceGuardAction,
+            ...publicacaoMLAction,
             ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',
               path: a.path,
@@ -475,7 +504,7 @@ export async function POST(request: Request) {
                 acao: 'botao_ajuda_upload',
                 canal: canalChat,
                 nome_canal_label: nomeLabel,
-                texto: `Como subir no ${nomeLabel}?`,
+                texto: `Como publicar no ${nomeLabel}?`,
               }
             }),
             { acao: 'mensagem', texto: 'Cadastrar mais produtos', valor: 'quero cadastrar mais produtos' },

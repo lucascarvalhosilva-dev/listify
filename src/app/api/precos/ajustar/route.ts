@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const canal = typeof catalogo.canal === 'string' ? normalizarCanalParaEngine(catalogo.canal) : ''
     if (!canal) return Response.json({ error: 'catalogo sem canal definido' }, { status: 400 })
     if (!catalogo.drive_url || typeof catalogo.drive_url !== 'string') {
-      return Response.json({ error: 'catalogo sem link do Drive para regenerar a planilha' }, { status: 400 })
+      return Response.json({ error: 'catalogo sem link do Drive para atualizar o cadastro' }, { status: 400 })
     }
 
     const produtos = normalizarProdutosPreco(catalogo.produtos)
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
 
     const arquivoBase64 = arquivos[chaveArquivoPorCanal(canal)]
     if (!arquivoBase64) {
-      return Response.json({ error: 'nao consegui gerar a planilha ajustada' }, { status: 500 })
+      return Response.json({ error: 'nao consegui gerar o cadastro ajustado' }, { status: 500 })
     }
 
     const agora = new Date()
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     if (uploadErr) {
       console.error('[PRECOS/AJUSTAR] erro ao fazer upload:', uploadErr)
-      return Response.json({ error: 'nao consegui salvar a planilha ajustada' }, { status: 500 })
+      return Response.json({ error: 'nao consegui salvar o cadastro ajustado' }, { status: 500 })
     }
 
     const serviceClient = createServiceClient()
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
 
     if (updateErr || !atualizado) {
       console.error('[PRECOS/AJUSTAR] erro ao atualizar catalogo:', updateErr)
-      return Response.json({ error: 'planilha salva, mas nao consegui atualizar o catalogo' }, { status: 500 })
+      return Response.json({ error: 'cadastro salvo, mas nao consegui atualizar o catalogo' }, { status: 500 })
     }
 
     return Response.json({

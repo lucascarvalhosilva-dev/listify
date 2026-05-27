@@ -7,7 +7,7 @@
 
 ## Decisao estrategica atual — pivot API-first
 
-Decisao aprovada em 2026-05-27: o Guiamos deve evoluir de gerador de planilha pronta para copiloto que prepara, valida e publica produtos por API nos marketplaces conectados. Planilha continua como fallback/exportacao, nao como promessa principal.
+Decisao aprovada em 2026-05-27: o Guiamos deve evoluir de gerador de arquivo pronto para copiloto que prepara, valida e publica produtos por API nos marketplaces conectados. Exportacao tecnica continua como apoio temporario para canais sem conector, nao como promessa principal.
 
 Ordem estrategica:
 
@@ -29,7 +29,7 @@ Antes de codar features novas, validar hipóteses com vendedores reais.
 - Decidir quais features da Fase 1 são confirmadas e quais precisam ajuste
 - Registrar qualquer ajuda manual do Lucas como regra futura de produto, não como "caso isolado"
 
-Output esperado: relatório curto com hipóteses validadas/refutadas, pelo menos 3 testes reais de cadastro e decisão clara: seguir primeiro com Mercado Livre API, planilha fallback, ou manter planilha por mais uma fase.
+Output esperado: relatório curto com hipóteses validadas/refutadas, pelo menos 3 testes reais de cadastro e decisão clara: seguir primeiro com Mercado Livre API, manter exportação técnica temporária, ou priorizar outro conector.
 
 ## Fase 1 — Beta vendável (4-6 semanas)
 
@@ -39,9 +39,9 @@ Bloqueadores da V1:
 
 - [x] Cadastro funcionando no chat
 - [x] Histórico de catálogos e conversas
-- [x] Validador antes do upload (V1 Shopee + Mercado Livre)
+- [x] Validador antes da publicação (V1 Shopee + Mercado Livre)
 - [x] Price Guard simples
-- [x] Detector de produto restrito/proibido por canal (V1 heurística no validador pré-upload)
+- [x] Detector de produto restrito/proibido por canal (V1 heurística no validador pré-publicação)
 - [x] Comparador antes/depois do listing (V1 no chat pós-geração)
 - [x] Status de confiança no resultado: conferência rápida com campos, produtos, preço, arquivos, fotos/Drive e alertas
 - [ ] Arquitetura API-first: contas conectadas, tokens seguros, jobs de publicação, listings externos e eventos
@@ -51,8 +51,8 @@ Bloqueadores da V1:
 - [ ] Estratégia de rollback: se publicação em massa der erro parcial, como reverter ou marcar anúncios criados incorretamente
 - [ ] POC Mercado Livre API: publicar 1 produto simples com aprovação humana, fotos, preço, estoque, categoria e status salvo
 - [ ] Tela/fluxo "Conexões" para conectar Mercado Livre e ver status da conta
-- [ ] Card no chat "Revisar e publicar" quando Mercado Livre estiver conectado; manter "Baixar planilha" como fallback
-- [ ] Instrumentar métricas da V1: rascunho gerado, conta conectada, publicação aprovada, publicação concluída, rejeição por canal, arquivo fallback baixado, erro corrigido
+- [x] Card no chat "Revisar e publicar" para Mercado Livre, com detecção server-side de conexão e exportação técnica como apoio
+- [ ] Instrumentar métricas da V1: rascunho gerado, conta conectada, publicação aprovada, publicação concluída, rejeição por canal, exportação técnica baixada, erro corrigido
 - [ ] Beta fechado: 10-30 usuários grátis em troca de feedback
 
 Importante, mas não deve bloquear o beta:
@@ -68,7 +68,7 @@ Output esperado: usuários do beta geram cadastros publicáveis com assistência
 Foco: vendedor volta toda semana e justifica pagar mensalidade.
 
 - [ ] Publicar em outro canal a partir de catálogo existente
-- [ ] Correção de erros por API/upload (retorno do marketplace → Guiamos corrige)
+- [ ] Correção de erros por API/importação (retorno do marketplace → Guiamos corrige)
 - [ ] Atualização de preço e estoque por API nos canais conectados
 - [ ] Segundo conector marketplace: Shopee ou Magalu, escolhido por acesso real e maturidade da API
 - [ ] Integração Bling como fonte de catálogo: importar produtos, custo, estoque e fotos para reduzir atrito de onboarding (não tratar como canal de venda)
@@ -115,7 +115,7 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 | Avanço | Gate mínimo |
 |---|---|
 | Entrar no beta fechado | 3 testes guiados com produtos reais e problemas documentados |
-| Abrir planos pagos | 5 usuários reais geraram cadastro e pelo menos 3 chegaram a upload aceito ou publicação assistida |
+| Abrir planos pagos | 5 usuários reais geraram cadastro e pelo menos 3 chegaram a publicação assistida ou importação aceita |
 | Subir preço para Pro R$149+ | Usuários citam economia de tempo/redução de erro sem serem induzidos |
 | Construir remoção de fundo | Pelo menos 30% dos erros/retrabalhos envolvem foto/fundo |
 | Construir vídeo curto | Arquivo base validado + 3 produtos reais com fotos aptas para gerar MVP simples de vídeo |
@@ -164,13 +164,13 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 ## Ordem de prioridade operacional
 
 1. Arquitetura API-first segura: contas conectadas, tokens, jobs, listings e eventos.
-2. Mercado Livre API MVP com publicação assistida e planilha fallback.
+2. Mercado Livre API MVP com publicação assistida e exportação técnica temporária.
 3. Price Guard e margem visível antes de publicar.
-4. Validador pré-publicação: campos, fotos, atributos, restrições e arquivo fallback.
+4. Validador pré-publicação: campos, fotos, atributos, restrições e exportação técnica.
 5. Detector de produto restrito/proibido por canal.
 6. Comparador antes/depois (confiança visível na V1).
 7. Publicar em outro canal a partir do mesmo catálogo.
-8. Correção de erros por API/upload.
+8. Correção de erros por API/importação.
 9. Atualização de preço e estoque por API.
 10. Vídeo curto do produto.
 11. Quality Score.
@@ -196,12 +196,13 @@ Foco: material pronto pra atrair primeiros clientes pagantes.
 - RLS policies corretas em `chat_historico`
 - Contexto de conversa preservado ao continuar (Etapa 4)
 - Polimento UX: `/guia-fotos`, `/sobre`, autocomplete de formulários, retomada de sessão
-- Status de confiança pós-geração substituído no chat pelo Validador pré-upload, mantendo diagnóstico operacional sem cards duplicados
+- Status de confiança pós-geração substituído no chat pelo Validador pré-publicação, mantendo diagnóstico operacional sem cards duplicados
 - Price Guard simples pós-geração no chat (margem estimada por canal e alertas de prejuízo)
-- Validador pré-upload V1 no chat e em `/precos` para Shopee e Mercado Livre, com status pronto/revisar/bloqueado por catálogo
-- Detector V1 de produto restrito/proibido por canal integrado ao validador pré-upload, com bloqueio para sinais fortes e avisos para categorias reguladas
+- Validador pré-publicação V1 no chat e em `/precos` para Shopee e Mercado Livre, com status pronto/revisar/bloqueado por catálogo
+- Detector V1 de produto restrito/proibido por canal integrado ao validador pré-publicação, com bloqueio para sinais fortes e avisos para categorias reguladas
+- Card de publicação Mercado Livre no chat com detecção server-side de conta conectada, validação de dados exigidos pela API e exportação técnica como apoio
 - Comparador antes/depois V1 no chat pós-geração, mostrando o que foi transformado dos dados básicos para o cadastro otimizado
-- Ajuste assistido de preços no chat a partir do Price Guard, com regeração de planilhas e atualização dos catálogos
+- Ajuste assistido de preços no chat a partir do Price Guard, com atualização de cadastros e catálogos
 - Área `/precos` na navegação para ajustar preços de catálogos existentes sem cadastrar produtos novamente, incluindo seleção manual de SKUs e filtros por status/margem
 - Migração de domínio para `guiamos-marketplace.com.br`: domínio canônico, redirect de `www`, Supabase Auth e Resend alinhados
 - AGENTS.md com diretrizes de workflow

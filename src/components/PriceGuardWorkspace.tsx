@@ -181,10 +181,10 @@ export default function PriceGuardWorkspace() {
   const dicaGerarPlanilha = !catalogo?.editavel
     ? 'Este catálogo ainda não está disponível para ajuste.'
     : aplicarEm === 'selecionados' && skusSelecionados.length === 0
-      ? 'Selecione ao menos um produto para gerar uma nova planilha.'
+      ? 'Selecione ao menos um produto para gerar uma atualização de cadastro.'
     : alteracoesPreview.length === 0
-      ? 'Altere a regra ou aplique em todos os produtos para gerar uma nova planilha.'
-      : 'Gerar uma nova planilha com os preços simulados.'
+      ? 'Altere a regra ou aplique em todos os produtos para gerar uma atualização de cadastro.'
+      : 'Gerar uma atualização de cadastro com os preços simulados.'
   const totalAlertas = catalogo?.price_guard.canais.reduce((acc, canal) => acc + canal.produtos_com_alerta, 0) ?? 0
   const menorMargem = catalogo?.price_guard.canais
     .map(canal => canal.margem_minima_percentual)
@@ -291,7 +291,7 @@ export default function PriceGuardWorkspace() {
       })
       const data = await res.json() as AjustarResponse
       if (!res.ok || !data.catalogo) {
-        setErroAcao(data.error ?? 'Não consegui gerar a planilha ajustada.')
+        setErroAcao(data.error ?? 'Não consegui gerar o cadastro ajustado.')
         return
       }
 
@@ -299,7 +299,7 @@ export default function PriceGuardWorkspace() {
       setCatalogoId(data.catalogo.id)
       setSucesso(data)
     } catch {
-      setErroAcao('Erro de rede ao gerar a planilha ajustada.')
+      setErroAcao('Erro de rede ao gerar o cadastro ajustado.')
     } finally {
       setSalvando(false)
     }
@@ -320,12 +320,12 @@ export default function PriceGuardWorkspace() {
 
       const a = document.createElement('a')
       a.href = data.url
-      a.download = path.split('/').pop() ?? 'planilha-ajustada'
+      a.download = path.split('/').pop() ?? 'cadastro-ajustado'
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     } catch (error) {
-      setErroAcao(error instanceof Error ? error.message : 'Erro ao baixar planilha.')
+      setErroAcao(error instanceof Error ? error.message : 'Erro ao exportar cadastro.')
     } finally {
       setBaixando(false)
     }
@@ -370,7 +370,7 @@ export default function PriceGuardWorkspace() {
             </div>
             <h1 style={{ margin: 0, color: '#182233', fontSize: 30, fontWeight: 900, letterSpacing: 0 }}>Ajustar preços</h1>
             <p style={{ color: '#586174', fontSize: 14, lineHeight: 1.6, margin: '8px 0 0', maxWidth: 680 }}>
-              Simule margens, corrija produtos com risco e gere uma planilha atualizada sem cadastrar tudo de novo.
+              Simule margens, corrija produtos com risco e gere um cadastro atualizado sem cadastrar tudo de novo.
             </p>
           </div>
 
@@ -687,8 +687,8 @@ export default function PriceGuardWorkspace() {
                         <div style={{ color: '#182233', fontSize: 13, fontWeight: 900, marginBottom: 6 }}>Próximo passo recomendado</div>
                         <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.5 }}>
                           {totalAlertas > 0
-                            ? 'Existem produtos com alerta. Use o simulador para corrigir margem antes de subir a planilha.'
-                            : 'O catálogo está saudável. Você pode baixar a planilha atual ou simular um novo preço se quiser.'}
+                            ? 'Existem produtos com alerta. Use o simulador para corrigir margem antes de publicar.'
+                            : 'O catálogo está saudável. Você pode exportar o cadastro atual ou simular um novo preço se quiser.'}
                         </div>
                       </div>
 
@@ -697,7 +697,7 @@ export default function PriceGuardWorkspace() {
                       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                         <button type="button" onClick={() => baixarArquivo(catalogo.arquivo_path ?? undefined)} disabled={!catalogo.arquivo_path || baixando} style={botaoSecundario()}>
                           {baixando ? <Loader2 size={15} className="send-spinner" /> : <Download size={15} strokeWidth={2.4} />}
-                          Baixar planilha atual
+                          Exportar cadastro atual
                         </button>
                         <button type="button" onClick={() => setAbaPrecos('simulador')} style={botaoPrimario(false)}>
                           <SlidersHorizontal size={15} strokeWidth={2.4} />
@@ -721,7 +721,7 @@ export default function PriceGuardWorkspace() {
                     <div>
                       <div style={{ color: '#182233', fontSize: 16, fontWeight: 900 }}>Simular ajuste</div>
                       <div style={{ color: '#586174', fontSize: 12, marginTop: 4, lineHeight: 1.45 }}>
-                        A planilha nova mantém títulos, fotos e descrições. Só os preços selecionados mudam.
+                        O cadastro atualizado mantém títulos, fotos e descrições. Só os preços selecionados mudam.
                       </div>
                     </div>
                   </div>
@@ -851,7 +851,7 @@ export default function PriceGuardWorkspace() {
                             ))}
                             {alteracoesPreview.length > 8 && (
                               <div style={{ color: '#697386', fontSize: 11, fontWeight: 750, padding: '2px 4px' }}>
-                                +{alteracoesPreview.length - 8} ajustes adicionais entram na planilha.
+                                +{alteracoesPreview.length - 8} ajustes adicionais entram no cadastro.
                               </div>
                             )}
                           </div>
@@ -866,13 +866,13 @@ export default function PriceGuardWorkspace() {
                         <div style={{ display: 'flex', gap: 9, alignItems: 'center', minWidth: 0 }}>
                           <CheckCircle2 size={18} color="#0f7b58" strokeWidth={2.5} />
                           <div>
-                            <div style={{ color: '#0f7b58', fontSize: 13, fontWeight: 900 }}>Planilha atualizada</div>
+                            <div style={{ color: '#0f7b58', fontSize: 13, fontWeight: 900 }}>Cadastro atualizado</div>
                             <div style={{ color: '#49796a', fontSize: 11 }}>{sucesso.alteracoes_count} ajuste{sucesso.alteracoes_count === 1 ? '' : 's'} salvo{sucesso.alteracoes_count === 1 ? '' : 's'} em Meus Catálogos.</div>
                           </div>
                         </div>
                         <button type="button" onClick={() => baixarArquivo(sucesso.arquivo?.path)} disabled={baixando} style={botaoPrimario(false)}>
                           {baixando ? <Loader2 size={15} className="send-spinner" /> : <Download size={15} strokeWidth={2.4} />}
-                          Baixar planilha
+                          Exportar cadastro
                         </button>
                       </div>
                     )}
@@ -880,7 +880,7 @@ export default function PriceGuardWorkspace() {
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => baixarArquivo(catalogo.arquivo_path ?? undefined)} disabled={!catalogo.arquivo_path || baixando} style={botaoSecundario()}>
                         {baixando ? <Loader2 size={15} className="send-spinner" /> : <Download size={15} strokeWidth={2.4} />}
-                        Baixar planilha atual
+                        Exportar cadastro atual
                       </button>
                       <button
                         type="button"
@@ -891,7 +891,7 @@ export default function PriceGuardWorkspace() {
                         style={botaoPrimario(!podeGerarPlanilha)}
                       >
                         {salvando ? <Loader2 size={15} className="send-spinner" /> : <RefreshCw size={15} strokeWidth={2.4} />}
-                        {salvando ? 'Gerando' : 'Gerar planilha ajustada'}
+                        {salvando ? 'Gerando' : 'Gerar cadastro ajustado'}
                       </button>
                     </div>
                   </div>

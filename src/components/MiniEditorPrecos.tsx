@@ -149,7 +149,7 @@ export default function MiniEditorPrecos({ sessaoId, conversaId, canais, onCance
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ color: '#182233', fontSize: 14, fontWeight: 900 }}>Ajustar preços no chat</div>
           <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>
-            Escolha a regra e eu gero novas planilhas sem alterar títulos, fotos ou descrições.
+            Escolha a regra e eu atualizo o cadastro sem alterar títulos, fotos ou descrições.
           </div>
         </div>
         <button
@@ -378,7 +378,7 @@ export default function MiniEditorPrecos({ sessaoId, conversaId, canais, onCance
             }}
           >
             {enviando ? <Loader2 size={15} className="send-spinner" /> : <RefreshCw size={15} strokeWidth={2.4} />}
-            {enviando ? 'Regerando' : 'Regerar planilhas'}
+            {enviando ? 'Atualizando' : 'Atualizar cadastro'}
           </button>
         </div>
       </div>

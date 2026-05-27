@@ -45,7 +45,7 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
       })
       const data = await res.json() as { sucesso?: boolean; url?: string; error?: string }
       if (!res.ok || !data.url) {
-        setErro(data.error ?? 'Erro ao gerar link de download')
+        setErro(data.error ?? 'Erro ao preparar exportação')
         return
       }
       const a = document.createElement('a')
@@ -55,7 +55,7 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
       a.click()
       document.body.removeChild(a)
     } catch {
-      setErro('Erro de rede ao tentar baixar')
+      setErro('Erro de rede ao tentar exportar')
     } finally {
       setBaixando(false)
     }
@@ -120,7 +120,7 @@ export default function CardDownloadArquivo({ path, canal, nome_canal_label, tam
         }}
       >
         {!baixando && <Download size={14} strokeWidth={2.3} />}
-        {baixando ? 'Preparando' : 'Baixar'}
+        {baixando ? 'Preparando' : 'Exportar'}
       </button>
     </div>
   )

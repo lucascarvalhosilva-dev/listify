@@ -74,7 +74,7 @@ function montarMelhorias(params: {
   const nomeOriginal = texto(params.original?.nome) || texto(params.revisado.nome)
 
   if (params.titulo && params.titulo !== nomeOriginal) melhorias.push('Título otimizado para o canal')
-  if (params.descricao.length >= 80) melhorias.push('Descrição pronta para upload')
+  if (params.descricao.length >= 80) melhorias.push('Descrição pronta para publicar')
   if (params.preco !== null && params.preco > 0) melhorias.push('Preço calculado com margem')
   if (numero(params.revisado.peso_g) && numero(params.revisado.comprimento_cm) && numero(params.revisado.largura_cm) && numero(params.revisado.altura_cm)) {
     melhorias.push('Peso e dimensões preenchidos')
@@ -131,7 +131,7 @@ export function criarComparadorListing(params: {
   return {
     acao: 'card_comparador_listing',
     titulo: 'Antes e depois do cadastro',
-    resumo: 'Veja o que o Guiamos transformou a partir dos dados básicos da planilha.',
+    resumo: 'Veja o que o Guiamos transformou a partir dos dados básicos do produto.',
     total_produtos: produtosRevisao.length,
     produtos_com_titulo: produtosComTitulo,
     produtos_com_descricao: produtosComDescricao,

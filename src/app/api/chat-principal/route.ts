@@ -50,22 +50,22 @@ const CONTEXTO_ETAPA: Record<string, string> = {
   iniciada: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de uma planilha com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Oriente o usuário a baixar o template e enviar a planilha preenchida pelo próprio chat. NÃO redirecione automaticamente.`,
+Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que precisa de um arquivo de produtos com nome, custo, estoque e fotos nomeadas SKU_01.jpg. Oriente o usuário a baixar o modelo e enviar o arquivo preenchido pelo próprio chat. NÃO redirecione automaticamente.`,
 
   aguardando_planilha: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O template de planilha já está disponível para download nos botões abaixo (adicionados automaticamente pelo sistema — NÃO os inclua no JSON de acoes). Explique brevemente o que preencher: SKU (código único do produto), Nome do Produto (mínimo 3 caracteres), Marca, Categoria, Custo Unitário em R$ (ex: 11.60 ou 11,60) e Estoque (número inteiro). Seja breve e direto. NÃO redirecione automaticamente.`,
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O modelo de arquivo já está disponível para download nos botões abaixo (adicionados automaticamente pelo sistema — NÃO os inclua no JSON de acoes). Explique brevemente o que preencher: SKU (código único do produto), Nome do Produto (mínimo 3 caracteres), Marca, Categoria, Custo Unitário em R$ (ex: 11.60 ou 11,60) e Estoque (número inteiro). Seja breve e direto. NÃO redirecione automaticamente.`,
 
   validando_planilha: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: validando_planilha. O usuário já enviou a planilha e está aguardando a análise. Informe que a planilha foi recebida e está sendo verificada. NÃO mostre botões de download de template.`,
+Você está em fluxo guiado de cadastro. Etapa atual: validando_planilha. O usuário já enviou o arquivo de produtos e está aguardando a análise. Informe que o arquivo foi recebido e está sendo verificado. NÃO mostre botões de download de modelo.`,
 
   aguardando_drive: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. A planilha foi validada com sucesso. Peça ao usuário o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem ser nomeadas SKU_01.jpg (capa), SKU_02.jpg (extras). A pasta precisa estar compartilhada como "Qualquer pessoa com o link → Visualizador". Um campo dedicado para colar o link aparece automaticamente abaixo desta mensagem (adicionado pelo sistema — NÃO inclua botões de envio de link no JSON de acoes). Você pode oferecer os botões "Como compartilhar?" e "Tirar dúvida" com ação mensagem.`,
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_drive. O arquivo de produtos foi validado com sucesso. Peça ao usuário o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem ser nomeadas SKU_01.jpg (capa), SKU_02.jpg (extras). A pasta precisa estar compartilhada como "Qualquer pessoa com o link → Visualizador". Um campo dedicado para colar o link aparece automaticamente abaixo desta mensagem (adicionado pelo sistema — NÃO inclua botões de envio de link no JSON de acoes). Você pode oferecer os botões "Como compartilhar?" e "Tirar dúvida" com ação mensagem.`,
 }
 
 const PALAVRAS_AJUDA = /\b(como|ajuda|exemplo|explica|duvida|dúvida|tutorial|passo|instruc)/i
@@ -131,8 +131,9 @@ function normalizarTituloConversa(mensagem: unknown): string | null {
 
   if (
     comparacao.startsWith('baixei o template') ||
+    comparacao.startsWith('baixei o modelo') ||
     comparacao.startsWith('canais escolhidos:') ||
-    comparacao.startsWith('como subir no ')
+    comparacao.startsWith('como publicar no ')
   ) {
     return null
   }
@@ -149,26 +150,25 @@ function normalizarTituloConversa(mensagem: unknown): string | null {
 }
 
 const INSTRUCOES_UPLOAD: Record<string, string> = {
-  'Shopee': `O usuário pediu ajuda pra subir o arquivo no Shopee. Explique passo a passo, com clareza e formatação Markdown:
+  'Shopee': `O usuário pediu ajuda para publicar no Shopee. Explique passo a passo, com clareza e formatação Markdown:
 1. **Pré-requisito:** Configurações → Envio → Canal Logístico → Correios ATIVO (toggle verde)
 2. **Acessar:** Central do Vendedor → Produto → Upload em massa → aba **ENVIO** (não 'Baixar')
-3. Selecione o arquivo **.xlsx** baixado da Guiamos (NÃO usar o template original da Shopee)
+3. Selecione o arquivo **.xlsx** exportado pela Guiamos (NÃO usar o modelo original da Shopee)
 4. Aguardar processamento — checar 'Registros' até aparecer 'Sucesso X/X'
-5. Se houver erros: baixar o resultado e enviar pra Guiamos (mencione brevemente o ciclo de correção automática)
+5. Se houver erros: exportar o resultado e enviar pra Guiamos (mencione brevemente o ciclo de correção automática)
 6. Quando tudo OK: Produto → Rascunho (X) → Selecionar todos → Ações em Massa → Publicar
 7. Opcional: Ferramentas de Produto → Editar Características → preencher atributos
 Termine perguntando se ficou alguma dúvida específica. Não invente passos.`,
 
-  'Mercado Livre': `O usuário pediu ajuda pra subir o arquivo no Mercado Livre. Explique passo a passo:
+  'Mercado Livre': `O usuário pediu ajuda para publicar no Mercado Livre. Explique passo a passo:
 1. **Pré-requisito:** conta ML **EMPRESARIAL** (CNPJ) com Mercado Envios habilitado
-2. **Acessar:** ML → Vender → Produtos → Anunciador em Massa → Carregar planilha
-3. Selecione o **.xlsx** baixado da Guiamos (NÃO editar o arquivo antes)
-4. Aguardar processamento (1-5 min) — ML envia e-mail quando concluído
-5. Baixar arquivo de resultado — se houver erros, enviar pra Guiamos pra correção automática
-6. Meus Anúncios → adicionar fotos em cada produto (ML não confia em URLs do Drive, fotos manualmente pelo editor — ~2 min por produto)
+2. Se a conta estiver conectada ao Guiamos, use o card **Revisar e publicar no Mercado Livre**
+3. Revise título, preço, categoria, estoque e fotos antes de confirmar
+4. Se a publicação direta ainda estiver bloqueada, use a exportação técnica apenas como apoio temporário
+5. Se houver erros do Mercado Livre, envie a mensagem exata para o Guiamos traduzir e orientar a correção
 Termine perguntando se ficou alguma dúvida.`,
 
-  'Amazon': `O usuário pediu ajuda pra subir o arquivo na Amazon. Explique passo a passo:
+  'Amazon': `O usuário pediu ajuda para publicar na Amazon. Explique passo a passo:
 1. **Pré-requisito:** verificar se o produto já existe no catálogo Amazon (busca por EAN). Se sim: vincular ao listing existente, não criar novo.
 2. Se não tem EAN: solicitar isenção de GTIN em sellercentral.amazon.com.br (24-48h)
 3. **Acessar:** Seller Central → Catálogo → Adicionar Produtos (ou upload em massa via template Amazon)
@@ -177,16 +177,16 @@ Termine perguntando se ficou alguma dúvida.`,
 6. Salvar e finalizar — aguardar aprovação (~15 min a 24h)
 Termine perguntando se ficou alguma dúvida.`,
 
-  'Magalu': `O usuário pediu ajuda pra subir o arquivo no Magalu. Explique passo a passo:
+  'Magalu': `O usuário pediu ajuda para publicar no Magalu. Explique passo a passo:
 1. **Pré-requisito:** CNPJ ativo há +3 meses + emissão de NF-e ativa
 2. Acessar o painel **IntegraCommerce** (fornecido pelo Magalu)
-3. Cadastrar produtos com o CSV/planilha baixado da Guiamos
+3. Cadastrar produtos com o arquivo de cadastro exportado pela Guiamos
 4. Atenção: apenas cores simples (azul, preto, verde...) — evitar 'azul marinho', 'verde-água'
 5. Aguardar análise do catálogo (~24-48h)
 6. Após aprovação, adicionar fotos (mín. 2, 900x900px, fundo branco, máx. 2MB)
 Termine perguntando se ficou alguma dúvida.`,
 
-  'TikTok Shop': `O usuário pediu ajuda pra subir o arquivo no TikTok Shop. Explique passo a passo:
+  'TikTok Shop': `O usuário pediu ajuda para publicar no TikTok Shop. Explique passo a passo:
 1. **Acessar:** seller.tiktok.com → Produtos → Importar produtos em massa (menu lateral esquerdo)
 2. Selecionar o **CSV** gerado pela Guiamos (marcas e dimensões já validadas/ajustadas)
 3. Aguardar processamento (~10 min) — TikTok notifica quando concluído
@@ -194,7 +194,7 @@ Termine perguntando se ficou alguma dúvida.`,
 5. Ativar produtos: Meus Produtos → Inativo → Ativar
 Termine perguntando se ficou alguma dúvida.`,
 
-  'Bling': `O usuário pediu ajuda pra subir o arquivo no Bling. Explique passo a passo:
+  'Bling': `O usuário pediu ajuda para importar o cadastro no Bling. Explique passo a passo:
 1. Bling → Produtos → Importar Produtos → Selecionar arquivo
 2. Selecionar o **CSV** gerado pela Guiamos (campos pré-mapeados — Bling reconhece automaticamente)
 3. Confirmar importação
@@ -209,8 +209,15 @@ Termine perguntando se ficou alguma dúvida.`,
 // ── Parsers de marcadores internos ────────────────────────────────────────────
 
 function parsearMarcadorPlanilha(c: string): { nome: string; tamanho: number } | null {
-  if (!c.startsWith('[PLANILHA_ENVIADA:')) return null
-  try { return JSON.parse(c.replace(/^\[PLANILHA_ENVIADA:\s*/, '').replace(/\]$/, '').trim()) }
+  if (!c.startsWith('[PLANILHA_ENVIADA:') && !c.startsWith('[ARQUIVO_PRODUTOS_ENVIADO:')) return null
+  try {
+    return JSON.parse(
+      c
+        .replace(/^\[(PLANILHA_ENVIADA|ARQUIVO_PRODUTOS_ENVIADO):\s*/, '')
+        .replace(/\]$/, '')
+        .trim()
+    )
+  }
   catch { return null }
 }
 
@@ -227,9 +234,9 @@ function parsearMarcadorValidacaoErro(c: string): string | null {
 
 function limparParaClaude(conteudo: string): string {
   const arq = parsearMarcadorPlanilha(conteudo)
-  if (arq) return `Enviei minha planilha: ${arq.nome}`
-  if (conteudo.startsWith('[VALIDACAO_OK:')) return 'A planilha foi validada com sucesso.'
-  if (conteudo.startsWith('[VALIDACAO_ERRO:')) return 'Houve erros na validação da planilha.'
+  if (arq) return `Enviei meu arquivo de produtos: ${arq.nome}`
+  if (conteudo.startsWith('[VALIDACAO_OK:')) return 'O arquivo de produtos foi validado com sucesso.'
+  if (conteudo.startsWith('[VALIDACAO_ERRO:')) return 'Houve erros na validação do arquivo de produtos.'
   return conteudo
 }
 
@@ -375,9 +382,9 @@ export async function POST(request: Request) {
     let contextoEtapa = sessaoAtiva ? (CONTEXTO_ETAPA[sessaoAtiva.etapa] ?? '') : ''
 
     const eTirandoDuvida = mensagem === 'Tenho uma dúvida'
-    const eBaixouTemplate = mensagem.startsWith('Baixei o template em')
+    const eBaixouTemplate = mensagem.startsWith('Baixei o template em') || mensagem.startsWith('Baixei o modelo em')
     const eCanaisEscolhidos = mensagem.startsWith('Canais escolhidos:')
-    const eAjudaUpload = mensagem.startsWith('Como subir no ')
+    const eAjudaUpload = mensagem.startsWith('Como subir no ') || mensagem.startsWith('Como publicar no ')
 
     console.log('[CHAT] msg:', mensagem.slice(0, 80))
     console.log('[CHAT] etapa:', sessaoAtiva?.etapa ?? 'sem_sessao')
@@ -401,7 +408,7 @@ CONTEXTO: O usuário quer tirar uma dúvida geral sobre o Guiamos. Responda de f
           contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-A geração já foi concluída com sucesso. Canais: ${lista}. Informe ao usuário de forma breve que os cadastros já foram gerados e estão disponíveis para download na aba 'Meus Catálogos'.`
+A geração já foi concluída com sucesso. Canais: ${lista}. Informe ao usuário de forma breve que os cadastros já foram preparados e estão disponíveis em 'Meus Catálogos'.`
         } else if (dadosAtual?.geracao_erro) {
           contextoEtapa = `
 
@@ -419,7 +426,7 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
         console.log('[CHAT] chamando gerar-do-chat:', gerarUrl, '| sessaoId:', sessaoAtiva.id)
 
         // Salva mensagem "processando" ANTES de disparar — garante ordem no histórico
-        const procesandoTexto = `Perfeito! Estou gerando os cadastros para ${lista}. Isso pode levar alguns instantes... ⏳`
+        const procesandoTexto = `Perfeito! Estou preparando os cadastros para ${lista}. Isso pode levar alguns instantes... ⏳`
         const { error: errProc } = await supabase.from('chat_historico').insert({
           user_id: user.id,
           papel: 'assistant',
@@ -475,12 +482,12 @@ CONTEXTO DO FLUXO GUIADO:
 Houve um erro na geração dos cadastros para os canais: ${lista}. Peça desculpas ao usuário de forma empática. Ofereça um botão 'Tentar de novo' com ação de mensagem.`
       }
     } else if (eAjudaUpload) {
-      const nomeCanal = mensagem.replace('Como subir no ', '').replace(/\?$/, '').trim()
+      const nomeCanal = mensagem.replace(/^Como (subir|publicar) no /, '').replace(/\?$/, '').trim()
       const instrucoes = INSTRUCOES_UPLOAD[nomeCanal]
       if (instrucoes) {
         contextoEtapa = `\n\n${instrucoes}`
       } else {
-        contextoEtapa = `\n\nO usuário pediu ajuda pra subir produtos no marketplace "${nomeCanal}". Explique de forma clara e estruturada o que você sabe sobre cadastrar produtos em massa nessa plataforma. Se não tiver informação específica suficiente, oriente o usuário a consultar a central de ajuda do marketplace.`
+        contextoEtapa = `\n\nO usuário pediu ajuda para publicar produtos no marketplace "${nomeCanal}". Explique de forma clara e estruturada o que você sabe sobre cadastro/publicação nessa plataforma. Se não tiver informação específica suficiente, oriente o usuário a consultar a central de ajuda do marketplace.`
       }
     } else if (urlDrive !== null && resultadoDrive !== null) {
       if (resultadoDrive.acessivel) {
@@ -498,22 +505,22 @@ O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link re
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário acabou de baixar o template. Confirme de forma curta e amigável (1-2 frases). Oriente que assim que terminar de preencher a planilha, ele deve clicar no botão grande abaixo para enviar. NÃO ofereça mais botões de download.`
+O usuário acabou de baixar o modelo. Confirme de forma curta e amigável (1-2 frases). Oriente que assim que terminar de preencher o arquivo, ele deve clicar no botão grande abaixo para enviar. NÃO ofereça mais botões de download.`
     } else if (infoPlanilha) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário acabou de enviar uma planilha (nome: ${infoPlanilha.nome}). Etapa atual: validando_planilha. Confirme o recebimento de forma calorosa e diga que vai analisar o conteúdo. Mencione que a análise automática está sendo finalizada. NÃO mostre botões de download de template novamente.`
+O usuário acabou de enviar um arquivo de produtos (nome: ${infoPlanilha.nome}). Etapa atual: validando_planilha. Confirme o recebimento de forma calorosa e diga que vai analisar o conteúdo. Mencione que a análise automática está sendo finalizada. NÃO mostre botões de download de modelo novamente.`
     } else if (infoValidacaoOk) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-A planilha foi validada com sucesso. Total de produtos encontrados: ${infoValidacaoOk.total}. Etapa atual: aguardando_drive. Parabenize o usuário pela planilha estar correta, mencione o número de produtos detectados, e explique a próxima etapa: ele precisa enviar o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem estar nomeadas como SKU_01.jpg (capa), SKU_02.jpg (extras), e a pasta precisa estar compartilhada como 'Qualquer pessoa com o link → Visualizador'. Peça o link do Drive de forma clara.`
+O arquivo de produtos foi validado com sucesso. Total de produtos encontrados: ${infoValidacaoOk.total}. Etapa atual: aguardando_drive. Parabenize o usuário pelo arquivo estar correto, mencione o número de produtos detectados, e explique a próxima etapa: ele precisa enviar o link de uma pasta do Google Drive com as fotos dos produtos. As fotos devem estar nomeadas como SKU_01.jpg (capa), SKU_02.jpg (extras), e a pasta precisa estar compartilhada como 'Qualquer pessoa com o link → Visualizador'. Peça o link do Drive de forma clara.`
     } else if (infoValidacaoErro !== null) {
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (voltou). Avise o usuário de forma empática (sem dramatizar) que encontrou problemas, liste estes erros exatamente: "${infoValidacaoErro}". Peça pra corrigir e reenviar usando o botão de anexo (clipe) no chat. NÃO ofereça botões de download de template novamente (ele já tem). Ofereça botão rápido 'Como corrigir?' caso o usuário não entenda algum erro.`
+O arquivo de produtos tem erros e precisa ser corrigido. Etapa atual: aguardando_planilha (voltou). Avise o usuário de forma empática (sem dramatizar) que encontrou problemas, liste estes erros exatamente: "${infoValidacaoErro}". Peça pra corrigir e reenviar usando o botão de anexo (clipe) no chat. NÃO ofereça botões de download de modelo novamente (ele já tem). Ofereça botão rápido 'Como corrigir?' caso o usuário não entenda algum erro.`
     }
 
     const systemPrompt = SYSTEM_PROMPT_BASE + contextoEtapa
@@ -582,12 +589,12 @@ A planilha tem erros e precisa ser corrigida. Etapa atual: aguardando_planilha (
     } else if (urlDrive !== null) {
       // URL de Drive válida: etapa avançou para processando, short-circuit já retornou
     } else if (eBaixouTemplate) {
-      const botaoUpload = { texto: '📎 Enviar planilha preenchida', acao: 'upload' }
+      const botaoUpload = { texto: '📎 Enviar arquivo preenchido', acao: 'upload' }
       acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
     } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {
       const botoesDl = [
-        { texto: 'Baixar template Excel', acao: 'download', url: TEMPLATE_XLSX_URL },
-        { texto: 'Baixar template CSV', acao: 'download', url: TEMPLATE_CSV_URL },
+        { texto: 'Baixar modelo Excel', acao: 'download', url: TEMPLATE_XLSX_URL },
+        { texto: 'Baixar modelo CSV', acao: 'download', url: TEMPLATE_CSV_URL },
       ]
       acoes = { botoes: [...(acoes?.botoes ?? []), ...botoesDl] }
     }

@@ -22,7 +22,7 @@ export default function CardValidadorUpload({
       fundo: '#ecfdf5',
       borda: '#b7ead2',
       Icone: ShieldCheck,
-      badge: 'Pronto para upload',
+      badge: 'Pronto para publicar',
     },
     atencao: {
       cor: '#a16207',

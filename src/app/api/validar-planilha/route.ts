@@ -29,10 +29,10 @@ export async function POST(request: Request) {
     }
 
     const planilhaPath = sessao.dados_planilha?.planilha_path as string | undefined
-    const planilhaNome = (sessao.dados_planilha?.planilha_nome as string | undefined) ?? 'planilha'
+    const planilhaNome = (sessao.dados_planilha?.planilha_nome as string | undefined) ?? 'arquivo de produtos'
 
     if (!planilhaPath) {
-      return Response.json({ error: 'Caminho da planilha não encontrado na sessão.' }, { status: 400 })
+      return Response.json({ error: 'Caminho do arquivo de produtos não encontrado na sessão.' }, { status: 400 })
     }
 
     // ── Download ──────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
     // ── Limite ────────────────────────────────────────────────────────────────
     if (linhas.length > LIMITE_PRODUTOS) {
-      const errosResumido = `Planilha muito grande. Máximo ${LIMITE_PRODUTOS} produtos por upload (encontrados: ${linhas.length}).`
+      const errosResumido = `Arquivo muito grande. Máximo ${LIMITE_PRODUTOS} produtos por envio (encontrados: ${linhas.length}).`
       await atualizarEtapa(sessao.id, 'aguardando_planilha', {
         validacao_ok: false,
         erros_resumo: errosResumido,
@@ -97,6 +97,6 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('[VALIDAR-PLANILHA] erro:', error)
-    return Response.json({ error: 'Erro interno ao validar planilha.' }, { status: 500 })
+    return Response.json({ error: 'Erro interno ao validar arquivo de produtos.' }, { status: 500 })
   }
 }

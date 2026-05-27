@@ -9,6 +9,7 @@ import CardDownloadArquivo from '@/components/CardDownloadArquivo'
 import CardEnvioDrive from '@/components/CardEnvioDrive'
 import CardPriceGuard, { type PriceGuardData } from '@/components/CardPriceGuard'
 import CardComparadorListing, { type ComparadorListingData } from '@/components/CardComparadorListing'
+import CardPublicacaoML from '@/components/CardPublicacaoML'
 import CardStatusConfianca, { type StatusConfianca } from '@/components/CardStatusConfianca'
 import CardValidadorUpload from '@/components/CardValidadorUpload'
 import MiniEditorPrecos, { type MensagemAjustePrecos } from '@/components/MiniEditorPrecos'
@@ -16,6 +17,7 @@ import SidebarConversas, { type SidebarConversasRef } from '@/components/Sidebar
 import Navbar from './components/Navbar'
 import ReactMarkdown from 'react-markdown'
 import type { ValidadorUploadData } from '@/lib/validador-pre-upload'
+import type { PublicacaoMLCardData } from '@/lib/ml/publicacao-card'
 
 const CANAL_LABELS: Record<string, string> = {
   shopee: 'Shopee',
@@ -27,7 +29,7 @@ const CANAL_LABELS: Record<string, string> = {
 }
 
 type Botao = {
-  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'card_comparador_listing' | 'botao_ajuda_upload'
+  acao: 'redirect' | 'mensagem' | 'download' | 'upload' | 'selector_canais' | 'card_download_arquivo' | 'card_envio_drive' | 'card_status_confianca' | 'card_price_guard' | 'card_validador_upload' | 'card_comparador_listing' | 'card_publicacao_ml' | 'botao_ajuda_upload'
   texto?: string
   destino?: string
   valor?: string
@@ -54,6 +56,7 @@ type Botao = {
   price_guard?: PriceGuardData
   validador_upload?: ValidadorUploadData
   comparador_listing?: ComparadorListingData
+  publicacao_ml?: PublicacaoMLCardData
   produtos_preview?: ComparadorListingData['produtos_preview']
   produtos_com_titulo?: number
   produtos_com_descricao?: number
@@ -64,8 +67,8 @@ type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }
 const HISTORICO_CONTEXTO_LIMITE = 12
 
 const MENSAGEM_RETOMADA: Record<string, string> = {
-  aguardando_planilha: 'Notei que você começou um cadastro, mas ainda não enviou a planilha. Quer continuar de onde parou ou começar do zero?',
-  validando_planilha: 'Sua última planilha está em análise. Você pode reenviar o arquivo se preferir.',
+  aguardando_planilha: 'Notei que você começou um cadastro, mas ainda não enviou o arquivo de produtos. Quer continuar de onde parou ou começar do zero?',
+  validando_planilha: 'Seu último arquivo de produtos está em análise. Você pode reenviar o arquivo se preferir.',
   aguardando_drive: 'Você estava na etapa de envio do link do Google Drive com as fotos dos produtos. Pode me enviar agora?',
   validando_drive: 'Estava validando o link do Drive que você enviou. Pode reenviar o link se preferir.',
   processando: 'Sua geração está em andamento. Acompanhe aqui no chat ou aguarde a conclusão.',
@@ -89,9 +92,12 @@ function criarMensagemBoasVindas(nomeUser: string): Mensagem {
 }
 
 function parsearArquivoDaMensagem(conteudo: string): { nome: string; tamanho: number } | null {
-  if (!conteudo.startsWith('[PLANILHA_ENVIADA:')) return null
+  if (!conteudo.startsWith('[PLANILHA_ENVIADA:') && !conteudo.startsWith('[ARQUIVO_PRODUTOS_ENVIADO:')) return null
   try {
-    const jsonStr = conteudo.replace(/^\[PLANILHA_ENVIADA:\s*/, '').replace(/\]$/, '').trim()
+    const jsonStr = conteudo
+      .replace(/^\[(PLANILHA_ENVIADA|ARQUIVO_PRODUTOS_ENVIADO):\s*/, '')
+      .replace(/\]$/, '')
+      .trim()
     return JSON.parse(jsonStr)
   } catch {
     return null
@@ -313,7 +319,7 @@ export default function ChatPrincipal() {
 
     if (arquivo) {
       const arq = arquivo
-      const marcador = `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arq.name, tamanho: arq.size })}]`
+      const marcador = `[ARQUIVO_PRODUTOS_ENVIADO: ${JSON.stringify({ nome: arq.name, tamanho: arq.size })}]`
       const historicoSnapshot = montarHistoricoContexto(mensagens)
 
       setArquivo(null)
@@ -340,7 +346,7 @@ export default function ChatPrincipal() {
         setUploadando(false)
         setCarregando(true)
 
-        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Analisando sua planilha...', temporaria: true }])
+        setMensagens(prev => [...prev, { papel: 'assistant', conteudo: 'Analisando seu arquivo de produtos...', temporaria: true }])
 
         const valRes = await fetch('/api/validar-planilha', {
           method: 'POST',
@@ -353,7 +359,7 @@ export default function ChatPrincipal() {
 
         let mensagemInterna: string
         if (!valRes.ok || !valData.sucesso) {
-          mensagemInterna = '[VALIDACAO_ERRO: Erro interno ao validar a planilha. Tente reenviar o arquivo.]'
+          mensagemInterna = '[VALIDACAO_ERRO: Erro interno ao validar o arquivo de produtos. Tente reenviar o arquivo.]'
         } else if (valData.valida) {
           mensagemInterna = `[VALIDACAO_OK: ${valData.total_produtos} produtos]`
         } else {
@@ -445,13 +451,13 @@ export default function ChatPrincipal() {
       if (!jaClicado) {
         setUrlsClicadas(prev => new Set([...prev, botao.url!]))
         const formato = botao.url!.toLowerCase().includes('.csv') ? 'CSV' : 'Excel'
-        enviar(`Baixei o template em ${formato} e estou preenchendo.`)
+        enviar(`Baixei o modelo em ${formato} e estou preenchendo.`)
       }
     } else if (botao.acao === 'upload') {
       setErroUpload('')
       fileInputRef.current?.click()
     } else if (botao.acao === 'botao_ajuda_upload' && botao.nome_canal_label) {
-      enviar(`Como subir no ${botao.nome_canal_label}?`)
+      enviar(`Como publicar no ${botao.nome_canal_label}?`)
     }
   }
 
@@ -650,6 +656,14 @@ export default function ChatPrincipal() {
                               )
                             })
                           }
+                          {m.acoes_rapidas.botoes
+                            .filter(b => b.acao === 'card_publicacao_ml')
+                            .map((b, j) => (
+                              <div key={j} style={{ marginBottom: 8 }}>
+                                <CardPublicacaoML {...(b as unknown as PublicacaoMLCardData)} />
+                              </div>
+                            ))
+                          }
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
                             {m.acoes_rapidas.botoes
                               .filter(b => b.acao === 'card_download_arquivo')
@@ -664,14 +678,14 @@ export default function ChatPrincipal() {
                               ))
                             }
                           </div>
-                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing') && (
+                          {m.acoes_rapidas.botoes.some(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml') && (
                             <div className="quick-actions" style={{ marginLeft: 0 }}>
                               {m.acoes_rapidas.botoes
-                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing')
+                                .filter(b => b.acao !== 'card_download_arquivo' && b.acao !== 'card_status_confianca' && b.acao !== 'card_price_guard' && b.acao !== 'card_validador_upload' && b.acao !== 'card_comparador_listing' && b.acao !== 'card_publicacao_ml')
                                 .map((b, j) => (
                                   <button key={j} className="quick-btn" onClick={() => clicarBotao(b)}>
                                     {b.acao === 'botao_ajuda_upload'
-                                      ? (b.texto ?? `📚 Como subir no ${b.nome_canal_label}?`)
+                                      ? (b.texto ?? `📚 Como publicar no ${b.nome_canal_label}?`)
                                       : b.texto}
                                   </button>
                                 ))
@@ -795,13 +809,13 @@ export default function ChatPrincipal() {
                 className="clip-btn"
                 onClick={() => { setErroUpload(''); fileInputRef.current?.click() }}
                 disabled={bloqueado}
-                title="Anexar planilha (.xlsx, .xls, .csv)"
+                title="Anexar arquivo de produtos (.xlsx, .xls, .csv)"
               >
                 <Paperclip size={18} />
               </button>
               <input
                 type="text"
-                placeholder={arquivo ? 'Pressione enviar para fazer o upload…' : 'Pergunte qualquer coisa ou descreva o que quer fazer...'}
+                placeholder={arquivo ? 'Pressione enviar para analisar o arquivo...' : 'Pergunte qualquer coisa ou descreva o que quer fazer...'}
                 value={arquivo ? '' : input}
                 onChange={e => !arquivo && setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && enviar()}

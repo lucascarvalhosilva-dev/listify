@@ -324,7 +324,7 @@ export async function POST(request: Request) {
     const conteudo = [
       `**Preços ajustados.** Recalculei **${resultado.alteracoes.length} preço${resultado.alteracoes.length > 1 ? 's' : ''}** em ${canaisTexto}.`,
       ``,
-      `Gerei **${n} planilha${n > 1 ? 's' : ''} atualizada${n > 1 ? 's' : ''}** e salvei a nova versão em **Meus Catálogos**.`,
+      `Gerei **${n} cadastro${n > 1 ? 's' : ''} atualizado${n > 1 ? 's' : ''}** e salvei a nova versão em **Meus Catálogos**.`,
       ``,
       `Baixe os arquivos abaixo e revise antes de enviar ao marketplace.`,
     ].join('\n')

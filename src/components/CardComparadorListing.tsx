@@ -164,7 +164,7 @@ export default function CardComparadorListing({
         alignItems: 'center',
       }}>
         <FileText size={14} strokeWidth={2.3} />
-        Comparação resumida. A planilha final continua sendo a fonte para revisar todos os campos.
+        Comparação resumida. O cadastro final continua sendo a fonte para revisar todos os campos.
       </div>
     </div>
   )

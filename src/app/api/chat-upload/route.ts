@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     const sessao = await buscarSessaoAtiva(user.id)
     if (!sessao || !['aguardando_planilha', 'validando_planilha'].includes(sessao.etapa)) {
-      return Response.json({ error: 'Nenhuma sessão aguardando planilha.' }, { status: 400 })
+      return Response.json({ error: 'Nenhuma sessão aguardando arquivo de produtos.' }, { status: 400 })
     }
 
     const formData = await request.formData()
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     const { error: errUpload } = await supabase.from('chat_historico').insert({
       user_id: user.id,
       papel: 'user',
-      conteudo: `[PLANILHA_ENVIADA: ${JSON.stringify({ nome: arquivo.name, tamanho: arquivo.size })}]`,
+      conteudo: `[ARQUIVO_PRODUTOS_ENVIADO: ${JSON.stringify({ nome: arquivo.name, tamanho: arquivo.size })}]`,
       conversa_id,
     })
     if (errUpload) console.error('[chat-upload] INSERT chat_historico falhou:', errUpload)

@@ -135,7 +135,7 @@ export function montarCatalogoPreco(row: CatalogoPrecoRow): CatalogoPrecoItem {
     motivo_bloqueio: editavel
       ? undefined
       : !driveUrl
-        ? 'Catalogo sem link do Drive para regenerar a planilha.'
+        ? 'Catalogo sem link do Drive para atualizar o cadastro.'
         : produtos.length === 0
           ? 'Catalogo sem produtos editaveis.'
           : 'Catalogo sem canal definido.',

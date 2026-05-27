@@ -62,7 +62,7 @@ export default function CardStatusConfianca({
     },
     {
       icon: FileSpreadsheet,
-      label: 'Arquivos',
+      label: 'Cadastros',
       valor: `${arquivos_gerados}/${canais_solicitados}`,
       ok: arquivos_gerados === canais_solicitados && canais_solicitados > 0,
     },

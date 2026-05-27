@@ -139,7 +139,7 @@ export function validarPreUploadCatalogo(params: {
   }
 
   if (!params.arquivoPath) {
-    adicionarItem(itens, 'erro', 'Planilha indisponível', 'Gere ou ajuste a planilha antes de tentar subir no marketplace.')
+    adicionarItem(itens, 'erro', 'Cadastro indisponível', 'Gere ou ajuste o cadastro antes de tentar publicar no marketplace.')
   }
 
   if (canal === 'shopee' && !textoValido(params.driveUrl)) {
@@ -147,12 +147,12 @@ export function validarPreUploadCatalogo(params: {
   }
 
   if ((canal === 'ml' || canal === 'mercado_livre') && !textoValido(params.driveUrl)) {
-    adicionarItem(itens, 'aviso', 'Fotos exigem ação manual', 'Mercado Livre não recebe fotos pela planilha; adicione as imagens no editor após o upload.')
+    adicionarItem(itens, 'aviso', 'Fotos exigem ação manual', 'Mercado Livre precisa de fotos públicas por produto para publicação direta.')
   }
 
   for (const produto of produtos) {
     if (!textoValido(produto.sku)) {
-      adicionarItem(itens, 'erro', 'SKU ausente', 'Todo produto precisa de SKU para upload em massa.', produto, 'sku')
+        adicionarItem(itens, 'erro', 'SKU ausente', 'Todo produto precisa de SKU para publicação em massa.', produto, 'sku')
     }
     if (!textoValido(produto.nome)) {
       adicionarItem(itens, 'erro', 'Nome interno ausente', 'O nome ajuda a revisar e localizar o produto no catálogo.', produto, 'nome')
@@ -173,7 +173,7 @@ export function validarPreUploadCatalogo(params: {
       adicionarItem(itens, 'aviso', 'Produto acima de 105 cm', `${nomeCanal} pode exigir logística manual ou configuração especial.`, produto, 'comprimento_cm')
     }
     if (produto.confianca_dimensoes === 'media') {
-      adicionarItem(itens, 'aviso', 'Dimensões com confiança média', 'Revise peso e medidas antes do upload.', produto, 'confianca_dimensoes')
+      adicionarItem(itens, 'aviso', 'Dimensões com confiança média', 'Revise peso e medidas antes de publicar.', produto, 'confianca_dimensoes')
     }
     if (!textoValido(produto.gtin)) {
       adicionarItem(itens, 'aviso', 'GTIN/EAN ausente', 'Se o marketplace exigir código de barras, o anúncio pode cair em revisão.', produto, 'gtin')
@@ -209,15 +209,15 @@ export function validarPreUploadCatalogo(params: {
   return {
     status,
     titulo: status === 'pronto'
-      ? 'Validação pré-upload: pronto'
+      ? 'Validação pré-publicação: pronto'
       : status === 'bloqueado'
-        ? 'Validação pré-upload: bloqueado'
-        : 'Validação pré-upload: revisar',
+        ? 'Validação pré-publicação: bloqueado'
+        : 'Validação pré-publicação: revisar',
     resumo: status === 'pronto'
-      ? 'Os principais campos para upload passaram na validação automática.'
+      ? 'Os principais campos para publicação passaram na validação automática.'
       : status === 'bloqueado'
-        ? 'Existem erros que podem impedir o upload. Corrija antes de publicar.'
-        : 'A planilha pode subir, mas há pontos que merecem revisão.',
+        ? 'Existem erros que podem impedir a publicação. Corrija antes de publicar.'
+        : 'O cadastro pode publicar, mas há pontos que merecem revisão.',
     canal,
     nome_canal_label: nomeCanal,
     total_produtos: produtos.length,
@@ -257,10 +257,10 @@ export function consolidarValidadoresUpload(validadores: ValidadorUploadData[]):
   return {
     status,
     titulo: status === 'pronto'
-      ? 'Validação pré-upload: pronto'
+      ? 'Validação pré-publicação: pronto'
       : status === 'bloqueado'
-        ? 'Validação pré-upload: bloqueado'
-        : 'Validação pré-upload: revisar',
+        ? 'Validação pré-publicação: bloqueado'
+        : 'Validação pré-publicação: revisar',
     resumo: status === 'pronto'
       ? `Shopee e Mercado Livre passaram na validação automática.`
       : status === 'bloqueado'
