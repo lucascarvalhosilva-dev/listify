@@ -46,6 +46,8 @@ interface AjustarResponse {
   catalogo?: CatalogoPrecoItem
 }
 
+type FiltroProdutoStatus = 'todos' | 'alerta' | 'risco' | 'ok' | 'selecionados'
+
 function formatarMoeda(valor: number | null | undefined): string {
   if (valor === null || valor === undefined || !Number.isFinite(valor)) return '-'
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor)
@@ -105,6 +107,8 @@ export default function PriceGuardWorkspace() {
   const [catalogoId, setCatalogoId] = useState<string | null>(null)
   const [busca, setBusca] = useState('')
   const [buscaProduto, setBuscaProduto] = useState('')
+  const [filtroProdutoStatus, setFiltroProdutoStatus] = useState<FiltroProdutoStatus>('todos')
+  const [margemMenorQue, setMargemMenorQue] = useState('')
   const [skusSelecionados, setSkusSelecionados] = useState<string[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -184,6 +188,8 @@ export default function PriceGuardWorkspace() {
     if (!catalogo) return []
     const termo = buscaProduto.trim().toLowerCase()
     const campoPreco = getCampoPrecoPorCanal(catalogo.canal)
+    const limiteMargem = Number(margemMenorQue.replace(',', '.'))
+    const filtrarMargem = margemMenorQue.trim().length > 0 && Number.isFinite(limiteMargem)
 
     return catalogo.produtos
       .map(produto => {
@@ -206,16 +212,35 @@ export default function PriceGuardWorkspace() {
         }
       })
       .filter(produto => {
-        if (!termo) return true
-        return `${produto.sku} ${produto.nome}`.toLowerCase().includes(termo)
+        const passaBusca = !termo || `${produto.sku} ${produto.nome}`.toLowerCase().includes(termo)
+        const passaStatus =
+          filtroProdutoStatus === 'todos'
+            ? true
+            : filtroProdutoStatus === 'alerta'
+              ? produto.status !== 'ok'
+              : filtroProdutoStatus === 'selecionados'
+                ? skusSelecionadosSet.has(produto.sku)
+                : produto.status === filtroProdutoStatus
+        const passaMargem = !filtrarMargem || (produto.margem !== null && produto.margem < limiteMargem)
+        return passaBusca && passaStatus && passaMargem
       })
-  }, [catalogo, buscaProduto, margemMinima])
+      .sort((a, b) => {
+        const statusPeso: Record<PriceGuardStatus, number> = { risco: 0, atencao: 1, ok: 2 }
+        const porStatus = statusPeso[a.status] - statusPeso[b.status]
+        if (porStatus !== 0) return porStatus
+        const margemA = a.margem ?? Number.POSITIVE_INFINITY
+        const margemB = b.margem ?? Number.POSITIVE_INFINITY
+        return margemA - margemB
+      })
+  }, [catalogo, buscaProduto, filtroProdutoStatus, margemMenorQue, margemMinima, skusSelecionadosSet])
 
   const selecionarCatalogo = (id: string) => {
     setCatalogoId(id)
     setErroAcao('')
     setSucesso(null)
     setBuscaProduto('')
+    setFiltroProdutoStatus('todos')
+    setMargemMenorQue('')
     setSkusSelecionados([])
   }
 
@@ -488,9 +513,49 @@ export default function PriceGuardWorkspace() {
                         />
                       </label>
 
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button type="button" onClick={() => setFiltroProdutoStatus('todos')} style={botaoFiltroProduto(filtroProdutoStatus === 'todos')}>
+                            Todos
+                          </button>
+                          <button type="button" onClick={() => setFiltroProdutoStatus('alerta')} style={botaoFiltroProduto(filtroProdutoStatus === 'alerta')}>
+                            Com alerta
+                          </button>
+                          <button type="button" onClick={() => setFiltroProdutoStatus('risco')} style={botaoFiltroProduto(filtroProdutoStatus === 'risco')}>
+                            Risco
+                          </button>
+                          <button type="button" onClick={() => setFiltroProdutoStatus('ok')} style={botaoFiltroProduto(filtroProdutoStatus === 'ok')}>
+                            Margem ok
+                          </button>
+                          <button type="button" onClick={() => setFiltroProdutoStatus('selecionados')} style={botaoFiltroProduto(filtroProdutoStatus === 'selecionados')}>
+                            Selecionados
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto auto', gap: 6, alignItems: 'center' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #dfe7f1', borderRadius: 999, background: '#fff', padding: '0 9px', minWidth: 0 }}>
+                            <span style={{ color: '#697386', fontSize: 10, fontWeight: 850, whiteSpace: 'nowrap' }}>Margem &lt;</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={margemMenorQue}
+                              onChange={e => setMargemMenorQue(e.target.value)}
+                              placeholder="%"
+                              style={{ border: 'none', outline: 'none', minWidth: 0, width: '100%', height: 30, fontSize: 12, color: '#182233', fontFamily: 'inherit', background: 'transparent', fontWeight: 850 }}
+                            />
+                          </label>
+                          {[10, 20, 30].map(valor => (
+                            <button key={valor} type="button" onClick={() => setMargemMenorQue(String(valor))} style={botaoTexto()}>
+                              &lt; {valor}%
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button type="button" onClick={selecionarTodosProdutosVisiveis} style={botaoTexto()}>
-                          Selecionar visíveis
+                          Selecionar visíveis ({produtosDoCatalogo.length})
                         </button>
                         <button type="button" onClick={limparSelecaoProdutos} style={botaoTexto()}>
                           Limpar seleção
@@ -827,6 +892,20 @@ function botaoTexto() {
     border: '1px solid #dfe7f1',
     background: '#fff',
     color: '#155bd5',
+    borderRadius: 999,
+    padding: '6px 10px',
+    fontSize: 11,
+    fontWeight: 850,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+  }
+}
+
+function botaoFiltroProduto(ativo: boolean) {
+  return {
+    border: `1px solid ${ativo ? '#bfd4f5' : '#dfe7f1'}`,
+    background: ativo ? '#eaf2ff' : '#fff',
+    color: ativo ? '#155bd5' : '#586174',
     borderRadius: 999,
     padding: '6px 10px',
     fontSize: 11,
