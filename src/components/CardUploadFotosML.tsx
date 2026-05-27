@@ -165,9 +165,9 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
       <div style={headerStyle}>
         <ImagePlus size={18} strokeWidth={2.2} style={{ color: '#155bd5', flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#182233' }}>Enviar fotos para publicação no ML</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#182233' }}>Enviar fotos dos produtos</div>
           <div style={{ fontSize: 12, color: '#697386', marginTop: 3 }}>
-            Fotos obrigatórias para publicar pela API. Aceita JPG, PNG e WEBP · máx. 5 MB por foto · 10 por produto.
+            Fotos melhoram a qualidade do cadastro em qualquer marketplace. Aceita JPG, PNG e WEBP · máx. 5 MB por foto · 10 por produto.
           </div>
         </div>
       </div>
