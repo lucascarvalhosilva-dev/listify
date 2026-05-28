@@ -10,13 +10,12 @@ export async function buscarGradeTamanho(categoryId: string): Promise<GradeTaman
       `https://api.mercadolibre.com/size_specs/search?category_id=${encodeURIComponent(categoryId)}&limit=10`,
       { headers: { Accept: 'application/json' } }
     )
+    console.log('[GRADE-DEBUG] size_specs status:', res.status)
+    const raw = await res.text()
+    console.log('[GRADE-DEBUG] size_specs body:', raw.slice(0, 500))
     if (!res.ok) return null
 
-    console.log('[GRADE-DEBUG] size_specs status:', res.status)
-    const raw = await res.clone().text()
-    console.log('[GRADE-DEBUG] size_specs body:', raw.slice(0, 500))
-
-    const data = await res.json() as Array<{
+    const data = JSON.parse(raw) as Array<{
       id: string
       name: string
       rows?: { values?: Array<{ id: string; name: string }> }[]
