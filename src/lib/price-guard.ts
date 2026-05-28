@@ -16,6 +16,7 @@ export interface VariacaoML {
   sku: string
   attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
   available_quantity: number
+  price: number
 }
 
 export interface ProdutoRevisaoPriceGuard {

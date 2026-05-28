@@ -98,6 +98,7 @@ function agruparVariacoesML(
         sku: variante.sku,
         attribute_combinations,
         available_quantity: orig?.estoque ?? variante.estoque ?? 1,
+        price: variante.preco_ml ?? pai.preco_ml ?? 0,
       }
     })
 

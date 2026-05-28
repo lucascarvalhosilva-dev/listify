@@ -17,6 +17,7 @@ interface PublicarBody {
   variations?: Array<{
     attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
     available_quantity: number
+    price: number
     picture_ids?: string[]
   }>
 }
