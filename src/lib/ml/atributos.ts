@@ -11,11 +11,40 @@ export interface MapearAtributosResult {
 }
 
 const CORES_PT = [
-  'preto', 'branco', 'azul', 'vermelho', 'verde', 'amarelo', 'laranja',
-  'roxo', 'rosa', 'cinza', 'marrom', 'bege', 'dourado', 'prata',
+  'preto', 'preta', 'branco', 'branca', 'azul', 'azuis',
+  'vermelho', 'vermelha', 'verde', 'amarelo', 'amarela',
+  'laranja', 'roxo', 'roxa', 'rosa', 'cinza', 'marrom',
+  'bege', 'dourado', 'dourada', 'prata', 'off-white', 'offwhite',
+  'creme', 'nude', 'vinho', 'bordo', 'bordô', 'lilás', 'lilas',
 ]
 
 const TAMANHO_RE = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
+
+const GENERO_MAP: [string[], string][] = [
+  [['masculino', 'masc', 'homem', 'masculina'], 'Masculino'],
+  [['feminino', 'fem', 'mulher', 'feminina'], 'Feminino'],
+  [['unissex', 'unisex'], 'Unissex'],
+  [['infantil', 'kids', 'crianca', 'criança', 'bebe', 'bebê'], 'Infantil'],
+]
+
+const TIPO_ROUPA_MAP: [string[], string][] = [
+  [['camiseta', 'camisetas', 't-shirt', 'tshirt'], 'Camiseta'],
+  [['moletom', 'moletoms', 'sweatshirt'], 'Moletom'],
+  [['shorts', 'short', 'bermuda', 'bermudas'], 'Shorts'],
+  [['calça', 'calca', 'calcas', 'jeans', 'legging', 'leggings'], 'Calça'],
+  [['vestido', 'vestidos'], 'Vestido'],
+  [['saia', 'saias'], 'Saia'],
+  [['jaqueta', 'jaquetas', 'jacket'], 'Jaqueta'],
+  [['casaco', 'casacos', 'sobretudo'], 'Casaco'],
+  [['camisa polo', 'polo shirt'], 'Camisa Polo'],
+  [['camisa', 'camisas'], 'Camisa'],
+]
+
+const MANGA_MAP: [string[], string][] = [
+  [['manga longa', 'manga comprida'], 'Manga longa'],
+  [['manga curta', 'manga curto'], 'Manga curta'],
+  [['sem manga', 'regata', 'sleeveless'], 'Sem manga'],
+]
 
 export async function buscarAtributosObrigatorios(categoryId: string): Promise<AtributoML[]> {
   try {
@@ -55,28 +84,42 @@ export function mapearAtributos(
 
   for (const attr of atributos) {
     const id = attr.id.toUpperCase()
+    let valorMapeado: string | null = null
 
     if (id === 'BRAND' || id === 'MARCA') {
-      if (produto.marca) {
-        mapeados.push({ id: attr.id, value_name: produto.marca })
-        continue
-      }
-    } else if (id === 'COLOR' || id === 'COR') {
+      if (produto.marca) valorMapeado = produto.marca
+    } else if (id === 'MODEL' || id === 'MODELO') {
+      if (produto.nome) valorMapeado = produto.nome
+    } else if (id === 'COLOR' || id === 'COR' || id === 'MAIN_COLOR') {
       const cor = CORES_PT.find(c => nomeMin.includes(c))
-      if (cor) {
-        mapeados.push({ id: attr.id, value_name: cor })
-        continue
-      }
+      if (cor) valorMapeado = cor
     } else if (id === 'SIZE' || id === 'TAMANHO') {
       const match = nomeMin.match(TAMANHO_RE)
-      if (match) {
-        mapeados.push({ id: attr.id, value_name: match[0].toUpperCase() })
-        continue
+      if (match) valorMapeado = match[0].toUpperCase()
+    } else if (id === 'GENDER' || id === 'GENERO' || id === 'GÊNERO') {
+      for (const [palavras, valor] of GENERO_MAP) {
+        if (palavras.some(p => nomeMin.includes(p))) { valorMapeado = valor; break }
+      }
+    } else if (id === 'GARMENT_TYPE' || id === 'TIPO_ROUPA') {
+      for (const [palavras, valor] of TIPO_ROUPA_MAP) {
+        if (palavras.some(p => nomeMin.includes(p))) { valorMapeado = valor; break }
+      }
+    } else if (id === 'SLEEVE_TYPE' || id === 'TIPO_MANGA') {
+      for (const [palavras, valor] of MANGA_MAP) {
+        if (palavras.some(p => nomeMin.includes(p))) { valorMapeado = valor; break }
       }
     }
 
-    pendentes.push(attr)
+    if (valorMapeado) {
+      mapeados.push({ id: attr.id, value_name: valorMapeado })
+    } else {
+      pendentes.push(attr)
+    }
   }
+
+  console.log(
+    `[atributos ML] produto="${produto.nome ?? ''}" | mapeados: [${mapeados.map(m => m.id).join(', ')}] | pendentes: [${pendentes.map(p => p.id).join(', ')}]`
+  )
 
   return { mapeados, pendentes }
 }

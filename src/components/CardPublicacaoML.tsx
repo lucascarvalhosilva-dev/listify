@@ -214,6 +214,12 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
           {data.bloqueios.map((bloqueio, index) => (
             <div key={`${bloqueio}-${index}`} style={{ marginTop: index === 0 ? 0 : 4 }}>{bloqueio}</div>
           ))}
+          {data.bloqueios.some(b => b.includes('atributo obrigatório')) && (
+            <div style={{ marginTop: 8, padding: '8px 10px', background: '#fffbeb', border: '1px solid #f3d48b', borderRadius: 8 }}>
+              <div style={{ fontWeight: 700, marginBottom: 3 }}>Preencha os atributos faltantes no chat para publicar</div>
+              <div style={{ color: '#92640a', fontStyle: 'italic' }}>Ex.: &quot;marca Hering, cor preta, tamanho M&quot;</div>
+            </div>
+          )}
         </div>
       )}
 
@@ -272,7 +278,7 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
             Conectar Mercado Livre
           </a>
         ) : (
-          <button type="button" onClick={publicar} disabled={!prontoEfetivo || publicando} style={primaryButtonStyle(!prontoEfetivo || publicando)}>
+          <button type="button" onClick={publicar} disabled={!prontoEfetivo || publicando || data.bloqueios.length > 0} style={primaryButtonStyle(!prontoEfetivo || publicando || data.bloqueios.length > 0)}>
             {publicando ? <Loader2 size={14} className="spin" /> : <Rocket size={14} strokeWidth={2.4} />}
             {publicando ? 'Publicando' : 'Publicar no Mercado Livre'}
           </button>
