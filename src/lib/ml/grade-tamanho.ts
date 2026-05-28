@@ -12,6 +12,10 @@ export async function buscarGradeTamanho(categoryId: string): Promise<GradeTaman
     )
     if (!res.ok) return null
 
+    console.log('[GRADE-DEBUG] size_specs status:', res.status)
+    const raw = await res.clone().text()
+    console.log('[GRADE-DEBUG] size_specs body:', raw.slice(0, 500))
+
     const data = await res.json() as Array<{
       id: string
       name: string
