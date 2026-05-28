@@ -21,11 +21,13 @@ export async function buscarGradeTamanho(categoryId: string): Promise<GradeTaman
     if (!Array.isArray(data)) return null
 
     const sizeGridAttr = data.find(a => a.id === 'SIZE_GRID_ID')
+    console.log('[GRADE-DEBUG] sizeGridAttr:', JSON.stringify(sizeGridAttr ?? null))
     if (!sizeGridAttr?.values?.length) return null
 
     const primeiroGrid = sizeGridAttr.values[0]
 
     const sizeAttr = data.find(a => a.id === 'SIZE')
+    console.log('[GRADE-DEBUG] sizeAttr values count:', sizeAttr?.values?.length ?? 0)
     const values = (sizeAttr?.values ?? []).map(v => ({ id: v.id, name: v.name }))
 
     return {
