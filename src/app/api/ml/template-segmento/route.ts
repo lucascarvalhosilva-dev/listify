@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 const BASE_HEADERS = ['SKU', 'Nome do Produto', 'Marca', 'Custo Unitário (R$)', 'Estoque']
 
 const COLUNAS_EXTRAS: Record<string, string[]> = {
-  moda: ['Gênero', 'Tamanho'],
+  moda: ['Gênero', 'Tamanho', 'Cor', 'Tipo de Manga'],
   eletronicos: ['Voltagem', 'Modelo'],
   esportes: [],
   casa: ['Material'],
