@@ -304,9 +304,13 @@ export async function POST(request: Request) {
         const gtinIdx = pendentesFinal.findIndex(a => a.id.toUpperCase() === 'GTIN')
         if (gtinIdx !== -1) {
           const gtinAttr = pendentesFinal[gtinIdx]
+          console.log('[GTIN] buscando para:', p.nome, marca)
           const gtin = await buscarGTIN(p.nome, marca, catId).catch(() => null)
+          console.log('[GTIN] resultado:', gtin)
+          const gtinFinal = gtin ?? 'Este produto não tem GTIN'
+          console.log('[GTIN] resolvido como:', gtin ? gtinFinal : 'sem GTIN - usando EMPTY_GTIN_REASON')
           pendentesFinal.splice(gtinIdx, 1)
-          mapeadosFinal.push({ id: gtinAttr.id, value_name: gtin ?? 'Este produto não tem GTIN' })
+          mapeadosFinal.push({ id: gtinAttr.id, value_name: gtinFinal })
         }
 
         // ── SIZE_GRID_ID: resolver grade e tamanho ────────────────────────────
@@ -317,12 +321,16 @@ export async function POST(request: Request) {
             ?? mapeadosFinal.find(m => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(m.id.toUpperCase()))?.value_name
             ?? (() => { const m = (p.nome ?? '').toLowerCase().match(TAMANHO_RE_LOCAL); return m ? m[0].toUpperCase() : null })()
 
+          console.log('[SIZE] tamanho do produto:', tamanho)
           if (!tamanho) {
             pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: 'Adicione coluna Tamanho na planilha' }
           } else {
+            console.log('[SIZE] buscando grade para categoria:', catId)
             const grade = await buscarGradeTamanho(catId).catch(() => null)
+            console.log('[SIZE] grade encontrada:', grade ? `grid_id=${grade.grid_id} values=${grade.values.length}` : 'null')
             if (grade?.values.length) {
               const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
+              console.log('[SIZE] match resultado:', match ? `${match.id}/${match.name}` : 'sem match')
               if (match) {
                 pendentesFinal.splice(sizeGridIdx, 1)
                 mapeadosFinal.push({ id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
