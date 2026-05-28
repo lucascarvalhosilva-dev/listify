@@ -248,6 +248,7 @@ export async function POST(request: NextRequest) {
       for (let c = 0; c < chunks.length; c++) {
         const chunk = chunks[c]
         try {
+          console.log('[PROCESS-CATALOG] enviando para IA:', JSON.stringify({ skus: chunk.map(p => p.sku), nomes: chunk.map(p => p.nome) }))
           const specs = await inferProductSpecsBatch(
             chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo })),
             regime,
@@ -310,6 +311,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('[PROCESS-CATALOG] resposta IA specs:', Object.keys(specsMap))
+
     // ── Camada 3: Alerta de erros críticos ────────────────────────────────────
     const { data: errosCriticos } = await supabase
       .from('erros_aprendidos')
@@ -325,6 +328,7 @@ export async function POST(request: NextRequest) {
     const produtosProcessados: ProdutoProcessado[] = []
 
     for (const p of produtos) {
+      console.log('[PROCESS-CATALOG] verificando SKU:', p.sku, 'encontrado em specsMap:', specsMap.has(p.sku))
       const batchSpec = specsMap.get(p.sku)
       if (!batchSpec) {
         if (!alertas.some(a => a.includes(`SKU ${p.sku}`))) {
