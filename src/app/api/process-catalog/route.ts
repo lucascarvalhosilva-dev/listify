@@ -218,11 +218,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Cache: ${comCache.length} produto(s) com cache, ${semCache.length} sem cache`)
+    console.log('[PROCESS-CATALOG] comCache:', comCache.length, 'semCache:', semCache.length)
 
     // Popula specsMap com os produtos do cache
     for (const p of comCache) {
-      specsMap.set(p.sku, cacheRowToBatchSpec(cacheMap.get(p.nome)!, p.sku))
+      const cacheRow = cacheMap.get(p.nome)
+      if (!cacheRow) {
+        console.warn('[PROCESS-CATALOG] cache row ausente para SKU:', p.sku, 'nome:', p.nome, '— reprocessando via IA')
+        semCache.push(p)
+        continue
+      }
+      specsMap.set(p.sku, cacheRowToBatchSpec(cacheRow, p.sku))
     }
+    console.log('[PROCESS-CATALOG] specsMap após cache:', specsMap.size)
 
     // ── Camada 2: Correções preventivas ────────────────────────────────────
     const correcoesPreventivas = (
@@ -311,7 +319,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[PROCESS-CATALOG] resposta IA specs:', Object.keys(specsMap))
+    console.log('[PROCESS-CATALOG] specsMap após IA:', [...specsMap.keys()])
 
     // ── Camada 3: Alerta de erros críticos ────────────────────────────────────
     const { data: errosCriticos } = await supabase
