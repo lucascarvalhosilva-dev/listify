@@ -61,7 +61,7 @@ type Botao = {
   produtos_preview?: ComparadorListingData['produtos_preview']
   produtos_com_titulo?: number
   produtos_com_descricao?: number
-  produtos?: { sku: string; nome: string }[]
+  produtos?: { sku: string; sku_base: string; nome: string; cor?: string; tamanho?: string }[]
 }
 type Mensagem = { papel: 'user' | 'assistant'; conteudo: string; acoes_rapidas?: { botoes: Botao[] } | null; temporaria?: boolean; isWelcome?: boolean }
 type HistoricoContexto = { papel: 'user' | 'assistant'; conteudo: string }

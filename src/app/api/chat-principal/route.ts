@@ -654,10 +654,10 @@ O arquivo de produtos tem erros e precisa ser corrigido. Etapa atual: aguardando
       const aiAcoes = acoes?.botoes ?? []
       acoes = { botoes: [...cardBotoes, ...aiAcoes] }
     } else if (infoValidacaoOk) {
-      const produtosSessao = ((sessaoAtiva?.dados_planilha as Record<string, unknown>)?.produtos as Array<{ sku: string; nome: string }>) ?? []
+      const produtosSessao = ((sessaoAtiva?.dados_planilha as Record<string, unknown>)?.produtos as Array<{ sku: string; sku_base: string; nome: string; cor?: string; tamanho?: string }>) ?? []
       const uploadCard: Record<string, unknown> = {
         acao: 'card_upload_fotos_ml',
-        produtos: produtosSessao.map(p => ({ sku: p.sku, nome: p.nome })),
+        produtos: produtosSessao.map(p => ({ sku: p.sku, sku_base: p.sku_base ?? p.sku.split('-')[0], nome: p.nome, cor: p.cor, tamanho: p.tamanho })),
       }
       acoes = {
         botoes: [

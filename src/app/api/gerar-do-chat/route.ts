@@ -635,7 +635,7 @@ export async function POST(request: Request) {
     const uploadFotosAction = publicacaoMLCard?.status === 'pendente' && Boolean(contaML) && !temFotosUpload
       ? [{
           acao: 'card_upload_fotos_ml' as const,
-          produtos: produtos.map(p => ({ sku: p.sku, nome: p.nome })),
+          produtos: produtos.map(p => ({ sku: p.sku, sku_base: p.sku_base, nome: p.nome, cor: p.cor, tamanho: p.tamanho })),
         }]
       : []
 

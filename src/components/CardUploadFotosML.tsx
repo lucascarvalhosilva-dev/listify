@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import type { CSSProperties, DragEvent, ChangeEvent } from 'react'
 import { CheckCircle2, ImagePlus, Loader2, Upload, X } from 'lucide-react'
 
@@ -11,7 +11,16 @@ const SKU_PATTERN = /^(.+?)_\d+\.(jpg|jpeg|png|webp)$/i
 
 interface ProdutoUpload {
   sku: string
+  sku_base: string
   nome: string
+  cor?: string
+  tamanho?: string
+}
+
+interface GrupoFotos {
+  key: string
+  label: string
+  skus: string[]
 }
 
 interface CardUploadFotosMLProps {
@@ -25,11 +34,90 @@ function validarArquivo(file: File): string | null {
   return null
 }
 
-function extrairSkuDoNome(filename: string, skusConhecidos: string[]): string | null {
+function normalizar(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim()
+}
+
+// Retorna lista de SKUs que uma foto deve receber, por ordem de prioridade:
+// a. match exato de SKU  b. match por cor dentro do sku_base  c. match pelo sku_base inteiro
+function resolverSkusDoNome(filename: string, produtos: ProdutoUpload[]): string[] {
   const m = filename.match(SKU_PATTERN)
-  if (!m) return null
+  if (!m) return []
   const candidato = m[1]
-  return skusConhecidos.includes(candidato) ? candidato : null
+  const candidatoNorm = normalizar(candidato)
+
+  // a. Match exato de SKU (case-insensitive, sem acentos)
+  const exato = produtos.find(p => normalizar(p.sku) === candidatoNorm)
+  if (exato) return [exato.sku]
+
+  // b. Match por cor: "BASE-COR_01.jpg" → todas variações dessa cor no grupo
+  const dashIdx = candidato.indexOf('-')
+  if (dashIdx !== -1) {
+    const baseNorm = normalizar(candidato.slice(0, dashIdx))
+    const sufixoNorm = normalizar(candidato.slice(dashIdx + 1))
+    const matchCor = produtos.filter(
+      p => normalizar(p.sku_base) === baseNorm && p.cor && normalizar(p.cor) === sufixoNorm
+    )
+    if (matchCor.length > 0) return matchCor.map(p => p.sku)
+  }
+
+  // c. Match por sku_base → todas variações do grupo
+  const matchBase = produtos.filter(p => normalizar(p.sku_base) === candidatoNorm)
+  if (matchBase.length > 0) return matchBase.map(p => p.sku)
+
+  return []
+}
+
+function computarGrupos(produtos: ProdutoUpload[]): GrupoFotos[] {
+  const byBase = new Map<string, ProdutoUpload[]>()
+  for (const p of produtos) {
+    const g = byBase.get(p.sku_base) ?? []
+    g.push(p)
+    byBase.set(p.sku_base, g)
+  }
+
+  const grupos: GrupoFotos[] = []
+
+  for (const [skuBase, prods] of byBase.entries()) {
+    if (prods.length === 1) {
+      grupos.push({ key: prods[0].sku, label: prods[0].nome, skus: [prods[0].sku] })
+      continue
+    }
+
+    const coresUnicas = [...new Set(prods.map(p => p.cor).filter((c): c is string => Boolean(c)))]
+
+    if (coresUnicas.length <= 1) {
+      // Uma cor (ou sem cor) — uma zona para todas as variações
+      const tamanhos = prods.map(p => p.tamanho).filter(Boolean)
+      const sufixo = tamanhos.length ? ` (${tamanhos.join(', ')})` : ''
+      grupos.push({ key: skuBase, label: `${prods[0].nome}${sufixo}`, skus: prods.map(p => p.sku) })
+    } else {
+      // Múltiplas cores — uma zona por cor
+      for (const cor of coresUnicas) {
+        const prodsNaCor = prods.filter(p => p.cor === cor)
+        const tamanhos = prodsNaCor.map(p => p.tamanho).filter(Boolean)
+        const sufixo = tamanhos.length ? ` (${tamanhos.join(', ')})` : ''
+        grupos.push({
+          key: `${skuBase}|${cor}`,
+          label: `${prods[0].nome} — ${cor}${sufixo}`,
+          skus: prodsNaCor.map(p => p.sku),
+        })
+      }
+      // Variações sem cor no mesmo grupo
+      const semCor = prods.filter(p => !p.cor)
+      if (semCor.length > 0) {
+        const tamanhos = semCor.map(p => p.tamanho).filter(Boolean)
+        const sufixo = tamanhos.length ? ` (${tamanhos.join(', ')})` : ''
+        grupos.push({
+          key: `${skuBase}|_sem_cor`,
+          label: `${prods[0].nome}${sufixo}`,
+          skus: semCor.map(p => p.sku),
+        })
+      }
+    }
+  }
+
+  return grupos
 }
 
 export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUploadFotosMLProps) {
@@ -42,9 +130,11 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
   const [concluido, setConcluido] = useState(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const batchInputRef = useRef<HTMLInputElement>(null)
-  const skusConhecidos = produtos.map(p => p.sku)
 
-  const adicionarFotos = useCallback((sku: string, files: File[]) => {
+  const grupos = useMemo(() => computarGrupos(produtos), [produtos])
+
+  // Adiciona arquivos a múltiplos SKUs de uma vez (modo por produto)
+  const adicionarFotosGrupo = useCallback((skus: string[], files: File[]) => {
     const novosErros: string[] = []
     const validos: File[] = []
     for (const f of files) {
@@ -55,12 +145,16 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
     setErros(prev => [...prev, ...novosErros])
     if (validos.length === 0) return
     setFotosPorSku(prev => {
-      const existentes = prev[sku] ?? []
-      const total = [...existentes, ...validos].slice(0, MAX_POR_PRODUTO)
-      return { ...prev, [sku]: total }
+      const next = { ...prev }
+      for (const sku of skus) {
+        const existentes = next[sku] ?? []
+        next[sku] = [...existentes, ...validos].slice(0, MAX_POR_PRODUTO)
+      }
+      return next
     })
   }, [])
 
+  // Adiciona arquivos em lote com resolução automática de SKU/cor/sku_base
   const adicionarFotosLote = useCallback((files: File[]) => {
     const novosErros: string[] = []
     const porSku: Record<string, File[]> = {}
@@ -69,10 +163,12 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
     for (const f of files) {
       const erro = validarArquivo(f)
       if (erro) { novosErros.push(`${f.name}: ${erro}`); continue }
-      const sku = extrairSkuDoNome(f.name, skusConhecidos)
-      if (sku) {
-        if (!porSku[sku]) porSku[sku] = []
-        porSku[sku].push(f)
+      const skus = resolverSkusDoNome(f.name, produtos)
+      if (skus.length > 0) {
+        for (const sku of skus) {
+          if (!porSku[sku]) porSku[sku] = []
+          porSku[sku].push(f)
+        }
       } else {
         naoAssociadas.push(f)
       }
@@ -88,28 +184,32 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
       return next
     })
     setFotosNaoAssociadas(prev => [...prev, ...naoAssociadas])
-  }, [skusConhecidos])
+  }, [produtos])
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>, sku?: string) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>, skus?: string[]) => {
     e.preventDefault()
     setDragOver(null)
     const files = Array.from(e.dataTransfer.files)
-    if (sku) adicionarFotos(sku, files)
+    if (skus) adicionarFotosGrupo(skus, files)
     else adicionarFotosLote(files)
   }
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, sku?: string) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, skus?: string[]) => {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (sku) adicionarFotos(sku, files)
+    if (skus) adicionarFotosGrupo(skus, files)
     else adicionarFotosLote(files)
   }
 
-  const removerFoto = (sku: string, idx: number) => {
+  const removerFoto = (skus: string[], idx: number) => {
     setFotosPorSku(prev => {
-      const lista = [...(prev[sku] ?? [])]
-      lista.splice(idx, 1)
-      return { ...prev, [sku]: lista }
+      const next = { ...prev }
+      for (const sku of skus) {
+        const lista = [...(next[sku] ?? [])]
+        lista.splice(idx, 1)
+        next[sku] = lista
+      }
+      return next
     })
   }
 
@@ -146,6 +246,12 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
     }
   }
 
+  // Exemplos de nomenclatura para o hint do modo lote
+  const exemploBase = produtos[0]?.sku_base ?? 'SKU'
+  const primeiraProdutoCor = produtos.find(p => p.cor)
+  const exemploCorNorm = primeiraProdutoCor ? normalizar(primeiraProdutoCor.cor!) : null
+  const primeiroSku = produtos[0]?.sku ?? 'SKU'
+
   if (concluido) {
     return (
       <div style={cardStyle}>
@@ -176,45 +282,45 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button style={modeButtonStyle} onClick={() => setModo('a')}>
             <strong>Enviar por produto</strong>
-            <span style={{ color: '#697386', fontSize: 12 }}>Selecione fotos para cada produto individualmente</span>
+            <span style={{ color: '#697386', fontSize: 12 }}>Selecione fotos para cada produto ou grupo de variações</span>
           </button>
           <button style={modeButtonStyle} onClick={() => setModo('b')}>
             <strong>Enviar todas de uma vez</strong>
-            <span style={{ color: '#697386', fontSize: 12 }}>Associa automaticamente por SKU_01.jpg, SKU_02.jpg…</span>
+            <span style={{ color: '#697386', fontSize: 12 }}>Associa automaticamente por SKU, cor ou grupo de variações</span>
           </button>
         </div>
       )}
 
       {modo === 'a' && (
         <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {produtos.map(p => {
-            const fotos = fotosPorSku[p.sku] ?? []
+          {grupos.map(grupo => {
+            const fotos = fotosPorSku[grupo.skus[0]] ?? []
             return (
-              <div key={p.sku}>
+              <div key={grupo.key}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#263241', marginBottom: 6 }}>
-                  {p.nome} <span style={{ color: '#697386', fontWeight: 400 }}>· SKU {p.sku}</span>
+                  {grupo.label}
                   <span style={{ color: '#697386', fontWeight: 400, marginLeft: 6 }}>{fotos.length}/{MAX_POR_PRODUTO}</span>
                 </div>
                 <div
-                  style={dropZoneStyle(dragOver === p.sku)}
-                  onDragOver={e => { e.preventDefault(); setDragOver(p.sku) }}
+                  style={dropZoneStyle(dragOver === grupo.key)}
+                  onDragOver={e => { e.preventDefault(); setDragOver(grupo.key) }}
                   onDragLeave={() => setDragOver(null)}
-                  onDrop={e => handleDrop(e, p.sku)}
-                  onClick={() => fileInputRefs.current[p.sku]?.click()}
+                  onDrop={e => handleDrop(e, grupo.skus)}
+                  onClick={() => fileInputRefs.current[grupo.key]?.click()}
                 >
                   {fotos.length === 0
                     ? <span style={{ fontSize: 12, color: '#697386' }}>Arraste fotos aqui ou clique para selecionar</span>
                     : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {fotos.map((f, idx) => (
-                          <ThumbPreview key={idx} file={f} onRemove={() => removerFoto(p.sku, idx)} />
+                          <ThumbPreview key={idx} file={f} onRemove={() => removerFoto(grupo.skus, idx)} />
                         ))}
                       </div>
                   }
                   <input
-                    ref={el => { fileInputRefs.current[p.sku] = el }}
+                    ref={el => { fileInputRefs.current[grupo.key] = el }}
                     type="file" multiple accept="image/jpeg,image/png,image/webp"
                     style={{ display: 'none' }}
-                    onChange={e => handleFileChange(e, p.sku)}
+                    onChange={e => handleFileChange(e, grupo.skus)}
                   />
                 </div>
               </div>
@@ -236,7 +342,11 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
             <span style={{ fontSize: 13, color: '#697386' }}>
               Arraste todos os arquivos ou clique para selecionar
             </span>
-            <span style={{ fontSize: 11, color: '#9aa0a6' }}>Nomenclatura esperada: SKU_01.jpg, SKU_02.jpg…</span>
+            <div style={{ fontSize: 11, color: '#9aa0a6', textAlign: 'center', lineHeight: 1.8 }}>
+              <span>{exemploBase}_01.jpg → todas as variações</span>
+              {exemploCorNorm && <><br /><span>{exemploBase}-{exemploCorNorm}_01.jpg → por cor</span></>}
+              <br /><span>{primeiroSku}_01.jpg → variação específica</span>
+            </div>
             <input
               ref={batchInputRef}
               type="file" multiple accept="image/jpeg,image/png,image/webp"
@@ -245,16 +355,16 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
             />
           </div>
 
-          {Object.entries(fotosPorSku).filter(([, fs]) => fs.length > 0).map(([sku, fotos]) => {
-            const prod = produtos.find(p => p.sku === sku)
+          {grupos.filter(g => (fotosPorSku[g.skus[0]] ?? []).length > 0).map(grupo => {
+            const fotos = fotosPorSku[grupo.skus[0]] ?? []
             return (
-              <div key={sku}>
+              <div key={grupo.key}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#263241', marginBottom: 6 }}>
-                  {prod?.nome ?? sku}
+                  {grupo.label}
                   <span style={{ color: '#0f9f75', fontWeight: 400, marginLeft: 8, fontSize: 11 }}>✓ {fotos.length} foto{fotos.length !== 1 ? 's' : ''} associada{fotos.length !== 1 ? 's' : ''}</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {fotos.map((f, idx) => <ThumbPreview key={idx} file={f} onRemove={() => removerFoto(sku, idx)} />)}
+                  {fotos.map((f, idx) => <ThumbPreview key={idx} file={f} onRemove={() => removerFoto(grupo.skus, idx)} />)}
                 </div>
               </div>
             )
@@ -263,7 +373,7 @@ export default function CardUploadFotosML({ produtos, onFotosUploaded }: CardUpl
           {fotosNaoAssociadas.length > 0 && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#a16207', marginBottom: 6 }}>
-                Não associadas ({fotosNaoAssociadas.length}) — nome não segue o padrão SKU_01.jpg
+                Não associadas ({fotosNaoAssociadas.length}) — nome não segue o padrão esperado
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {fotosNaoAssociadas.map((f, idx) => (
