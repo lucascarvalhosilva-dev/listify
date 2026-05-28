@@ -7,6 +7,8 @@ import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
 import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML } from '@/lib/ml/atributos'
+import { buscarGTIN } from '@/lib/ml/gtin'
+import { buscarGradeTamanho } from '@/lib/ml/grade-tamanho'
 
 export const maxDuration = 60
 
@@ -49,6 +51,7 @@ interface ProdutoValido {
   genero?: string
   tipo_roupa?: string
   tipo_manga?: string
+  tamanho?: string
 }
 
 interface ArquivoGerado {
@@ -274,28 +277,80 @@ export async function POST(request: Request) {
           atributosPorCategoria.set(catId, attrs)
         })
       )
-      produtosRevisao = comCategorias.map(p => {
+      const TAMANHO_RE_LOCAL = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
+      const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+
+      produtosRevisao = await Promise.all(comCategorias.map(async p => {
         const catId = p.categoria_ml
         if (!catId) return p
         const atributos = atributosPorCategoria.get(catId) ?? []
         if (atributos.length === 0) return p
         const original = produtosPorSku.get(p.sku)
+        const marca = p.marca ?? original?.marca
         const { mapeados, pendentes } = mapearAtributos(atributos, {
           ...p,
-          marca: p.marca ?? original?.marca,
+          marca,
           cor: original?.cor,
           genero: original?.genero,
           tipo_roupa: original?.tipo_roupa,
           tipo_manga: original?.tipo_manga,
+          tamanho: original?.tamanho,
         })
+
+        const mapeadosFinal = [...mapeados]
+        const pendentesFinal = [...pendentes]
+
+        // ── GTIN: busca automática → fallback "sem GTIN" ──────────────────────
+        const gtinIdx = pendentesFinal.findIndex(a => a.id.toUpperCase() === 'GTIN')
+        if (gtinIdx !== -1) {
+          const gtinAttr = pendentesFinal[gtinIdx]
+          const gtin = await buscarGTIN(p.nome, marca, catId).catch(() => null)
+          pendentesFinal.splice(gtinIdx, 1)
+          mapeadosFinal.push({ id: gtinAttr.id, value_name: gtin ?? 'Este produto não tem GTIN' })
+        }
+
+        // ── SIZE_GRID_ID: resolver grade e tamanho ────────────────────────────
+        const sizeGridIdx = pendentesFinal.findIndex(a => a.id.toUpperCase() === 'SIZE_GRID_ID')
+        if (sizeGridIdx !== -1) {
+          const sizeGridAttr = pendentesFinal[sizeGridIdx]
+          const tamanho = original?.tamanho
+            ?? mapeadosFinal.find(m => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(m.id.toUpperCase()))?.value_name
+            ?? (() => { const m = (p.nome ?? '').toLowerCase().match(TAMANHO_RE_LOCAL); return m ? m[0].toUpperCase() : null })()
+
+          if (!tamanho) {
+            pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: 'Adicione coluna Tamanho na planilha' }
+          } else {
+            const grade = await buscarGradeTamanho(catId).catch(() => null)
+            if (grade?.values.length) {
+              const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
+              if (match) {
+                pendentesFinal.splice(sizeGridIdx, 1)
+                mapeadosFinal.push({ id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
+                // Atualiza SIZE em mapeados com value_id correto
+                const sizeMapIdx = mapeadosFinal.findIndex(m => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(m.id.toUpperCase()))
+                if (sizeMapIdx !== -1) {
+                  mapeadosFinal[sizeMapIdx] = { ...mapeadosFinal[sizeMapIdx], value_id: match.id, value_name: match.name }
+                } else {
+                  mapeadosFinal.push({ id: 'SIZE', value_id: match.id, value_name: match.name })
+                }
+                // Remove SIZE de pendentes se estiver lá
+                const sizePendIdx = pendentesFinal.findIndex(a => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(a.id.toUpperCase()))
+                if (sizePendIdx !== -1) pendentesFinal.splice(sizePendIdx, 1)
+              } else {
+                pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: `Tamanho '${tamanho}' não encontrado na grade do ML` }
+              }
+            }
+          }
+        }
+
         return {
           ...p,
-          marca: p.marca ?? original?.marca,
+          marca,
           categoria: p.categoria ?? original?.categoria,
-          ...(mapeados.length ? { atributos_ml: mapeados } : {}),
-          ...(pendentes.length ? { atributos_pendentes_ml: pendentes.map(a => ({ id: a.id, name: a.name })) } : {}),
+          ...(mapeadosFinal.length ? { atributos_ml: mapeadosFinal } : {}),
+          ...(pendentesFinal.length ? { atributos_pendentes_ml: pendentesFinal.map(a => ({ id: a.id, name: a.name })) } : {}),
         }
-      })
+      }))
     }
 
     const produtosRevisaoML = Object.keys(fotosUpload).length > 0

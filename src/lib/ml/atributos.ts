@@ -162,7 +162,7 @@ export async function buscarAtributosObrigatorios(categoryId: string): Promise<A
 
 export function mapearAtributos(
   atributos: AtributoML[],
-  produto: { marca?: string; nome?: string; cor?: string; genero?: string; tipo_roupa?: string; tipo_manga?: string }
+  produto: { marca?: string; nome?: string; cor?: string; genero?: string; tipo_roupa?: string; tipo_manga?: string; tamanho?: string }
 ): MapearAtributosResult {
   const mapeados: AtributoMLMapeado[] = []
   const pendentes: AtributoML[] = []
@@ -185,9 +185,13 @@ export function mapearAtributos(
         const cor = CORES_PT.find(c => nomeMin.includes(c))
         if (cor) valorMapeado = cor
       }
-    } else if (id === 'SIZE' || id === 'TAMANHO') {
-      const match = nomeMin.match(TAMANHO_RE)
-      if (match) valorMapeado = match[0].toUpperCase()
+    } else if (id === 'SIZE' || id === 'TAMANHO' || id === 'ALPHANUMERIC_SIZE') {
+      if (produto.tamanho) {
+        valorMapeado = produto.tamanho
+      } else {
+        const match = nomeMin.match(TAMANHO_RE)
+        if (match) valorMapeado = match[0].toUpperCase()
+      }
     } else if (id === 'GENDER' || id === 'GENERO' || id === 'GÊNERO') {
       if (produto.genero) {
         valorMapeado = produto.genero

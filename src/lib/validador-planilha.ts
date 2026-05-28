@@ -20,6 +20,7 @@ export type ProdutoValido = {
   genero?: string
   tipo_roupa?: string
   tipo_manga?: string
+  tamanho?: string
 }
 
 export type ResultadoValidacao = {
@@ -132,6 +133,7 @@ export function validarEstrutura(linhas: Array<Record<string, unknown>>): Result
     const genero = String(linha['Gênero'] ?? '').trim() || undefined
     const tipo_roupa = String(linha['Tipo de Roupa'] ?? '').trim() || undefined
     const tipo_manga = String(linha['Tipo de Manga'] ?? '').trim() || undefined
+    const tamanho = String(linha['Tamanho'] ?? '').trim() || undefined
 
     let temErro = false
 
@@ -163,7 +165,7 @@ export function validarEstrutura(linhas: Array<Record<string, unknown>>): Result
     }
 
     if (!temErro) {
-      produtos_validos.push({ sku, nome, marca, categoria, custo: custo!, estoque: estoque!, cor, genero, tipo_roupa, tipo_manga })
+      produtos_validos.push({ sku, nome, marca, categoria, custo: custo!, estoque: estoque!, cor, genero, tipo_roupa, tipo_manga, tamanho })
     }
   }
 
