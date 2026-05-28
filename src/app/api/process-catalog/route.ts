@@ -249,12 +249,20 @@ export async function POST(request: NextRequest) {
 
     // ── 3. Chama Claude só para produtos sem cache ──────────────────────────
     if (semCache.length > 0) {
+      // Deduplica por nome: variações do mesmo produto (ex: 132-P, 132-M, 132-G)
+      // têm o mesmo nome → envia só 1 vez pra IA e propaga spec para todas
+      const nomeParaPrincipal = new Map<string, ProdutoInput>()
+      for (const p of semCache) {
+        if (!nomeParaPrincipal.has(p.nome)) nomeParaPrincipal.set(p.nome, p)
+      }
+      const semCacheUnicos = [...nomeParaPrincipal.values()]
+
       const chunks: ProdutoInput[][] = []
-      for (let i = 0; i < semCache.length; i += BATCH_SIZE) {
-        chunks.push(semCache.slice(i, i + BATCH_SIZE))
+      for (let i = 0; i < semCacheUnicos.length; i += BATCH_SIZE) {
+        chunks.push(semCacheUnicos.slice(i, i + BATCH_SIZE))
       }
 
-      console.log(`Chamando Claude para ${semCache.length} produto(s) em ${chunks.length} batch(es)`)
+      console.log(`Chamando Claude para ${semCacheUnicos.length} produto(s) únicos (${semCache.length} total) em ${chunks.length} batch(es)`)
 
       const novasSpecs: Array<{ spec: BatchProductSpec; nome: string }> = []
 
@@ -269,10 +277,15 @@ export async function POST(request: NextRequest) {
             instrucaoPreventiva
           )
           for (const spec of specs) {
-            specsMap.set(normalizarSku(spec.sku), spec)
-            const produto = chunk.find(p => normalizarSku(p.sku) === normalizarSku(spec.sku))
-            if (produto) {
-              novasSpecs.push({ spec, nome: produto.nome })
+            const principal = chunk.find(p => normalizarSku(p.sku) === normalizarSku(spec.sku))
+            if (principal) {
+              // Propaga spec para todas as variações com o mesmo nome
+              for (const variante of semCache.filter(p => p.nome === principal.nome)) {
+                specsMap.set(normalizarSku(variante.sku), { ...spec, sku: variante.sku })
+              }
+              novasSpecs.push({ spec, nome: principal.nome })
+            } else {
+              specsMap.set(normalizarSku(spec.sku), spec)
             }
           }
           console.log(`Batch ${c + 1}/${chunks.length}: ${specs.length} spec(s) recebidas`)

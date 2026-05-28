@@ -11,6 +11,7 @@ export type ErroValidacao = {
 
 export type ProdutoValido = {
   sku: string
+  sku_base: string
   nome: string
   marca?: string
   categoria?: string
@@ -165,7 +166,8 @@ export function validarEstrutura(linhas: Array<Record<string, unknown>>): Result
     }
 
     if (!temErro) {
-      produtos_validos.push({ sku, nome, marca, categoria, custo: custo!, estoque: estoque!, cor, genero, tipo_roupa, tipo_manga, tamanho })
+      const sku_base = sku.split('-')[0]
+      produtos_validos.push({ sku, sku_base, nome, marca, categoria, custo: custo!, estoque: estoque!, cor, genero, tipo_roupa, tipo_manga, tamanho })
     }
   }
 

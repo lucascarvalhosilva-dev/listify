@@ -571,10 +571,13 @@ O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link re
       }
     } else if (eSegmentoEscolhido) {
       const segLabel = mensagem.replace('Segmento: ', '').trim()
+      const extraModa = segLabel === 'Moda'
+        ? ' Se o produto tiver mais de um tamanho ou cor, crie uma linha por variação usando o SKU com sufixo: 132-P, 132-M, 132-G — o sistema agrupa automaticamente em um único anúncio.'
+        : ''
       contextoEtapa = `
 
 CONTEXTO DO FLUXO GUIADO:
-O usuário escolheu o segmento "${segLabel}". Etapa: aguardando_planilha. Um modelo personalizado para este segmento foi gerado com as colunas obrigatórias do Mercado Livre. O botão de download aparece automaticamente abaixo — NÃO o inclua no JSON de acoes. Diga de forma breve e amigável (1-2 frases) que o modelo está pronto e que assim que preencher, basta enviar o arquivo pelo botão de clipe no chat.`
+O usuário escolheu o segmento "${segLabel}". Etapa: aguardando_planilha. Um modelo personalizado para este segmento foi gerado com as colunas obrigatórias do Mercado Livre. O botão de download aparece automaticamente abaixo — NÃO o inclua no JSON de acoes. Diga de forma breve e amigável (1-2 frases) que o modelo está pronto e que assim que preencher, basta enviar o arquivo pelo botão de clipe no chat.${extraModa}`
     } else if (eBaixouTemplate) {
       contextoEtapa = `
 

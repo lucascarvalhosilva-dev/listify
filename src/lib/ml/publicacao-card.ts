@@ -1,4 +1,4 @@
-import type { ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
+import type { ProdutoRevisaoPriceGuard, VariacaoML } from '@/lib/price-guard'
 import type { AtributoMLMapeado } from '@/lib/ml/atributos'
 
 export interface ProdutoFontePublicacaoML {
@@ -28,6 +28,10 @@ export interface PublicacaoMLPayload {
   descricao: string
   fotos: string[]
   atributos?: AtributoMLMapeado[]
+  variations?: Array<{
+    attribute_combinations: VariacaoML['attribute_combinations']
+    available_quantity: number
+  }>
 }
 
 export interface ProdutoResumoPublicacaoML {
@@ -38,6 +42,7 @@ export interface ProdutoResumoPublicacaoML {
   categoria: string | null
   estoque: number | null
   quantidade_fotos: number
+  variacoes_count?: number
 }
 
 export interface PublicacaoMLCardData {
@@ -151,6 +156,7 @@ function montarPayload(
   const fotos = extrairFotosPublicas(produto)
   const atributosMapeados = produto.atributos_ml ?? []
   const atributosPendentes = produto.atributos_pendentes_ml ?? []
+  const temVariacoes = (produto.variations?.length ?? 0) > 0
   const bloqueios: string[] = []
 
   if (!titulo) bloqueios.push(`SKU ${produto.sku}: título do Mercado Livre ausente.`)
@@ -160,9 +166,12 @@ function montarPayload(
   if (!categoriaML) bloqueios.push(`SKU ${produto.sku}: falta categoria oficial do Mercado Livre (ex: MLB1234).`)
   if (fotos.length === 0) bloqueios.push(`SKU ${produto.sku}: faltam fotos públicas por produto para a API do Mercado Livre.`)
   for (const attr of atributosPendentes) {
+    // SIZE_GRID_ID não bloqueia quando já há variações configuradas
+    if (attr.id.toUpperCase() === 'SIZE_GRID_ID' && temVariacoes) continue
     bloqueios.push(textoBloqueioAtributo(produto.sku, attr))
   }
 
+  const variacoesCount = produto.variations?.length ?? 0
   const resumo: ProdutoResumoPublicacaoML = {
     sku: texto(produto.sku),
     nome: texto(produto.nome) || texto(original?.nome) || 'Produto',
@@ -171,6 +180,7 @@ function montarPayload(
     categoria: categoriaML ?? (texto(original?.categoria) || null),
     estoque: estoque && estoque >= 0 ? estoque : null,
     quantidade_fotos: fotos.length,
+    ...(variacoesCount > 0 ? { variacoes_count: variacoesCount } : {}),
   }
 
   const dadosBasicosOk = Boolean(titulo && descricao && preco && preco > 0 && estoque && estoque > 0 && categoriaML)
@@ -184,6 +194,12 @@ function montarPayload(
     categoria_ml: categoriaML!,
     descricao: descricao!,
     ...(atributosMapeados.length ? { atributos: atributosMapeados } : {}),
+    ...(temVariacoes ? {
+      variations: produto.variations!.map(v => ({
+        attribute_combinations: v.attribute_combinations,
+        available_quantity: v.available_quantity,
+      }))
+    } : {}),
   } : null
 
   const payloadSemFotos: PublicacaoMLPayload | null = payloadBase ? { ...payloadBase, fotos: [] } : null

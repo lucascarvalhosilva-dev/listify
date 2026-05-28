@@ -12,6 +12,12 @@ export type CampoPrecoProduto =
   | 'preco_magalu'
   | 'preco_amazon'
 
+export interface VariacaoML {
+  sku: string
+  attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
+  available_quantity: number
+}
+
 export interface ProdutoRevisaoPriceGuard {
   sku: string
   nome: string
@@ -56,6 +62,7 @@ export interface ProdutoRevisaoPriceGuard {
   fotos?: string[]
   atributos_ml?: { id: string; value_name?: string; value_id?: string }[]
   atributos_pendentes_ml?: { id: string; name: string }[]
+  variations?: VariacaoML[]
 }
 
 export interface PriceGuardCanalResumo {

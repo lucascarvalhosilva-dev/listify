@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
-import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
+import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard, type VariacaoML } from '@/lib/price-guard'
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
 import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
 import { buscarGTIN } from '@/lib/ml/gtin'
-import { buscarGradeTamanho } from '@/lib/ml/grade-tamanho'
+import { buscarGradeTamanho, type GradeTamanho } from '@/lib/ml/grade-tamanho'
 
 export const maxDuration = 60
 
@@ -42,6 +42,7 @@ const CANAL_LABELS: Record<string, string> = {
 
 interface ProdutoValido {
   sku: string
+  sku_base?: string
   nome: string
   custo: number
   estoque: number
@@ -52,6 +53,69 @@ interface ProdutoValido {
   tipo_roupa?: string
   tipo_manga?: string
   tamanho?: string
+}
+
+function skuBase(sku: string): string {
+  return sku.split('-')[0]
+}
+
+const TAMANHO_RE_SUFIXO = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
+const IDS_VARIACAO = new Set(['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE', 'COLOR', 'COR', 'MAIN_COLOR'])
+
+function agruparVariacoesML(
+  produtos: ProdutoRevisaoPriceGuard[],
+  produtosPorSku: Map<string, ProdutoValido>
+): ProdutoRevisaoPriceGuard[] {
+  const grupos = new Map<string, ProdutoRevisaoPriceGuard[]>()
+  for (const p of produtos) {
+    const base = skuBase(p.sku)
+    if (!grupos.has(base)) grupos.set(base, [])
+    grupos.get(base)!.push(p)
+  }
+
+  return [...grupos.values()].map(grupo => {
+    if (grupo.length === 1) return grupo[0]
+
+    const pai = grupo[0]
+
+    const variations: VariacaoML[] = grupo.map(variante => {
+      const orig = produtosPorSku.get(variante.sku)
+      const atrs = variante.atributos_ml ?? []
+
+      const sizeAttr = atrs.find(a => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(a.id.toUpperCase()))
+      const sufixo = variante.sku.includes('-') ? variante.sku.split('-').slice(1).join('-') : null
+      const tamanhoSufixo = sufixo ? (sufixo.match(TAMANHO_RE_SUFIXO)?.[0]?.toUpperCase() ?? null) : null
+      const tamanho = sizeAttr?.value_name ?? orig?.tamanho ?? tamanhoSufixo
+
+      const colorAttr = atrs.find(a => ['COLOR', 'COR', 'MAIN_COLOR'].includes(a.id.toUpperCase()))
+      const cor = colorAttr?.value_name ?? orig?.cor
+
+      const attribute_combinations: VariacaoML['attribute_combinations'] = []
+      if (tamanho) attribute_combinations.push({ id: 'SIZE', value_name: tamanho, ...(sizeAttr?.value_id ? { value_id: sizeAttr.value_id } : {}) })
+      if (cor) attribute_combinations.push({ id: 'COLOR', value_name: cor })
+
+      return {
+        sku: variante.sku,
+        attribute_combinations,
+        available_quantity: orig?.estoque ?? variante.estoque ?? 1,
+      }
+    })
+
+    const atributosPaiLimpos = (pai.atributos_ml ?? []).filter(a => !IDS_VARIACAO.has(a.id.toUpperCase()))
+    const todasComTamanho = variations.every(v => v.attribute_combinations.some(a => a.id === 'SIZE'))
+    const pendentesLimpos = todasComTamanho
+      ? (pai.atributos_pendentes_ml ?? []).filter(a => a.id.toUpperCase() !== 'SIZE_GRID_ID')
+      : (pai.atributos_pendentes_ml ?? [])
+    const estoqueTotal = variations.reduce((sum, v) => sum + v.available_quantity, 0)
+
+    return {
+      ...pai,
+      estoque: estoqueTotal > 0 ? estoqueTotal : (pai.estoque ?? 0),
+      atributos_ml: atributosPaiLimpos.length > 0 ? atributosPaiLimpos : pai.atributos_ml,
+      atributos_pendentes_ml: pendentesLimpos.length > 0 ? pendentesLimpos : undefined,
+      variations,
+    }
+  })
 }
 
 interface ArquivoGerado {
@@ -272,10 +336,15 @@ export async function POST(request: Request) {
         comCategorias.map(p => p.categoria_ml).filter((c): c is string => Boolean(c))
       )]
       const atributosPorCategoria = new Map<string, AtributoML[]>()
+      const gradesPorCategoria = new Map<string, GradeTamanho | null>()
       await Promise.all(
         categoriasUnicas.map(async (catId) => {
-          const attrs = await buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[])
+          const [attrs, grade] = await Promise.all([
+            buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[]),
+            buscarGradeTamanho(catId).catch(() => null),
+          ])
           atributosPorCategoria.set(catId, attrs)
+          gradesPorCategoria.set(catId, grade)
         })
       )
       const TAMANHO_RE_LOCAL = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
@@ -343,7 +412,7 @@ export async function POST(request: Request) {
             pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: 'Adicione coluna Tamanho na planilha' }
           } else {
             console.log('[SIZE] buscando grade para categoria:', catId)
-            const grade = await buscarGradeTamanho(catId).catch(() => null)
+            const grade = gradesPorCategoria.get(catId) ?? null
             console.log('[SIZE] grade encontrada:', grade ? `grid_id=${grade.grid_id} values=${grade.values.length}` : 'null')
             if (grade?.values.length) {
               const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
@@ -374,6 +443,9 @@ export async function POST(request: Request) {
           atributos_pendentes_ml: pendentesFinal.map(a => ({ id: a.id, name: a.name })),
         }
       }))
+
+      // Agrupa variações (ex: 132-P, 132-M, 132-G) em um único produto com variations[]
+      produtosRevisao = agruparVariacoesML(produtosRevisao, produtosPorSku)
     }
 
     const produtosRevisaoML = Object.keys(fotosUpload).length > 0

@@ -14,6 +14,11 @@ interface PublicarBody {
   descricao: string
   fotos: string[]
   atributos?: { id: string; value_name?: string; value_id?: string }[]
+  variations?: Array<{
+    attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
+    available_quantity: number
+    picture_ids?: string[]
+  }>
 }
 
 function traduzirErroMercadoLivre(mlBody: Record<string, unknown>): string {
@@ -56,23 +61,32 @@ export async function POST(request: NextRequest) {
   const exigeGradeTamanhos = atributosCategoria.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID')
   const temGradeTamanhos = atributosNormalizados.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID' && (attr.value_id || attr.value_name))
 
-  if (exigeGradeTamanhos && !temGradeTamanhos) {
+  const temVariacoes = (body.variations?.length ?? 0) > 0
+
+  if (exigeGradeTamanhos && !temGradeTamanhos && !temVariacoes) {
     return Response.json({
       error: 'A categoria exige grade de tamanhos do Mercado Livre. Ainda precisamos configurar essa etapa antes de publicar direto.',
     }, { status: 422 })
   }
 
+  // SIZE/COLOR vão em attribute_combinations por variação — remover de attributes
+  const IDS_VARIACAO = new Set(['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE', 'COLOR', 'COR', 'MAIN_COLOR'])
+  const atributosFinais = temVariacoes
+    ? atributosNormalizados.filter(a => !IDS_VARIACAO.has(a.id.toUpperCase()))
+    : atributosNormalizados
+
   const payload = {
     title: body.titulo,
     price: body.preco,
     currency_id: body.moeda ?? 'BRL',
-    available_quantity: body.quantidade,
+    ...(temVariacoes ? {} : { available_quantity: body.quantidade }),
     condition: body.condicao,
     category_id: body.categoria_ml,
     listing_type_id: 'gold_special',
     description: { plain_text: body.descricao },
     pictures: fotosPublicas.map(url => ({ source: url })),
-    ...(atributosNormalizados.length ? { attributes: atributosNormalizados } : {}),
+    ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
+    ...(temVariacoes ? { variations: body.variations } : {}),
   }
 
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)
