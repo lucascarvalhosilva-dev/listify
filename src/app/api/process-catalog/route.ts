@@ -63,6 +63,10 @@ interface CacheRow {
   confianca_dimensoes: 'alta' | 'media'
 }
 
+function normalizarSku(sku: string): string {
+  return String(sku).replace(/^SKU\s+/i, '').trim()
+}
+
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ''
@@ -264,8 +268,8 @@ export async function POST(request: NextRequest) {
             instrucaoPreventiva
           )
           for (const spec of specs) {
-            specsMap.set(spec.sku, spec)
-            const produto = chunk.find(p => p.sku === spec.sku)
+            specsMap.set(normalizarSku(spec.sku), spec)
+            const produto = chunk.find(p => normalizarSku(p.sku) === normalizarSku(spec.sku))
             if (produto) {
               novasSpecs.push({ spec, nome: produto.nome })
             }
@@ -336,8 +340,8 @@ export async function POST(request: NextRequest) {
     const produtosProcessados: ProdutoProcessado[] = []
 
     for (const p of produtos) {
-      console.log('[PROCESS-CATALOG] verificando SKU:', p.sku, 'encontrado em specsMap:', specsMap.has(p.sku))
-      const batchSpec = specsMap.get(p.sku)
+      console.log('[PROCESS-CATALOG] verificando SKU:', p.sku, 'encontrado em specsMap:', specsMap.has(normalizarSku(p.sku)))
+      const batchSpec = specsMap.get(normalizarSku(p.sku))
       if (!batchSpec) {
         if (!alertas.some(a => a.includes(`SKU ${p.sku}`))) {
           alertas.push(`Produto "${p.nome}" (SKU ${p.sku}): não retornado pela IA — ignorado.`)
