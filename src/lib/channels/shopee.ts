@@ -5,6 +5,12 @@ import { type calcularPrecos } from '@/lib/pricing'
 export interface ProdutoProcessado {
   sku: string
   nome: string
+  marca?: string
+  categoria?: string
+  cor?: string
+  genero?: string
+  tipo_roupa?: string
+  tipo_manga?: string
   custo: number
   estoque: number
   regime: 'MEI' | 'SN'

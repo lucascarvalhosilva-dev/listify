@@ -278,6 +278,7 @@ export async function POST(request: Request) {
         const original = produtosPorSku.get(p.sku)
         const { mapeados, pendentes } = mapearAtributos(atributos, {
           ...p,
+          marca: p.marca ?? original?.marca,
           cor: original?.cor,
           genero: original?.genero,
           tipo_roupa: original?.tipo_roupa,
@@ -285,6 +286,8 @@ export async function POST(request: Request) {
         })
         return {
           ...p,
+          marca: p.marca ?? original?.marca,
+          categoria: p.categoria ?? original?.categoria,
           ...(mapeados.length ? { atributos_ml: mapeados } : {}),
           ...(pendentes.length ? { atributos_pendentes_ml: pendentes.map(a => ({ id: a.id, name: a.name })) } : {}),
         }

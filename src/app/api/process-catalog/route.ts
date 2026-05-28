@@ -20,6 +20,12 @@ const BATCH_SIZE = 5
 interface ProdutoInput {
   sku: string
   nome: string
+  marca?: string
+  categoria?: string
+  cor?: string
+  genero?: string
+  tipo_roupa?: string
+  tipo_manga?: string
   custo: number
   estoque: number
 }
@@ -341,6 +347,12 @@ export async function POST(request: NextRequest) {
       produtosProcessados.push({
         sku: p.sku,
         nome: p.nome,
+        marca: p.marca,
+        categoria: p.categoria,
+        cor: p.cor,
+        genero: p.genero,
+        tipo_roupa: p.tipo_roupa,
+        tipo_manga: p.tipo_manga,
         custo: p.custo,
         estoque: p.estoque,
         regime,
@@ -384,6 +396,12 @@ export async function POST(request: NextRequest) {
       produtos_revisao: produtosProcessados.map(p => ({
         sku: p.sku,
         nome: p.nome,
+        marca: p.marca,
+        categoria: p.categoria,
+        cor: p.cor,
+        genero: p.genero,
+        tipo_roupa: p.tipo_roupa,
+        tipo_manga: p.tipo_manga,
         custo: p.custo,
         preco_ml: p.precos.preco_ml,
         preco_shopee: p.precos.preco_shopee,
