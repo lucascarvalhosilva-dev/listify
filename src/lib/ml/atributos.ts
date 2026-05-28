@@ -102,8 +102,18 @@ function candidatosParaAtributo(id: string, valor: string): string[] {
   return [valor]
 }
 
+function exigeValorFechado(id: string, valueType: string): boolean {
+  const idNormalizado = id.toUpperCase()
+  if (idNormalizado === 'BRAND' || idNormalizado === 'MARCA') return false
+  if (idNormalizado === 'MODEL' || idNormalizado === 'MODELO') return false
+  if (idNormalizado === 'UNITS_PER_PACK') return false
+  if (idNormalizado === 'GTIN') return false
+  return valueType === 'list' || valueType === 'boolean'
+}
+
 function mapearValorFechado(attr: AtributoML, valor: string): AtributoMLMapeado | null {
   if (!attr.values?.length) return { id: attr.id, value_name: valor }
+  if (!exigeValorFechado(attr.id, attr.value_type)) return { id: attr.id, value_name: valor }
 
   const id = attr.id.toUpperCase()
   const candidatos = candidatosParaAtributo(id, valor).map(normalizar)
@@ -166,6 +176,8 @@ export function mapearAtributos(
       if (produto.marca) valorMapeado = produto.marca
     } else if (id === 'MODEL' || id === 'MODELO') {
       if (produto.nome) valorMapeado = produto.nome
+    } else if (id === 'UNITS_PER_PACK') {
+      valorMapeado = '1'
     } else if (id === 'COLOR' || id === 'COR' || id === 'MAIN_COLOR') {
       if (produto.cor) {
         valorMapeado = produto.cor
