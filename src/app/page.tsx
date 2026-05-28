@@ -412,7 +412,7 @@ export default function ChatPrincipal() {
       const res = await fetch('/api/chat-principal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem, historico: historicoEnvio, conversa_id: currentConversaId }),
+        body: JSON.stringify({ mensagem, historico: historicoEnvio, conversa_id: currentConversaId, fotos_upload: fotosUploadadas }),
       })
       const data = await res.json()
 

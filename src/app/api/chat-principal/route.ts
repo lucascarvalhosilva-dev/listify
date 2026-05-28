@@ -254,7 +254,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
-    const { mensagem, historico, conversa_id } = await request.json()
+    const { mensagem, historico, conversa_id, fotos_upload } = await request.json()
 
     if (!conversa_id || typeof conversa_id !== 'string') {
       return Response.json({ error: 'conversa_id obrigatório' }, { status: 400 })
@@ -487,7 +487,7 @@ A geração está em andamento para os canais: ${lista}. Informe o usuário que 
           const gerarResp = await fetch(gerarUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
-            body: JSON.stringify({ sessao_id: sessaoAtiva.id, conversa_id }),
+            body: JSON.stringify({ sessao_id: sessaoAtiva.id, conversa_id, fotos_upload: fotos_upload ?? {} }),
           })
           console.log('[CHAT] gerar-do-chat status:', gerarResp.status)
           geracaoOk = gerarResp.ok

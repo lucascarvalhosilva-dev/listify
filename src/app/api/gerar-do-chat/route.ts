@@ -122,7 +122,8 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
-    const { sessao_id, conversa_id } = await request.json()
+    const { sessao_id, conversa_id, fotos_upload } = await request.json()
+    const fotosUpload = (fotos_upload ?? {}) as Record<string, string[]>
     if (!sessao_id || typeof sessao_id !== 'string') {
       return Response.json({ error: 'sessao_id inválido' }, { status: 400 })
     }
@@ -253,6 +254,13 @@ export async function POST(request: Request) {
           })
         )
       : produtosRevisaoBase
+
+    const produtosRevisaoML = Object.keys(fotosUpload).length > 0
+      ? produtosRevisao.map(p => {
+          const fotos = fotosUpload[p.sku]
+          return fotos?.length ? { ...p, fotos } : p
+        })
+      : produtosRevisao
 
     // ── Upload de arquivos para bucket 'geracoes' ─────────────────────────────
     const ts = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)
@@ -424,13 +432,14 @@ export async function POST(request: Request) {
           conectado: Boolean(contaML),
           nickname: contaML?.nickname ?? null,
           produtosOriginais: produtos,
-          produtosRevisao,
+          produtosRevisao: produtosRevisaoML,
           driveUrl: sessao.drive_url,
           fallbackDownload: arquivoMercadoLivre ?? null,
         })
       : null
     const publicacaoMLAction = publicacaoMLCard ? [publicacaoMLCard] : []
-    const uploadFotosAction = publicacaoMLCard?.status === 'pendente' && Boolean(contaML)
+    const temFotosUpload = Object.keys(fotosUpload).length > 0
+    const uploadFotosAction = publicacaoMLCard?.status === 'pendente' && Boolean(contaML) && !temFotosUpload
       ? [{
           acao: 'card_upload_fotos_ml' as const,
           produtos: produtos.map(p => ({ sku: p.sku, nome: p.nome })),

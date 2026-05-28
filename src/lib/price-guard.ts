@@ -48,6 +48,7 @@ export interface ProdutoRevisaoPriceGuard {
   ncm?: string
   gtin?: string
   categoria_ml?: string
+  fotos?: string[]
 }
 
 export interface PriceGuardCanalResumo {
