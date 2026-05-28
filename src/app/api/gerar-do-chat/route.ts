@@ -396,7 +396,13 @@ export async function POST(request: Request) {
             upsertMapeado(mapeadosFinal, { id: 'GTIN', value_name: gtin })
           } else {
             console.log('[GTIN] resolvido como: sem GTIN - usando EMPTY_GTIN_REASON')
-            upsertMapeado(mapeadosFinal, { id: 'EMPTY_GTIN_REASON', value_name: 'Este producto no tiene GTIN' })
+            const emptyGtinAttr = atributos.find(a => a.id.toUpperCase() === 'EMPTY_GTIN_REASON')
+            const emptyGtinValue = emptyGtinAttr?.values?.[0]
+            if (emptyGtinValue) {
+              upsertMapeado(mapeadosFinal, { id: 'EMPTY_GTIN_REASON', value_id: emptyGtinValue.id, value_name: emptyGtinValue.name })
+            } else {
+              upsertMapeado(mapeadosFinal, { id: 'EMPTY_GTIN_REASON', value_name: 'Este producto no tiene GTIN' })
+            }
           }
         }
 
