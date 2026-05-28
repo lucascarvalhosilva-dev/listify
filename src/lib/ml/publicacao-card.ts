@@ -31,6 +31,7 @@ export interface PublicacaoMLPayload {
   variations?: Array<{
     attribute_combinations: VariacaoML['attribute_combinations']
     available_quantity: number
+    price: number
   }>
 }
 
@@ -198,6 +199,7 @@ function montarPayload(
       variations: produto.variations!.map(v => ({
         attribute_combinations: v.attribute_combinations,
         available_quantity: v.available_quantity,
+        price: v.price,
       }))
     } : {}),
   } : null
