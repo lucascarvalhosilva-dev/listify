@@ -5,8 +5,14 @@ export interface AtributoML {
   values?: { id: string; name: string }[]
 }
 
+export interface AtributoMLMapeado {
+  id: string
+  value_name?: string
+  value_id?: string
+}
+
 export interface MapearAtributosResult {
-  mapeados: { id: string; value_name: string }[]
+  mapeados: AtributoMLMapeado[]
   pendentes: AtributoML[]
 }
 
@@ -46,6 +52,76 @@ const MANGA_MAP: [string[], string][] = [
   [['sem manga', 'regata', 'sleeveless'], 'Sem manga'],
 ]
 
+function normalizar(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function expandirCandidatosGenero(valor: string): string[] {
+  const n = normalizar(valor)
+  if (['masculino', 'masculina', 'masc', 'homem', 'homens'].some(v => n.includes(v))) {
+    return ['Masculino', 'Homem', 'Homens', 'Masculina']
+  }
+  if (['feminino', 'feminina', 'fem', 'mulher', 'mulheres'].some(v => n.includes(v))) {
+    return ['Feminino', 'Mulher', 'Mulheres', 'Feminina']
+  }
+  if (['unissex', 'unisex', 'sem genero', 'sem gênero'].some(v => n.includes(v))) {
+    return ['Unissex', 'Sem genero', 'Sem gênero']
+  }
+  if (['infantil', 'crianca', 'criança', 'kids', 'menino', 'menina'].some(v => n.includes(v))) {
+    return ['Infantil', 'Meninos', 'Meninas', 'Crianças']
+  }
+  return [valor]
+}
+
+function expandirCandidatosCor(valor: string): string[] {
+  const n = normalizar(valor)
+  const pares: [string[], string][] = [
+    [['preto', 'preta'], 'Preto'],
+    [['branco', 'branca'], 'Branco'],
+    [['vermelho', 'vermelha'], 'Vermelho'],
+    [['amarelo', 'amarela'], 'Amarelo'],
+    [['roxo', 'roxa'], 'Roxo'],
+    [['cinza'], 'Cinza'],
+    [['azul'], 'Azul'],
+    [['verde'], 'Verde'],
+    [['rosa'], 'Rosa'],
+    [['marrom'], 'Marrom'],
+    [['bege'], 'Bege'],
+  ]
+  const par = pares.find(([palavras]) => palavras.some(p => n.includes(p)))
+  return par ? [par[1], valor] : [valor]
+}
+
+function candidatosParaAtributo(id: string, valor: string): string[] {
+  if (id === 'GENDER' || id === 'GENERO' || id === 'GÊNERO') return expandirCandidatosGenero(valor)
+  if (id === 'COLOR' || id === 'COR' || id === 'MAIN_COLOR') return expandirCandidatosCor(valor)
+  return [valor]
+}
+
+function mapearValorFechado(attr: AtributoML, valor: string): AtributoMLMapeado | null {
+  if (!attr.values?.length) return { id: attr.id, value_name: valor }
+
+  const id = attr.id.toUpperCase()
+  const candidatos = candidatosParaAtributo(id, valor).map(normalizar)
+  const match = attr.values.find(value => candidatos.includes(normalizar(value.name)))
+  if (!match) return null
+
+  return { id: attr.id, value_id: match.id, value_name: match.name }
+}
+
+function atributoDeveEntrar(attr: { id: string; tags?: Record<string, unknown> }): boolean {
+  const id = attr.id.toUpperCase()
+  const tags = attr.tags ?? {}
+  return tags.required === true ||
+    tags.catalog_required === true ||
+    tags.conditional_required === true ||
+    id === 'SIZE_GRID_ID'
+}
+
 export async function buscarAtributosObrigatorios(categoryId: string): Promise<AtributoML[]> {
   try {
     const res = await fetch(
@@ -62,12 +138,12 @@ export async function buscarAtributosObrigatorios(categoryId: string): Promise<A
     }>
     if (!Array.isArray(data)) return []
     return data
-      .filter(attr => attr.tags?.required === true)
+      .filter(atributoDeveEntrar)
       .map(attr => ({
         id: attr.id,
         name: attr.name,
         value_type: attr.value_type,
-        ...(attr.values?.length ? { values: attr.values.slice(0, 20) } : {}),
+        ...(attr.values?.length ? { values: attr.values.slice(0, 80) } : {}),
       }))
   } catch {
     return []
@@ -78,7 +154,7 @@ export function mapearAtributos(
   atributos: AtributoML[],
   produto: { marca?: string; nome?: string; cor?: string; genero?: string; tipo_roupa?: string; tipo_manga?: string }
 ): MapearAtributosResult {
-  const mapeados: { id: string; value_name: string }[] = []
+  const mapeados: AtributoMLMapeado[] = []
   const pendentes: AtributoML[] = []
   const nomeMin = (produto.nome ?? '').toLowerCase()
 
@@ -127,7 +203,12 @@ export function mapearAtributos(
     }
 
     if (valorMapeado) {
-      mapeados.push({ id: attr.id, value_name: valorMapeado })
+      const atributoMapeado = mapearValorFechado(attr, valorMapeado)
+      if (atributoMapeado) {
+        mapeados.push(atributoMapeado)
+      } else {
+        pendentes.push(attr)
+      }
     } else {
       pendentes.push(attr)
     }
@@ -138,4 +219,18 @@ export function mapearAtributos(
   )
 
   return { mapeados, pendentes }
+}
+
+export function normalizarAtributosML(
+  atributosCategoria: AtributoML[],
+  atributosRecebidos: AtributoMLMapeado[]
+): AtributoMLMapeado[] {
+  const atributosPorId = new Map(atributosCategoria.map(attr => [attr.id.toUpperCase(), attr]))
+
+  return atributosRecebidos.map(attr => {
+    if (attr.value_id || !attr.value_name) return attr
+    const atributoCategoria = atributosPorId.get(attr.id.toUpperCase())
+    if (!atributoCategoria) return attr
+    return mapearValorFechado(atributoCategoria, attr.value_name) ?? attr
+  })
 }

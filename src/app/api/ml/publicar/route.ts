@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getValidMLToken } from '@/lib/ml/token'
 import { prepararFotosML } from '@/lib/ml/fotos'
+import { buscarAtributosObrigatorios, normalizarAtributosML } from '@/lib/ml/atributos'
 
 interface PublicarBody {
   titulo: string
@@ -12,7 +13,31 @@ interface PublicarBody {
   categoria_ml: string
   descricao: string
   fotos: string[]
-  atributos?: { id: string; value_name: string }[]
+  atributos?: { id: string; value_name?: string; value_id?: string }[]
+}
+
+function traduzirErroMercadoLivre(mlBody: Record<string, unknown>): string {
+  const causas = Array.isArray(mlBody.cause) ? mlBody.cause : []
+  const mensagens = causas
+    .map(causa => {
+      if (!causa || typeof causa !== 'object') return null
+      const item = causa as Record<string, unknown>
+      const code = typeof item.code === 'string' ? item.code : ''
+      const message = typeof item.message === 'string' ? item.message : ''
+
+      if (code.includes('missing.fashion_grid.grid_id') || message.includes('[SIZE_GRID_ID]')) {
+        return 'A categoria exige grade de tamanhos do Mercado Livre. Ainda precisamos configurar essa etapa antes de publicar direto.'
+      }
+      if (message.includes('[GENDER]') || code.includes('invalid.item.attribute.values')) {
+        return 'O Mercado Livre recusou um atributo com lista fechada. Revise gênero/cor/tamanho e gere o cadastro novamente.'
+      }
+      if (message) return message
+      return null
+    })
+    .filter((mensagem): mensagem is string => Boolean(mensagem))
+
+  if (mensagens.length > 0) return Array.from(new Set(mensagens)).join(' ')
+  return typeof mlBody.message === 'string' ? mlBody.message : 'Erro ao publicar no Mercado Livre'
 }
 
 export async function POST(request: NextRequest) {
@@ -26,6 +51,16 @@ export async function POST(request: NextRequest) {
   const body = await request.json() as PublicarBody
 
   const fotosPublicas = await prepararFotosML(body.fotos, user.id)
+  const atributosCategoria = await buscarAtributosObrigatorios(body.categoria_ml).catch(() => [])
+  const atributosNormalizados = normalizarAtributosML(atributosCategoria, body.atributos ?? [])
+  const exigeGradeTamanhos = atributosCategoria.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID')
+  const temGradeTamanhos = atributosNormalizados.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID' && (attr.value_id || attr.value_name))
+
+  if (exigeGradeTamanhos && !temGradeTamanhos) {
+    return Response.json({
+      error: 'A categoria exige grade de tamanhos do Mercado Livre. Ainda precisamos configurar essa etapa antes de publicar direto.',
+    }, { status: 422 })
+  }
 
   const payload = {
     title: body.titulo,
@@ -37,7 +72,7 @@ export async function POST(request: NextRequest) {
     listing_type_id: 'gold_special',
     description: { plain_text: body.descricao },
     pictures: fotosPublicas.map(url => ({ source: url })),
-    ...(body.atributos?.length ? { attributes: body.atributos } : {}),
+    ...(atributosNormalizados.length ? { attributes: atributosNormalizados } : {}),
   }
 
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)
@@ -57,7 +92,7 @@ export async function POST(request: NextRequest) {
   console.log('[ML publicar] ML response status:', mlRes.status, '| body:', JSON.stringify(mlBody))
 
   if (!mlRes.ok) {
-    const mensagem = typeof mlBody.message === 'string' ? mlBody.message : 'Erro ao publicar no Mercado Livre'
+    const mensagem = traduzirErroMercadoLivre(mlBody)
     return Response.json({ error: mensagem, detalhes: mlBody }, { status: 502 })
   }
 

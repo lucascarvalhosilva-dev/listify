@@ -35,6 +35,7 @@ const SKIP_ATTRS = new Set([
   'MODEL', 'MODELO',
   'SELLER_SKU',
   'ITEM_CONDITION',
+  'SIZE_GRID_ID',
 ])
 
 const BASE_HEADERS = ['SKU', 'Nome do Produto', 'Marca', 'Categoria', 'Custo Unitário (R$)', 'Estoque']

@@ -1,4 +1,5 @@
 import type { ProdutoRevisaoPriceGuard } from '@/lib/price-guard'
+import type { AtributoMLMapeado } from '@/lib/ml/atributos'
 
 export interface ProdutoFontePublicacaoML {
   sku: string
@@ -26,7 +27,7 @@ export interface PublicacaoMLPayload {
   categoria_ml: string
   descricao: string
   fotos: string[]
-  atributos?: { id: string; value_name: string }[]
+  atributos?: AtributoMLMapeado[]
 }
 
 export interface ProdutoResumoPublicacaoML {
@@ -130,6 +131,14 @@ function extrairFotosPublicas(produto: ProdutoRevisaoPriceGuard): string[] {
   return Array.from(new Set(urls))
 }
 
+function textoBloqueioAtributo(sku: string, attr: { id: string; name: string }): string {
+  if (attr.id.toUpperCase() === 'SIZE_GRID_ID') {
+    return `SKU ${sku}: a categoria exige grade de tamanhos do Mercado Livre (SIZE_GRID_ID). Esse passo ainda precisa ser configurado antes da publicação direta.`
+  }
+
+  return `SKU ${sku}: atributo obrigatório faltando — ${attr.name} (${attr.id}).`
+}
+
 function montarPayload(
   produto: ProdutoRevisaoPriceGuard,
   original?: ProdutoFontePublicacaoML
@@ -151,7 +160,7 @@ function montarPayload(
   if (!categoriaML) bloqueios.push(`SKU ${produto.sku}: falta categoria oficial do Mercado Livre (ex: MLB1234).`)
   if (fotos.length === 0) bloqueios.push(`SKU ${produto.sku}: faltam fotos públicas por produto para a API do Mercado Livre.`)
   for (const attr of atributosPendentes) {
-    bloqueios.push(`SKU ${produto.sku}: atributo obrigatório faltando — ${attr.name} (${attr.id}).`)
+    bloqueios.push(textoBloqueioAtributo(produto.sku, attr))
   }
 
   const resumo: ProdutoResumoPublicacaoML = {

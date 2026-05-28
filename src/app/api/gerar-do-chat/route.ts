@@ -208,6 +208,10 @@ export async function POST(request: Request) {
       categoria: p.categoria,
       custo: p.custo,
       estoque: p.estoque,
+      cor: p.cor,
+      genero: p.genero,
+      tipo_roupa: p.tipo_roupa,
+      tipo_manga: p.tipo_manga,
     }))
 
     const cookieHeader = request.headers.get('cookie') ?? ''
