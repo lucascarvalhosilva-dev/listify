@@ -54,7 +54,8 @@ export async function buscarGradeTamanho(categoryId: string): Promise<GradeTaman
       grid_name: gradeData.name,
       values,
     }
-  } catch {
+  } catch (err) {
+    console.log('[GRADE-DEBUG] erro:', String(err))
     return null
   }
 }
