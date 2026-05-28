@@ -55,7 +55,7 @@ Você está em fluxo guiado de cadastro. Etapa atual: iniciada. Explique que pre
   aguardando_planilha: `
 
 CONTEXTO DO FLUXO GUIADO:
-Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. O modelo de arquivo já está disponível para download nos botões abaixo (adicionados automaticamente pelo sistema — NÃO os inclua no JSON de acoes). Explique brevemente o que preencher: SKU (código único do produto), Nome do Produto (mínimo 3 caracteres), Marca, Categoria, Custo Unitário em R$ (ex: 11.60 ou 11,60) e Estoque (número inteiro). Seja breve e direto. NÃO redirecione automaticamente.`,
+Você está em fluxo guiado de cadastro. Etapa atual: aguardando_planilha. Primeiro, pergunte o segmento dos produtos para gerar um modelo personalizado com as colunas certas. Os botões de segmento aparecem automaticamente abaixo (adicionados pelo sistema — NÃO os inclua no JSON de acoes). Seja breve e direto. NÃO redirecione automaticamente.`,
 
   validando_planilha: `
 
@@ -82,6 +82,16 @@ const TITULOS_EXCLUIDOS = new Set([
   'Quero cancelar e começar do zero',
   'Ver meu plano',
 ])
+
+const SEGMENTO_SLUG: Record<string, string> = {
+  'Moda': 'moda',
+  'Eletrônicos': 'eletronicos',
+  'Esportes e Lazer': 'esportes',
+  'Casa e Decoração': 'casa',
+  'Saúde e Beleza': 'saude',
+  'Automotivo': 'automotivo',
+  'Outro': 'outro',
+}
 
 const HISTORICO_CONTEXTO_LIMITE = 12
 
@@ -133,7 +143,8 @@ function normalizarTituloConversa(mensagem: unknown): string | null {
     comparacao.startsWith('baixei o template') ||
     comparacao.startsWith('baixei o modelo') ||
     comparacao.startsWith('canais escolhidos:') ||
-    comparacao.startsWith('como publicar no ')
+    comparacao.startsWith('como publicar no ') ||
+    comparacao.startsWith('segmento: ')
   ) {
     return null
   }
@@ -320,6 +331,19 @@ export async function POST(request: Request) {
       sessaoAtiva = { ...sessaoAtiva, etapa: 'aguardando_planilha' }
     }
 
+    // ── Seleção de segmento: persiste no dados_planilha ──────────────────────
+    if (mensagem.startsWith('Segmento: ') && sessaoAtiva?.etapa === 'aguardando_planilha') {
+      const segmentoLabel = mensagem.replace('Segmento: ', '').trim()
+      const segmentoSlug = SEGMENTO_SLUG[segmentoLabel] ?? 'outro'
+      const dadosAtuais = (sessaoAtiva.dados_planilha ?? {}) as Record<string, unknown>
+      const { error: errSeg } = await supabase
+        .from('sessoes_geracao')
+        .update({ dados_planilha: { ...dadosAtuais, segmento: segmentoSlug } })
+        .eq('id', sessaoAtiva.id)
+      if (errSeg) console.error('[chat-principal] UPDATE segmento falhou:', errSeg)
+      sessaoAtiva = { ...sessaoAtiva, dados_planilha: { ...dadosAtuais, segmento: segmentoSlug } }
+    }
+
     // ── Detecta e valida link do Google Drive ────────────────────────────────
     let urlDrive: string | null = null
     let resultadoDrive: ResultadoValidacaoDrive | null = null
@@ -425,6 +449,10 @@ export async function POST(request: Request) {
     const eBaixouTemplate = mensagem.startsWith('Baixei o template em') || mensagem.startsWith('Baixei o modelo em')
     const eCanaisEscolhidos = mensagem.startsWith('Canais escolhidos:')
     const eAjudaUpload = mensagem.startsWith('Como subir no ') || mensagem.startsWith('Como publicar no ')
+    const eSegmentoEscolhido = mensagem.startsWith('Segmento: ') && sessaoAtiva?.etapa === 'aguardando_planilha'
+    const segmentoSessao = sessaoAtiva?.etapa === 'aguardando_planilha'
+      ? ((sessaoAtiva.dados_planilha as Record<string, unknown>)?.segmento as string | undefined)
+      : undefined
 
     console.log('[CHAT] msg:', mensagem.slice(0, 80))
     console.log('[CHAT] etapa:', sessaoAtiva?.etapa ?? 'sem_sessao')
@@ -541,6 +569,12 @@ O usuário enviou o link do Drive e ele está acessível. Etapa atual: processan
 CONTEXTO DO FLUXO GUIADO:
 O link do Google Drive não pôde ser validado. Etapa: aguardando_drive (link rejeitado, aguardando novo link). Informe ao usuário de forma empática que o link tem um problema. Explique exatamente: "${resultadoDrive.mensagem_erro}". O campo para reenviar o link aparece automaticamente abaixo (adicionado pelo sistema — NÃO inclua botões de envio de link no JSON de acoes).`
       }
+    } else if (eSegmentoEscolhido) {
+      const segLabel = mensagem.replace('Segmento: ', '').trim()
+      contextoEtapa = `
+
+CONTEXTO DO FLUXO GUIADO:
+O usuário escolheu o segmento "${segLabel}". Etapa: aguardando_planilha. Um modelo personalizado para este segmento foi gerado com as colunas obrigatórias do Mercado Livre. O botão de download aparece automaticamente abaixo — NÃO o inclua no JSON de acoes. Diga de forma breve e amigável (1-2 frases) que o modelo está pronto e que assim que preencher, basta enviar o arquivo pelo botão de clipe no chat.`
     } else if (eBaixouTemplate) {
       contextoEtapa = `
 
@@ -646,11 +680,23 @@ O arquivo de produtos tem erros e precisa ser corrigido. Etapa atual: aguardando
       const botaoUpload = { texto: '📎 Enviar arquivo preenchido', acao: 'upload' }
       acoes = { botoes: [botaoUpload, ...(acoes?.botoes ?? [])] }
     } else if (sessaoAtiva?.etapa === 'aguardando_planilha' && !PALAVRAS_AJUDA.test(mensagem)) {
-      const botoesDl = [
-        { texto: 'Baixar modelo Excel', acao: 'download', url: TEMPLATE_XLSX_URL },
-        { texto: 'Baixar modelo CSV', acao: 'download', url: TEMPLATE_CSV_URL },
-      ]
-      acoes = { botoes: [...(acoes?.botoes ?? []), ...botoesDl] }
+      if (segmentoSessao) {
+        const templateUrl = segmentoSessao === 'outro'
+          ? TEMPLATE_XLSX_URL
+          : `/api/ml/template-segmento?segmento=${segmentoSessao}`
+        acoes = {
+          botoes: [
+            { texto: 'Baixar modelo (.xlsx)', acao: 'download', url: templateUrl },
+            ...(acoes?.botoes ?? []),
+          ],
+        }
+      } else {
+        const segmentosBotoes = [
+          'Moda', 'Eletrônicos', 'Esportes e Lazer', 'Casa e Decoração',
+          'Saúde e Beleza', 'Automotivo', 'Outro',
+        ].map(s => ({ texto: s, acao: 'mensagem', valor: `Segmento: ${s}` }))
+        acoes = { botoes: [...(acoes?.botoes ?? []), ...segmentosBotoes] }
+      }
     }
 
     const { data: dataAssistant, error: errAssistant, status: statusAssistant } = await supabase
