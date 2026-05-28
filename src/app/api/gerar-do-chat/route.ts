@@ -45,6 +45,10 @@ interface ProdutoValido {
   estoque: number
   marca?: string
   categoria?: string
+  cor?: string
+  genero?: string
+  tipo_roupa?: string
+  tipo_manga?: string
 }
 
 interface ArquivoGerado {
@@ -247,6 +251,7 @@ export async function POST(request: Request) {
 
     const temML = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
     const produtosRevisaoBase = processData.produtos_revisao ?? []
+    const produtosPorSku = new Map(produtos.map(p => [p.sku, p]))
     let produtosRevisao: ProdutoRevisaoPriceGuard[] = produtosRevisaoBase
     if (temML) {
       const comCategorias = await Promise.all(
@@ -270,7 +275,14 @@ export async function POST(request: Request) {
         if (!catId) return p
         const atributos = atributosPorCategoria.get(catId) ?? []
         if (atributos.length === 0) return p
-        const { mapeados, pendentes } = mapearAtributos(atributos, p)
+        const original = produtosPorSku.get(p.sku)
+        const { mapeados, pendentes } = mapearAtributos(atributos, {
+          ...p,
+          cor: original?.cor,
+          genero: original?.genero,
+          tipo_roupa: original?.tipo_roupa,
+          tipo_manga: original?.tipo_manga,
+        })
         return {
           ...p,
           ...(mapeados.length ? { atributos_ml: mapeados } : {}),
