@@ -17,6 +17,11 @@ export interface ProdutoRevisaoPriceGuard {
   nome: string
   marca?: string
   categoria?: string
+  cor?: string
+  genero?: string
+  tipo_roupa?: string
+  tipo_manga?: string
+  tamanho?: string
   custo: number
   estoque?: number
   embalagem?: number

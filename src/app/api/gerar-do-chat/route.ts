@@ -6,7 +6,7 @@ import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/val
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
-import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML } from '@/lib/ml/atributos'
+import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
 import { buscarGTIN } from '@/lib/ml/gtin'
 import { buscarGradeTamanho } from '@/lib/ml/grade-tamanho'
 
@@ -215,6 +215,7 @@ export async function POST(request: Request) {
       genero: p.genero,
       tipo_roupa: p.tipo_roupa,
       tipo_manga: p.tipo_manga,
+      tamanho: p.tamanho,
     }))
 
     const cookieHeader = request.headers.get('cookie') ?? ''
@@ -278,7 +279,20 @@ export async function POST(request: Request) {
         })
       )
       const TAMANHO_RE_LOCAL = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
-      const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+      const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+      const mesmoAtributo = (id: string, alvos: string[]) => alvos.includes(id.toUpperCase())
+      const removerPendentes = (pendentes: AtributoML[], ids: string[]) => {
+        for (let i = pendentes.length - 1; i >= 0; i--) {
+          if (mesmoAtributo(pendentes[i].id, ids)) pendentes.splice(i, 1)
+        }
+      }
+      const upsertMapeado = (mapeados: AtributoMLMapeado[], atributo: AtributoMLMapeado) => {
+        const id = atributo.id.toUpperCase()
+        for (let i = mapeados.length - 1; i >= 0; i--) {
+          if (mapeados[i].id.toUpperCase() === id) mapeados.splice(i, 1)
+        }
+        mapeados.push(atributo)
+      }
 
       produtosRevisao = await Promise.all(comCategorias.map(async p => {
         const catId = p.categoria_ml
@@ -301,25 +315,28 @@ export async function POST(request: Request) {
         const pendentesFinal = [...pendentes]
 
         // ── GTIN: busca automática → fallback "sem GTIN" ──────────────────────
-        const gtinIdx = pendentesFinal.findIndex(a => a.id.toUpperCase() === 'GTIN')
-        if (gtinIdx !== -1) {
-          const gtinAttr = pendentesFinal[gtinIdx]
+        const temPendenciaGtin = pendentesFinal.some(a => mesmoAtributo(a.id, ['GTIN', 'EMPTY_GTIN_REASON']))
+        if (temPendenciaGtin) {
           console.log('[GTIN] buscando para:', p.nome, marca)
           const gtin = await buscarGTIN(p.nome, marca, catId).catch(() => null)
           console.log('[GTIN] resultado:', gtin)
-          const gtinFinal = gtin ?? 'Este produto não tem GTIN'
-          console.log('[GTIN] resolvido como:', gtin ? gtinFinal : 'sem GTIN - usando EMPTY_GTIN_REASON')
-          pendentesFinal.splice(gtinIdx, 1)
-          mapeadosFinal.push({ id: gtinAttr.id, value_name: gtinFinal })
+          removerPendentes(pendentesFinal, ['GTIN', 'EMPTY_GTIN_REASON'])
+          if (gtin) {
+            console.log('[GTIN] resolvido como:', gtin)
+            upsertMapeado(mapeadosFinal, { id: 'GTIN', value_name: gtin })
+          } else {
+            console.log('[GTIN] resolvido como: sem GTIN - usando EMPTY_GTIN_REASON')
+            upsertMapeado(mapeadosFinal, { id: 'EMPTY_GTIN_REASON', value_name: 'Este producto no tiene GTIN' })
+          }
         }
 
         // ── SIZE_GRID_ID: resolver grade e tamanho ────────────────────────────
         const sizeGridIdx = pendentesFinal.findIndex(a => a.id.toUpperCase() === 'SIZE_GRID_ID')
         if (sizeGridIdx !== -1) {
           const sizeGridAttr = pendentesFinal[sizeGridIdx]
-          const tamanho = original?.tamanho
+          const tamanho = original?.tamanho ?? p.tamanho
             ?? mapeadosFinal.find(m => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(m.id.toUpperCase()))?.value_name
-            ?? (() => { const m = (p.nome ?? '').toLowerCase().match(TAMANHO_RE_LOCAL); return m ? m[0].toUpperCase() : null })()
+            ?? (() => { const m = (p.nome ?? '').match(TAMANHO_RE_LOCAL); return m ? m[0].toUpperCase() : null })()
 
           console.log('[SIZE] tamanho do produto:', tamanho)
           if (!tamanho) {
@@ -332,18 +349,9 @@ export async function POST(request: Request) {
               const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
               console.log('[SIZE] match resultado:', match ? `${match.id}/${match.name}` : 'sem match')
               if (match) {
-                pendentesFinal.splice(sizeGridIdx, 1)
-                mapeadosFinal.push({ id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
-                // Atualiza SIZE em mapeados com value_id correto
-                const sizeMapIdx = mapeadosFinal.findIndex(m => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(m.id.toUpperCase()))
-                if (sizeMapIdx !== -1) {
-                  mapeadosFinal[sizeMapIdx] = { ...mapeadosFinal[sizeMapIdx], value_id: match.id, value_name: match.name }
-                } else {
-                  mapeadosFinal.push({ id: 'SIZE', value_id: match.id, value_name: match.name })
-                }
-                // Remove SIZE de pendentes se estiver lá
-                const sizePendIdx = pendentesFinal.findIndex(a => ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'].includes(a.id.toUpperCase()))
-                if (sizePendIdx !== -1) pendentesFinal.splice(sizePendIdx, 1)
+                removerPendentes(pendentesFinal, ['SIZE_GRID_ID', 'SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'])
+                upsertMapeado(mapeadosFinal, { id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
+                upsertMapeado(mapeadosFinal, { id: 'SIZE', value_id: match.id, value_name: match.name })
               } else {
                 pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: `Tamanho '${tamanho}' não encontrado na grade do ML` }
               }
@@ -351,12 +359,19 @@ export async function POST(request: Request) {
           }
         }
 
+        console.log('[PÓS-PROC] produto', p.sku, 'pendentes finais:', pendentesFinal.map(a => a.id))
+
         return {
           ...p,
           marca,
           categoria: p.categoria ?? original?.categoria,
-          ...(mapeadosFinal.length ? { atributos_ml: mapeadosFinal } : {}),
-          ...(pendentesFinal.length ? { atributos_pendentes_ml: pendentesFinal.map(a => ({ id: a.id, name: a.name })) } : {}),
+          cor: p.cor ?? original?.cor,
+          genero: p.genero ?? original?.genero,
+          tipo_roupa: p.tipo_roupa ?? original?.tipo_roupa,
+          tipo_manga: p.tipo_manga ?? original?.tipo_manga,
+          tamanho: p.tamanho ?? original?.tamanho,
+          atributos_ml: mapeadosFinal,
+          atributos_pendentes_ml: pendentesFinal.map(a => ({ id: a.id, name: a.name })),
         }
       }))
     }

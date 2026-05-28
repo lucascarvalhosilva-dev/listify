@@ -11,6 +11,7 @@ export interface ProdutoProcessado {
   genero?: string
   tipo_roupa?: string
   tipo_manga?: string
+  tamanho?: string
   custo: number
   estoque: number
   regime: 'MEI' | 'SN'

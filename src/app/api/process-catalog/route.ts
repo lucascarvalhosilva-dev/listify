@@ -26,6 +26,7 @@ interface ProdutoInput {
   genero?: string
   tipo_roupa?: string
   tipo_manga?: string
+  tamanho?: string
   custo: number
   estoque: number
 }
@@ -369,6 +370,7 @@ export async function POST(request: NextRequest) {
         genero: p.genero,
         tipo_roupa: p.tipo_roupa,
         tipo_manga: p.tipo_manga,
+        tamanho: p.tamanho,
         custo: p.custo,
         estoque: p.estoque,
         regime,
@@ -418,6 +420,7 @@ export async function POST(request: NextRequest) {
         genero: p.genero,
         tipo_roupa: p.tipo_roupa,
         tipo_manga: p.tipo_manga,
+        tamanho: p.tamanho,
         custo: p.custo,
         preco_ml: p.precos.preco_ml,
         preco_shopee: p.precos.preco_shopee,
