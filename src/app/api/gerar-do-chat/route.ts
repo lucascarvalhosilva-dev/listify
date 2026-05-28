@@ -6,6 +6,7 @@ import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/val
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
+import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML } from '@/lib/ml/atributos'
 
 export const maxDuration = 60
 
@@ -246,14 +247,37 @@ export async function POST(request: Request) {
 
     const temML = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
     const produtosRevisaoBase = processData.produtos_revisao ?? []
-    const produtosRevisao = temML
-      ? await Promise.all(
-          produtosRevisaoBase.map(async (p) => {
-            const cat = await buscarCategoriaML(p.nome).catch(() => null)
-            return cat ? { ...p, categoria_ml: cat.id } : p
-          })
-        )
-      : produtosRevisaoBase
+    let produtosRevisao: ProdutoRevisaoPriceGuard[] = produtosRevisaoBase
+    if (temML) {
+      const comCategorias = await Promise.all(
+        produtosRevisaoBase.map(async (p) => {
+          const cat = await buscarCategoriaML(p.nome).catch(() => null)
+          return cat ? { ...p, categoria_ml: cat.id } : p
+        })
+      )
+      const categoriasUnicas = [...new Set(
+        comCategorias.map(p => p.categoria_ml).filter((c): c is string => Boolean(c))
+      )]
+      const atributosPorCategoria = new Map<string, AtributoML[]>()
+      await Promise.all(
+        categoriasUnicas.map(async (catId) => {
+          const attrs = await buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[])
+          atributosPorCategoria.set(catId, attrs)
+        })
+      )
+      produtosRevisao = comCategorias.map(p => {
+        const catId = p.categoria_ml
+        if (!catId) return p
+        const atributos = atributosPorCategoria.get(catId) ?? []
+        if (atributos.length === 0) return p
+        const { mapeados, pendentes } = mapearAtributos(atributos, p)
+        return {
+          ...p,
+          ...(mapeados.length ? { atributos_ml: mapeados } : {}),
+          ...(pendentes.length ? { atributos_pendentes_ml: pendentes.map(a => ({ id: a.id, name: a.name })) } : {}),
+        }
+      })
+    }
 
     const produtosRevisaoML = Object.keys(fotosUpload).length > 0
       ? produtosRevisao.map(p => {

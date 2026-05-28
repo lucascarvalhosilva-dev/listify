@@ -49,6 +49,8 @@ export interface ProdutoRevisaoPriceGuard {
   gtin?: string
   categoria_ml?: string
   fotos?: string[]
+  atributos_ml?: { id: string; value_name: string }[]
+  atributos_pendentes_ml?: { id: string; name: string }[]
 }
 
 export interface PriceGuardCanalResumo {

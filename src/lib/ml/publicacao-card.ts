@@ -140,6 +140,8 @@ function montarPayload(
   const estoque = numero(produto.estoque ?? original?.estoque)
   const categoriaML = extrairCategoriaML(produto, original)
   const fotos = extrairFotosPublicas(produto)
+  const atributosMapeados = produto.atributos_ml ?? []
+  const atributosPendentes = produto.atributos_pendentes_ml ?? []
   const bloqueios: string[] = []
 
   if (!titulo) bloqueios.push(`SKU ${produto.sku}: título do Mercado Livre ausente.`)
@@ -148,6 +150,9 @@ function montarPayload(
   if (!estoque || estoque <= 0) bloqueios.push(`SKU ${produto.sku}: estoque precisa ser maior que zero para publicar.`)
   if (!categoriaML) bloqueios.push(`SKU ${produto.sku}: falta categoria oficial do Mercado Livre (ex: MLB1234).`)
   if (fotos.length === 0) bloqueios.push(`SKU ${produto.sku}: faltam fotos públicas por produto para a API do Mercado Livre.`)
+  for (const attr of atributosPendentes) {
+    bloqueios.push(`SKU ${produto.sku}: atributo obrigatório faltando — ${attr.name} (${attr.id}).`)
+  }
 
   const resumo: ProdutoResumoPublicacaoML = {
     sku: texto(produto.sku),
@@ -169,15 +174,17 @@ function montarPayload(
     condicao: 'new',
     categoria_ml: categoriaML!,
     descricao: descricao!,
+    ...(atributosMapeados.length ? { atributos: atributosMapeados } : {}),
   } : null
 
   const payloadSemFotos: PublicacaoMLPayload | null = payloadBase ? { ...payloadBase, fotos: [] } : null
+  const temAtributosPendentes = atributosPendentes.length > 0
 
   if (!dadosBasicosOk) {
     return { payload: null, payloadSemFotos: null, resumo, bloqueios }
   }
 
-  if (fotos.length === 0) {
+  if (fotos.length === 0 || temAtributosPendentes) {
     return { payload: null, payloadSemFotos, resumo, bloqueios }
   }
 
