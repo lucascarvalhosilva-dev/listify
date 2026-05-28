@@ -424,12 +424,13 @@ export async function POST(request: Request) {
             if (grade?.values.length) {
               const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
               console.log('[SIZE] match resultado:', match ? `${match.id}/${match.name}` : 'sem match')
+              // SIZE_GRID_ID sempre vai em attributes quando a grade existe
+              removerPendentes(pendentesFinal, ['SIZE_GRID_ID'])
+              upsertMapeado(mapeadosFinal, { id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
+
               if (match) {
-                removerPendentes(pendentesFinal, ['SIZE_GRID_ID', 'SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'])
-                upsertMapeado(mapeadosFinal, { id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
+                removerPendentes(pendentesFinal, ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'])
                 upsertMapeado(mapeadosFinal, { id: 'SIZE', value_id: match.id, value_name: match.name })
-              } else {
-                pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: `Tamanho '${tamanho}' não encontrado na grade do ML` }
               }
             }
           }
