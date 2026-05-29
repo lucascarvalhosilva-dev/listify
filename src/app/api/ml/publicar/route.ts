@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     } : {}),
   }
 
+  console.log('[ML publicar] payload variations:', JSON.stringify(payload.variations, null, 2))
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)
 
   const mlRes = await fetch('https://api.mercadolibre.com/items', {
