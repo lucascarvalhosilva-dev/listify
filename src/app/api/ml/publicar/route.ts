@@ -57,8 +57,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json() as PublicarBody
 
-  const fotosPublicas = await prepararFotosML(body.fotos, user.id)
-  const atributosCategoria = await buscarAtributosObrigatorios(body.categoria_ml).catch(() => [])
+  const [fotosPublicas, atributosCategoria] = await Promise.all([
+    prepararFotosML(body.fotos, user.id),
+    buscarAtributosObrigatorios(body.categoria_ml).catch(() => []),
+  ])
   const atributosNormalizados = normalizarAtributosML(atributosCategoria, body.atributos ?? [])
   const exigeGradeTamanhos = atributosCategoria.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID')
   const temGradeTamanhos = atributosNormalizados.some(attr => attr.id.toUpperCase() === 'SIZE_GRID_ID' && (attr.value_id || attr.value_name))
@@ -77,6 +79,26 @@ export async function POST(request: NextRequest) {
     ? atributosNormalizados.filter(a => !IDS_VARIACAO.has(a.id.toUpperCase()))
     : atributosNormalizados
 
+  const variacoesProcessadas = temVariacoes
+    ? await Promise.all(body.variations!.map(async v => {
+        const combinacoes = v.attribute_combinations.filter(
+          a => a.id.toUpperCase() !== 'SIZE_GRID_ROW_ID'
+        )
+        const pictureIdsProcessados = v.picture_ids?.length
+          ? await prepararFotosML(v.picture_ids, user.id)
+          : []
+        return {
+          attribute_combinations: combinacoes,
+          ...(v.size_grid_row_id ? {
+            attributes: [{ id: 'SIZE_GRID_ROW_ID', value_name: v.size_grid_row_id }]
+          } : {}),
+          available_quantity: v.available_quantity,
+          price: v.price,
+          ...(pictureIdsProcessados.length ? { picture_ids: pictureIdsProcessados } : {}),
+        }
+      }))
+    : []
+
   const payload = {
     title: body.titulo,
     price: body.preco,
@@ -88,22 +110,7 @@ export async function POST(request: NextRequest) {
     description: { plain_text: body.descricao },
     pictures: fotosPublicas.map(url => ({ source: url })),
     ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
-    ...(temVariacoes ? {
-      variations: body.variations?.map(v => {
-        const combinacoes = v.attribute_combinations.filter(
-          a => a.id.toUpperCase() !== 'SIZE_GRID_ROW_ID'
-        )
-        return {
-          attribute_combinations: combinacoes,
-          ...(v.size_grid_row_id ? {
-            attributes: [{ id: 'SIZE_GRID_ROW_ID', value_name: v.size_grid_row_id }]
-          } : {}),
-          available_quantity: v.available_quantity,
-          price: v.price,
-          ...(v.picture_ids?.length ? { picture_ids: v.picture_ids } : {}),
-        }
-      }),
-    } : {}),
+    ...(temVariacoes ? { variations: variacoesProcessadas } : {}),
   }
 
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)

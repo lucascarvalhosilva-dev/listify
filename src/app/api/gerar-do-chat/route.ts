@@ -69,6 +69,7 @@ function agruparVariacoesML(
   produtosPorSku: Map<string, ProdutoValido>,
   gradesPorChave: Map<string, { grid_id: string; rows: { tamanho: string; row_id: string }[] } | null>,
   dominiosPorSku: Map<string, string | null>,
+  fotosUpload: Record<string, string[]>,
 ): ProdutoRevisaoPriceGuard[] {
   const normStr = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
   const grupos = new Map<string, ProdutoRevisaoPriceGuard[]>()
@@ -111,6 +112,7 @@ function agruparVariacoesML(
         available_quantity: orig?.estoque ?? variante.estoque ?? 1,
         price: variante.preco_ml ?? pai.preco_ml ?? 0,
         ...(rowMatch ? { size_grid_row_id: rowMatch.row_id } : {}),
+        ...(fotosUpload[variante.sku]?.length ? { fotos: fotosUpload[variante.sku] } : {}),
       }
     })
 
@@ -507,7 +509,7 @@ export async function POST(request: Request) {
       }))
 
       // Agrupa variações (ex: 132-P, 132-M, 132-G) em um único produto com variations[]
-      produtosRevisao = agruparVariacoesML(produtosRevisao, produtosPorSku, gradesPorChave, dominiosPorSku)
+      produtosRevisao = agruparVariacoesML(produtosRevisao, produtosPorSku, gradesPorChave, dominiosPorSku, fotosUpload)
     }
 
     const produtosRevisaoML = Object.keys(fotosUpload).length > 0

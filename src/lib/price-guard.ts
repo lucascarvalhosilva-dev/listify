@@ -18,6 +18,7 @@ export interface VariacaoML {
   available_quantity: number
   price: number
   size_grid_row_id?: string
+  fotos?: string[]
 }
 
 export interface ProdutoRevisaoPriceGuard {

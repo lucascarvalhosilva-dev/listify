@@ -33,6 +33,7 @@ export interface PublicacaoMLPayload {
     available_quantity: number
     price: number
     size_grid_row_id?: string
+    picture_ids?: string[]
   }>
 }
 
@@ -197,12 +198,17 @@ function montarPayload(
     descricao: descricao!,
     ...(atributosMapeados.length ? { atributos: atributosMapeados } : {}),
     ...(temVariacoes ? {
-      variations: produto.variations!.map(v => ({
-        attribute_combinations: v.attribute_combinations,
-        available_quantity: v.available_quantity,
-        price: v.price,
-        ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
-      }))
+      variations: produto.variations!.map(v => {
+        const fotosVariacao = v.fotos?.filter(urlImagemPublicavel) ?? []
+        const pictureIds = fotosVariacao.length > 0 ? fotosVariacao : fotos
+        return {
+          attribute_combinations: v.attribute_combinations,
+          available_quantity: v.available_quantity,
+          price: v.price,
+          ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
+          ...(pictureIds.length ? { picture_ids: pictureIds } : {}),
+        }
+      })
     } : {}),
   } : null
 
