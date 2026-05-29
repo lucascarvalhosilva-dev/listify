@@ -1,6 +1,7 @@
 'use client'
 
-import { ArrowRight, CheckCircle2, FileText, PackageCheck } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronUp, FileText, PackageCheck } from 'lucide-react'
 import type { ComparadorListingData } from '@/lib/comparador-listing'
 
 export type { ComparadorListingData } from '@/lib/comparador-listing'
@@ -22,6 +23,9 @@ export default function CardComparadorListing({
   produtos_com_descricao,
   produtos_preview,
 }: ComparadorListingData) {
+  const [expandido, setExpandido] = useState(false)
+  const Chevron = expandido ? ChevronUp : ChevronDown
+
   return (
     <div style={{
       maxWidth: 520,
@@ -32,14 +36,22 @@ export default function CardComparadorListing({
       boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
       overflow: 'hidden',
     }}>
-      <div style={{
-        display: 'flex',
-        gap: 11,
-        alignItems: 'flex-start',
-        padding: '14px 16px',
-        background: '#eaf2ff',
-        borderBottom: '1px solid rgba(15,23,42,0.06)',
-      }}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpandido(v => !v)}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setExpandido(v => !v)}
+        style={{
+          display: 'flex',
+          gap: 11,
+          alignItems: 'flex-start',
+          padding: '14px 16px',
+          background: '#eaf2ff',
+          borderBottom: expandido ? '1px solid rgba(15,23,42,0.06)' : 'none',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
         <span style={{
           width: 34,
           height: 34,
@@ -70,10 +82,17 @@ export default function CardComparadorListing({
               Valor gerado
             </span>
           </div>
-          <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>{resumo}</div>
+          {expandido
+            ? <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>{resumo}</div>
+            : <div style={{ color: '#586174', fontSize: 12, marginTop: 3 }}>
+                {produtos_com_titulo} de {total_produtos} produto{total_produtos === 1 ? '' : 's'} com título otimizado · clique para ver
+              </div>
+          }
         </div>
+        <Chevron size={16} strokeWidth={2.3} color="#697386" style={{ flexShrink: 0, marginTop: 2 }} />
       </div>
 
+      {expandido && <>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -166,6 +185,7 @@ export default function CardComparadorListing({
         <FileText size={14} strokeWidth={2.3} />
         Comparação resumida. O cadastro final continua sendo a fonte para revisar todos os campos.
       </div>
+      </>}
     </div>
   )
 }

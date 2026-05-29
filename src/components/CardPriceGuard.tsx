@@ -1,6 +1,7 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, DollarSign, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, DollarSign, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react'
 import type { PriceGuardData } from '@/lib/price-guard'
 
 export type { PriceGuardCanalResumo, PriceGuardData, PriceGuardRisco, PriceGuardStatus } from '@/lib/price-guard'
@@ -55,6 +56,8 @@ export default function CardPriceGuard({
   const IconeStatus = tema.Icone
   const totalAlertas = canais.reduce((acc, canal) => acc + canal.produtos_com_alerta, 0)
   const totalPrejuizo = canais.reduce((acc, canal) => acc + canal.produtos_com_prejuizo, 0)
+  const [expandido, setExpandido] = useState(status !== 'ok')
+  const Chevron = expandido ? ChevronUp : ChevronDown
 
   return (
     <div style={{
@@ -66,14 +69,22 @@ export default function CardPriceGuard({
       boxShadow: '0 10px 28px rgba(15,23,42,0.06)',
       overflow: 'hidden',
     }}>
-      <div style={{
-        display: 'flex',
-        gap: 11,
-        alignItems: 'flex-start',
-        padding: '14px 16px',
-        background: tema.fundo,
-        borderBottom: '1px solid rgba(15,23,42,0.06)',
-      }}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpandido(v => !v)}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setExpandido(v => !v)}
+        style={{
+          display: 'flex',
+          gap: 11,
+          alignItems: 'flex-start',
+          padding: '14px 16px',
+          background: tema.fundo,
+          borderBottom: expandido ? '1px solid rgba(15,23,42,0.06)' : 'none',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+      >
         <span style={{
           width: 34,
           height: 34,
@@ -106,8 +117,10 @@ export default function CardPriceGuard({
           </div>
           <div style={{ color: '#586174', fontSize: 12, lineHeight: 1.45, marginTop: 4 }}>{resumo}</div>
         </div>
+        <Chevron size={16} strokeWidth={2.3} color="#697386" style={{ flexShrink: 0, marginTop: 2 }} />
       </div>
 
+      {expandido && <>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -243,6 +256,7 @@ export default function CardPriceGuard({
           </button>
         </div>
       )}
+      </>}
     </div>
   )
 }
