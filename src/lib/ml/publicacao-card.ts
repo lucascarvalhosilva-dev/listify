@@ -62,6 +62,7 @@ export interface PublicacaoMLCardData {
   produto_preview: ProdutoResumoPublicacaoML | null
   produtos_preview: ProdutoResumoPublicacaoML[]
   bloqueios: string[]
+  skus_com_prejuizo?: string[]
   payloads?: PublicacaoMLPayload[]
   payloads_pendentes?: PublicacaoMLPayload[]
   fallback_download?: DownloadFallbackML
@@ -75,6 +76,7 @@ interface CriarCardPublicacaoMLParams {
   driveUrl?: string | null
   fallbackDownload?: DownloadFallbackML | null
   catalogoIdML?: string | null
+  skusComPrejuizo?: string[]
 }
 
 function skuBase(sku: string): string {
@@ -280,6 +282,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
       produto_preview: null,
       produtos_preview: [],
       bloqueios: ['Nenhum produto processado foi encontrado para publicar.'],
+      skus_com_prejuizo: params.skusComPrejuizo ?? [],
       fallback_download: params.fallbackDownload ?? undefined,
     }
   }
@@ -299,6 +302,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
       produto_preview: produtoPreview,
       produtos_preview: produtosPreview,
       bloqueios: bloqueiosDados.length > 0 ? bloqueiosDados : ['Revise os dados obrigatórios antes de publicar.'],
+      skus_com_prejuizo: params.skusComPrejuizo ?? [],
       payloads_pendentes: payloadsPendentes.length > 0 ? payloadsPendentes : undefined,
       fallback_download: params.fallbackDownload ?? undefined,
     }
@@ -318,6 +322,7 @@ export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): Publ
     produto_preview: produtoPreview,
     produtos_preview: produtosPreview,
     bloqueios: [],
+    skus_com_prejuizo: params.skusComPrejuizo ?? [],
     payloads,
     fallback_download: params.fallbackDownload ?? undefined,
   }

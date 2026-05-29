@@ -46,6 +46,7 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
   const [erro, setErro] = useState('')
   const [resultados, setResultados] = useState<ResultadoPublicacao[]>([])
   const [erroDownload, setErroDownload] = useState('')
+  const [confirmandoPrejuizo, setConfirmandoPrejuizo] = useState(false)
 
   const temFotosInjetadas = fotosInjetadas && Object.keys(fotosInjetadas).length > 0
   const payloadsEfetivos = temFotosInjetadas && data.payloads_pendentes?.length
@@ -63,6 +64,11 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
 
   const publicar = async () => {
     if (!payloadsEfetivos?.length || publicando) return
+    if ((data.skus_com_prejuizo?.length ?? 0) > 0 && !confirmandoPrejuizo) {
+      setConfirmandoPrejuizo(true)
+      return
+    }
+    setConfirmandoPrejuizo(false)
     setPublicando(true)
     setErro('')
     setResultados([])
@@ -220,6 +226,40 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
               <div style={{ color: '#92640a', fontStyle: 'italic' }}>Ex.: &quot;marca Hering, cor preta, tamanho M&quot;</div>
             </div>
           )}
+        </div>
+      )}
+
+      {confirmandoPrejuizo && (data.skus_com_prejuizo?.length ?? 0) > 0 && (
+        <div style={{
+          borderTop: '1px solid #f3d48b',
+          padding: '10px 14px 12px',
+          background: '#fff8e6',
+          fontSize: 12,
+          lineHeight: 1.5,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontWeight: 850, color: '#92640a', marginBottom: 6 }}>
+            <AlertTriangle size={14} strokeWidth={2.4} />
+            {data.skus_com_prejuizo!.length === 1
+              ? '1 produto com lucro estimado negativo'
+              : `${data.skus_com_prejuizo!.length} produtos com lucro estimado negativo`}
+          </div>
+          <div style={{ color: '#6b4e00', marginBottom: 8 }}>
+            {data.skus_com_prejuizo!.join(', ')} — o preço atual pode não cobrir custos e taxas do Mercado Livre. Deseja publicar mesmo assim?
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={publicar} style={{
+              padding: '7px 13px', borderRadius: 999, background: '#a16207', color: '#fff',
+              border: '1px solid #a16207', fontSize: 12, fontWeight: 850, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Publicar mesmo assim
+            </button>
+            <button type="button" onClick={() => setConfirmandoPrejuizo(false)} style={{
+              padding: '7px 13px', borderRadius: 999, background: '#fff', color: '#334155',
+              border: '1px solid #d8e4f2', fontSize: 12, fontWeight: 850, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
 

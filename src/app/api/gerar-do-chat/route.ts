@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
-import { criarCardPriceGuard, type ProdutoRevisaoPriceGuard, type VariacaoML } from '@/lib/price-guard'
+import { criarCardPriceGuard, calcularMetricasPriceGuard, type ProdutoRevisaoPriceGuard, type VariacaoML } from '@/lib/price-guard'
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
@@ -684,6 +684,15 @@ export async function POST(request: Request) {
       if (error) console.error('[GERAR-DO-CHAT] erro ao consultar ml_contas:', error)
       contaML = data
     }
+    const skusComPrejuizoML = temMercadoLivre
+      ? produtosRevisao
+          .filter(p => {
+            const m = calcularMetricasPriceGuard(p, 'ml', regime)
+            return m !== null && m.lucro_estimado <= 0
+          })
+          .map(p => p.sku)
+      : []
+
     const publicacaoMLCard = temMercadoLivre
       ? criarCardPublicacaoML({
           conectado: Boolean(contaML),
@@ -693,6 +702,7 @@ export async function POST(request: Request) {
           driveUrl: sessao.drive_url,
           fallbackDownload: arquivoMercadoLivre ?? null,
           catalogoIdML: arquivoMercadoLivre?.catalogo_id ?? null,
+          skusComPrejuizo: skusComPrejuizoML,
         })
       : null
     const publicacaoMLAction = publicacaoMLCard ? [publicacaoMLCard] : []
