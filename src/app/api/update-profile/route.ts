@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   if (!user) return Response.json({ error: 'não autenticado' }, { status: 401 })
 
   const body = await request.json()
-  const { nome, regime, margem, notif_email, notif_limite } = body
+  const { nome, regime, margem, notif_email, notif_limite, pausar_sem_estoque, notif_estoque } = body
 
   const { error } = await supabase
     .from('profiles')
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
       margem_padrao: margem,
       notif_email,
       notif_limite,
+      pausar_sem_estoque,
+      notif_estoque,
     })
     .eq('id', user.id)
 

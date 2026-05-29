@@ -34,6 +34,8 @@ export async function GET() {
     margem_padrao: profile?.margem_padrao || '30',
     notif_email: profile?.notif_email !== false,
     notif_limite: profile?.notif_limite !== false,
+    pausar_sem_estoque: profile?.pausar_sem_estoque ?? false,
+    notif_estoque: profile?.notif_estoque !== false,
     plano: profile?.plano || 'free',
     produtos_usados: produtosUsados,
     limite_produtos: limites[profile?.plano || 'free'],

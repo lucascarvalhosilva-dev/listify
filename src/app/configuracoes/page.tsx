@@ -9,6 +9,8 @@ export default function Configuracoes() {
   const [margem, setMargem] = useState('30')
   const [notifEmail, setNotifEmail] = useState(true)
   const [notifLimite, setNotifLimite] = useState(true)
+  const [pausarSemEstoque, setPausarSemEstoque] = useState(false)
+  const [notifEstoque, setNotifEstoque] = useState(true)
   const [senhaAtual, setSenhaAtual] = useState('')
   const [senhaNova, setSenhaNova] = useState('')
   const [senhaConfirm, setSenhaConfirm] = useState('')
@@ -29,6 +31,8 @@ export default function Configuracoes() {
         setMargem(data.margem_padrao || '30')
         setNotifEmail(data.notif_email !== false)
         setNotifLimite(data.notif_limite !== false)
+        setPausarSemEstoque(data.pausar_sem_estoque ?? false)
+        setNotifEstoque(data.notif_estoque !== false)
         setPlano(data.plano || 'free')
         setProdutosUsados(data.produtos_usados || 0)
         setLimiteProdutos(data.limite_produtos || 5)
@@ -42,7 +46,7 @@ export default function Configuracoes() {
     const res = await fetch('/api/update-profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, regime, margem, notif_email: notifEmail, notif_limite: notifLimite })
+      body: JSON.stringify({ nome, regime, margem, notif_email: notifEmail, notif_limite: notifLimite, pausar_sem_estoque: pausarSemEstoque, notif_estoque: notifEstoque })
     })
     setSalvando(false)
     if (res.ok) {
@@ -221,6 +225,30 @@ export default function Configuracoes() {
               <div className="cfg-toggle-sub">Receba um aviso quando usar 80% dos produtos do seu plano</div>
             </div>
             <button className={`toggle-btn ${notifLimite ? 'on' : 'off'}`} onClick={() => setNotifLimite(!notifLimite)} />
+          </div>
+          <div style={{display:'flex', justifyContent:'flex-end', marginTop:'20px'}}>
+            <button className="btn-save" onClick={salvarPerfil} disabled={salvando}>
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+
+        {/* SINCRONIZAÇÃO DE ESTOQUE */}
+        <div className="cfg-section">
+          <div className="cfg-section-title">Sincronização de estoque</div>
+          <div className="cfg-toggle">
+            <div className="cfg-toggle-info">
+              Pausar anúncio automaticamente quando estoque zerar
+              <div className="cfg-toggle-sub">O anúncio no Mercado Livre será pausado quando o saldo chegar a zero</div>
+            </div>
+            <button className={`toggle-btn ${pausarSemEstoque ? 'on' : 'off'}`} onClick={() => setPausarSemEstoque(!pausarSemEstoque)} />
+          </div>
+          <div className="cfg-toggle">
+            <div className="cfg-toggle-info">
+              Receber e-mail quando um anúncio for pausado ou zerado por falta de estoque
+              <div className="cfg-toggle-sub">Notificação enviada para {email} quando o estoque esgotar</div>
+            </div>
+            <button className={`toggle-btn ${notifEstoque ? 'on' : 'off'}`} onClick={() => setNotifEstoque(!notifEstoque)} />
           </div>
           <div style={{display:'flex', justifyContent:'flex-end', marginTop:'20px'}}>
             <button className="btn-save" onClick={salvarPerfil} disabled={salvando}>
