@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { CSSProperties } from 'react'
 import { AlertTriangle, CheckCircle2, Download, ExternalLink, Loader2, Rocket, Store } from 'lucide-react'
 import type { PublicacaoMLCardData } from '@/lib/ml/publicacao-card'
@@ -47,6 +47,35 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
   const [resultados, setResultados] = useState<ResultadoPublicacao[]>([])
   const [erroDownload, setErroDownload] = useState('')
   const [confirmandoPrejuizo, setConfirmandoPrejuizo] = useState(false)
+
+  useEffect(() => {
+    const todosPayloads = [
+      ...(data.payloads ?? []),
+      ...(data.payloads_pendentes ?? []),
+    ]
+    const skuBases = [...new Set(
+      todosPayloads.map(p => p.sku_base).filter((s): s is string => Boolean(s))
+    )]
+    if (!skuBases.length) return
+
+    const hidratar = async () => {
+      try {
+        const res = await fetch(`/api/ml/publicacoes?sku_base=${skuBases.join(',')}`)
+        if (!res.ok) return
+        const body = await res.json() as { publicacoes?: Array<{ ml_item_id: string; permalink?: string; status?: string }> }
+        const publicacoes = body.publicacoes ?? []
+        if (!publicacoes.length) return
+        setResultados(prev => prev.length > 0 ? prev : publicacoes.map(p => ({
+          id: p.ml_item_id,
+          permalink: p.permalink,
+          status: p.status,
+        })))
+      } catch {
+        // hidratação silenciosa — falha não quebra o card
+      }
+    }
+    void hidratar()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const temFotosInjetadas = fotosInjetadas && Object.keys(fotosInjetadas).length > 0
   const payloadsEfetivos = temFotosInjetadas && data.payloads_pendentes?.length
