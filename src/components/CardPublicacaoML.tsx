@@ -278,9 +278,9 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
             Conectar Mercado Livre
           </a>
         ) : (
-          <button type="button" onClick={publicar} disabled={!prontoEfetivo || publicando || data.bloqueios.length > 0} style={primaryButtonStyle(!prontoEfetivo || publicando || data.bloqueios.length > 0)}>
-            {publicando ? <Loader2 size={14} className="spin" /> : <Rocket size={14} strokeWidth={2.4} />}
-            {publicando ? 'Publicando' : 'Publicar no Mercado Livre'}
+          <button type="button" onClick={publicar} disabled={!prontoEfetivo || publicando || data.bloqueios.length > 0 || resultados.length > 0} style={primaryButtonStyle(!prontoEfetivo || publicando || data.bloqueios.length > 0 || resultados.length > 0)}>
+            {publicando ? <Loader2 size={14} className="spin" /> : resultados.length > 0 ? <CheckCircle2 size={14} strokeWidth={2.4} /> : <Rocket size={14} strokeWidth={2.4} />}
+            {publicando ? 'Publicando' : resultados.length > 0 ? 'Publicado' : 'Publicar no Mercado Livre'}
           </button>
         )}
         {data.fallback_download && (
