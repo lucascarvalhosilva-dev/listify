@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowUp, Loader2, PanelLeft, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
@@ -125,7 +125,7 @@ async function carregarMensagensConversa(id: string): Promise<Mensagem[] | null>
   }))
 }
 
-export default function ChatPrincipal() {
+function ChatPrincipalInner() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([])
   const [input, setInput] = useState('')
   const [carregando, setCarregando] = useState(false)
@@ -149,6 +149,8 @@ export default function ChatPrincipal() {
   const [editorPrecosAberto, setEditorPrecosAberto] = useState<string | null>(null)
   const [fotosUploadadas, setFotosUploadadas] = useState<Record<string, string[]>>({})
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const conversaParam = searchParams.get('conversa')
   const supabase = createClient()
 
   const atualizarUrlConversa = (id: string | null) => {
@@ -165,7 +167,7 @@ export default function ChatPrincipal() {
       const nomeUser = perfil.nome || (perfil.email ? perfil.email.split('@')[0] : 'você')
       setNome(nomeUser)
 
-      const conversaInicial = new URLSearchParams(window.location.search).get('conversa')
+      const conversaInicial = conversaParam
       if (conversaInicial) {
         const historicoConversa = await carregarMensagensConversa(conversaInicial)
         if (historicoConversa) {
@@ -176,6 +178,12 @@ export default function ChatPrincipal() {
           setBotoesIniciaisAtivos(historicoConversa.length === 0)
           return
         }
+        // URL tinha conversa mas load falhou — mantém id na URL, não sobrescreve com chat-historico
+        setConversaId(conversaInicial)
+        setMensagens([criarMensagemBoasVindas(nomeUser)])
+        setBotoesIniciaisAtivos(true)
+        setPrimeiraMensagem(true)
+        return
       }
 
       const histRes = await fetch('/api/chat-historico')
@@ -903,5 +911,13 @@ export default function ChatPrincipal() {
         </div>
       </div>
     </>
+  )
+}
+
+export default function ChatPrincipal() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPrincipalInner />
+    </Suspense>
   )
 }
