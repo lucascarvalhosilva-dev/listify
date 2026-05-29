@@ -19,6 +19,8 @@ export interface DownloadFallbackML {
 
 export interface PublicacaoMLPayload {
   sku: string
+  sku_base?: string
+  catalogo_id?: string
   titulo: string
   preco: number
   moeda: 'BRL'
@@ -72,6 +74,11 @@ interface CriarCardPublicacaoMLParams {
   produtosRevisao: ProdutoRevisaoPriceGuard[]
   driveUrl?: string | null
   fallbackDownload?: DownloadFallbackML | null
+  catalogoIdML?: string | null
+}
+
+function skuBase(sku: string): string {
+  return sku.split('-')[0]
 }
 
 function texto(valor: unknown): string {
@@ -149,7 +156,8 @@ function textoBloqueioAtributo(sku: string, attr: { id: string; name: string }):
 
 function montarPayload(
   produto: ProdutoRevisaoPriceGuard,
-  original?: ProdutoFontePublicacaoML
+  original?: ProdutoFontePublicacaoML,
+  catalogoIdML?: string | null
 ): { payload: PublicacaoMLPayload | null; payloadSemFotos: PublicacaoMLPayload | null; resumo: ProdutoResumoPublicacaoML; bloqueios: string[] } {
   const titulo = texto(produto.titulo_ml) || texto(produto.nome) || texto(original?.nome)
   const descricao = texto(produto.descricao_ml)
@@ -189,6 +197,8 @@ function montarPayload(
   const dadosBasicosOk = Boolean(titulo && descricao && preco && preco > 0 && estoque && estoque > 0 && categoriaML)
   const payloadBase: Omit<PublicacaoMLPayload, 'fotos'> | null = dadosBasicosOk ? {
     sku: produto.sku,
+    sku_base: skuBase(produto.sku),
+    ...(catalogoIdML ? { catalogo_id: catalogoIdML } : {}),
     titulo: titulo!,
     preco: preco!,
     moeda: 'BRL',
@@ -233,7 +243,7 @@ function montarPayload(
 
 export function criarCardPublicacaoML(params: CriarCardPublicacaoMLParams): PublicacaoMLCardData {
   const originaisPorSku = new Map(params.produtosOriginais.map(produto => [produto.sku, produto]))
-  const resultados = params.produtosRevisao.map(produto => montarPayload(produto, originaisPorSku.get(produto.sku)))
+  const resultados = params.produtosRevisao.map(produto => montarPayload(produto, originaisPorSku.get(produto.sku), params.catalogoIdML))
   const bloqueiosDados = resultados.flatMap(resultado => resultado.bloqueios).slice(0, 6)
   const payloads = resultados.map(resultado => resultado.payload).filter((payload): payload is PublicacaoMLPayload => Boolean(payload))
   const payloadsPendentes = resultados.map(r => r.payloadSemFotos).filter((p): p is PublicacaoMLPayload => p !== null)

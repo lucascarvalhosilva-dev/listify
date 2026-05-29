@@ -692,6 +692,7 @@ export async function POST(request: Request) {
           produtosRevisao: produtosRevisaoML,
           driveUrl: sessao.drive_url,
           fallbackDownload: arquivoMercadoLivre ?? null,
+          catalogoIdML: arquivoMercadoLivre?.catalogo_id ?? null,
         })
       : null
     const publicacaoMLAction = publicacaoMLCard ? [publicacaoMLCard] : []

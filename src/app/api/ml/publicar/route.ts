@@ -7,6 +7,8 @@ import { buscarAtributosObrigatorios, normalizarAtributosML } from '@/lib/ml/atr
 
 interface PublicarBody {
   titulo: string
+  sku_base?: string
+  catalogo_id?: string
   preco: number
   moeda: string
   quantidade: number
@@ -153,8 +155,8 @@ export async function POST(request: NextRequest) {
       {
         user_id: user.id,
         ml_item_id: String(mlBody.id),
-        catalogo_id: null,
-        sku_base: null,
+        catalogo_id: body.catalogo_id ?? null,
+        sku_base: body.sku_base ?? null,
         titulo: body.titulo,
         permalink: typeof mlBody.permalink === 'string' ? mlBody.permalink : null,
         status: typeof mlBody.status === 'string' ? mlBody.status : null,
