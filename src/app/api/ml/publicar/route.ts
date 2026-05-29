@@ -90,18 +90,15 @@ export async function POST(request: NextRequest) {
     ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
     ...(temVariacoes ? {
       variations: body.variations?.map(v => ({
-        attribute_combinations: [
-          ...v.attribute_combinations,
-          ...(v.size_grid_row_id ? [{ id: 'SIZE_GRID_ROW_ID', value_name: v.size_grid_row_id }] : []),
-        ],
+        attribute_combinations: v.attribute_combinations.filter(a => a.id !== 'SIZE_GRID_ROW_ID'),
         available_quantity: v.available_quantity,
         price: v.price,
+        ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
         ...(v.picture_ids?.length ? { picture_ids: v.picture_ids } : {}),
       })),
     } : {}),
   }
 
-  console.log('[ML publicar] payload variations:', JSON.stringify(payload.variations, null, 2))
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)
 
   const mlRes = await fetch('https://api.mercadolibre.com/items', {
