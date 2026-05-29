@@ -622,7 +622,7 @@ function ChatPrincipalInner() {
                   <div>
                     <div className="bubble"><ReactMarkdown>{m.conteudo}</ReactMarkdown></div>
                     {m.acoes_rapidas?.botoes && (!m.isWelcome || botoesIniciaisAtivos) && (
-                      m.acoes_rapidas.botoes.some(b => ['card_download_arquivo', 'card_publicacao_ml', 'card_price_guard', 'card_comparador_listing', 'card_validador_upload', 'card_upload_fotos_ml'].includes(b.acao)) ? (
+                      m.acoes_rapidas.botoes.some(b => ['card_download_arquivo', 'card_publicacao_ml', 'card_price_guard', 'card_comparador_listing', 'card_validador_upload'].includes(b.acao)) ? (
                         <div style={{ marginTop: 12, marginLeft: 44 }}>
                           {m.acoes_rapidas.botoes
                             .filter(b => b.acao === 'card_comparador_listing')
