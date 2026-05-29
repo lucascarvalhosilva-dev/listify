@@ -262,5 +262,7 @@ export async function POST() {
     ml_atualizados: mlAtualizados,
     alertas,
     erros,
+    debug_mapping_keys: [...mappingBySku.keys()],
+    debug_linhas_skus: linhas.map(l => l.sku),
   })
 }
