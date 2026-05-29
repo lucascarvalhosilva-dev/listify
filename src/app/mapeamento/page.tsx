@@ -130,6 +130,14 @@ export default function MapeamentoPage() {
     setTimeout(() => setMensagem(null), 4000)
   }
 
+  const contagemSku = new Map<string, number>()
+  for (const val of selecoes.values()) {
+    if (val) contagemSku.set(val, (contagemSku.get(val) ?? 0) + 1)
+  }
+  const duplicatas = new Set<string>(
+    [...contagemSku.entries()].filter(([, n]) => n > 1).map(([sku]) => sku)
+  )
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -188,6 +196,7 @@ export default function MapeamentoPage() {
             {linhas.map(linha => {
               const key = linhaKey(linha.ml_item_id, linha.variation_id)
               const selected = selecoes.get(key) ?? ''
+              const isDuplicata = Boolean(selected && duplicatas.has(selected))
               return (
                 <div key={key} style={{
                   background: 'rgba(255,255,255,0.92)',
@@ -223,29 +232,36 @@ export default function MapeamentoPage() {
                   </div>
 
                   {/* Dropdown Bling */}
-                  <select
-                    value={selected}
-                    onChange={e => handleSelect(linha.ml_item_id, linha.variation_id, e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: 10,
-                      border: `1px solid ${selected ? '#6ee7b7' : '#dfe7f1'}`,
-                      background: selected ? '#f0fdf4' : '#f8fafc',
-                      color: selected ? '#065f46' : '#697386',
-                      fontSize: 13,
-                      fontWeight: selected ? 600 : 400,
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="">— Não vincular —</option>
-                    {blingOpcoes.map(b => (
-                      <option key={b.sku} value={b.sku}>
-                        {b.sku}{b.nome ? ` — ${b.nome}` : ''} (saldo {b.saldo ?? 0})
-                      </option>
-                    ))}
-                  </select>
+                  <div>
+                    <select
+                      value={selected}
+                      onChange={e => handleSelect(linha.ml_item_id, linha.variation_id, e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 10,
+                        border: `1px solid ${isDuplicata ? '#e53e3e' : selected ? '#6ee7b7' : '#dfe7f1'}`,
+                        background: isDuplicata ? '#fff5f5' : selected ? '#f0fdf4' : '#f8fafc',
+                        color: isDuplicata ? '#e53e3e' : selected ? '#065f46' : '#697386',
+                        fontSize: 13,
+                        fontWeight: selected ? 600 : 400,
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">— Não vincular —</option>
+                      {blingOpcoes.map(b => (
+                        <option key={b.sku} value={b.sku}>
+                          {b.sku}{b.nome ? ` — ${b.nome}` : ''} (saldo {b.saldo ?? 0})
+                        </option>
+                      ))}
+                    </select>
+                    {isDuplicata && (
+                      <div style={{ color: '#e53e3e', fontSize: 12, marginTop: 4 }}>
+                        Este produto já está vinculado a outra variação
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -277,14 +293,14 @@ export default function MapeamentoPage() {
           </a>
           <button
             onClick={salvar}
-            disabled={salvando}
+            disabled={salvando || duplicatas.size > 0}
             style={{
               display: 'inline-flex', alignItems: 'center',
               padding: '10px 24px', borderRadius: 12,
-              background: salvando ? '#94a3b8' : 'linear-gradient(135deg, #1a73e8 0%, #155bd5 100%)',
+              background: (salvando || duplicatas.size > 0) ? '#94a3b8' : 'linear-gradient(135deg, #1a73e8 0%, #155bd5 100%)',
               border: '1px solid #1a73e8',
               color: '#ffffff', fontSize: 14, fontWeight: 700,
-              cursor: salvando ? 'not-allowed' : 'pointer',
+              cursor: (salvando || duplicatas.size > 0) ? 'not-allowed' : 'pointer',
             }}
           >
             {salvando ? 'Salvando...' : 'Salvar relacionamentos'}
