@@ -32,6 +32,7 @@ export interface PublicacaoMLPayload {
     attribute_combinations: VariacaoML['attribute_combinations']
     available_quantity: number
     price: number
+    size_grid_row_id?: string
   }>
 }
 
@@ -200,6 +201,7 @@ function montarPayload(
         attribute_combinations: v.attribute_combinations,
         available_quantity: v.available_quantity,
         price: v.price,
+        ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
       }))
     } : {}),
   } : null
