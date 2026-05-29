@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
+# local outputs and qa artifacts
+outputs/
+qa-screenshots/
