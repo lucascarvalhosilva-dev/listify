@@ -89,18 +89,24 @@ export async function POST(request: NextRequest) {
     pictures: fotosPublicas.map(url => ({ source: url })),
     ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
     ...(temVariacoes ? {
-      variations: body.variations?.map(v => ({
-        attribute_combinations: v.attribute_combinations.filter(a => a.id !== 'SIZE_GRID_ROW_ID'),
-        available_quantity: v.available_quantity,
-        price: v.price,
-        ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
-        ...(v.picture_ids?.length ? { picture_ids: v.picture_ids } : {}),
-      })),
+      variations: body.variations?.map(v => {
+        const combinacoesSemSize = v.attribute_combinations.filter(
+          a => !['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE', 'SIZE_GRID_ROW_ID'].includes(a.id.toUpperCase())
+        )
+        return {
+          attribute_combinations: [
+            ...combinacoesSemSize,
+            ...(v.size_grid_row_id ? [{ id: 'SIZE_GRID_ROW_ID', value_name: v.size_grid_row_id }] : []),
+          ],
+          available_quantity: v.available_quantity,
+          price: v.price,
+          ...(v.picture_ids?.length ? { picture_ids: v.picture_ids } : {}),
+        }
+      }),
     } : {}),
   }
 
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)
-  console.log('[ML publicar] payload completo:', JSON.stringify(payload, null, 2))
 
   const mlRes = await fetch('https://api.mercadolibre.com/items', {
     method: 'POST',
