@@ -25,5 +25,13 @@ export async function GET(request: NextRequest) {
 
   if (error) return Response.json({ error: error.message }, { status: 500 })
 
-  return Response.json({ publicacoes: data })
+  const vistos = new Set<string>()
+  const publicacoesUnicas = (data ?? []).filter(p => {
+    const chave = p.sku_base ?? p.ml_item_id
+    if (vistos.has(chave)) return false
+    vistos.add(chave)
+    return true
+  })
+
+  return Response.json({ publicacoes: publicacoesUnicas })
 }
