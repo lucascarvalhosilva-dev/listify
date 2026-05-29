@@ -338,13 +338,13 @@ export async function POST(request: Request) {
         comCategorias.map(p => p.categoria_ml).filter((c): c is string => Boolean(c))
       )]
       const atributosPorCategoria = new Map<string, AtributoML[]>()
-      const mlTokenParaGrade = await getValidMLToken(user.id).catch(() => null)
+      const ml = await getValidMLToken(user.id).catch(() => null)
       const gradesPorCategoria = new Map<string, GradeTamanho | null>()
       await Promise.all(
         categoriasUnicas.map(async (catId) => {
           const [attrs, grade] = await Promise.all([
             buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[]),
-            mlTokenParaGrade ? buscarGradeTamanho(catId, mlTokenParaGrade.access_token).catch(() => null) : Promise.resolve(null),
+            buscarGradeTamanho(catId, ml?.access_token ?? undefined).catch(() => null),
           ])
           atributosPorCategoria.set(catId, attrs)
           gradesPorCategoria.set(catId, grade)

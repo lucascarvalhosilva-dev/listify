@@ -4,14 +4,16 @@ export interface GradeTamanho {
   values: { id: string; name: string }[]
 }
 
-export async function buscarGradeTamanho(categoryId: string, accessToken: string): Promise<GradeTamanho | null> {
+export async function buscarGradeTamanho(categoryId: string, accessToken?: string): Promise<GradeTamanho | null> {
   try {
     // 1. Busca um item real da categoria para pegar o grid_id usado
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
+
     const searchRes = await fetch(
       `https://api.mercadolibre.com/sites/MLB/search?category=${encodeURIComponent(categoryId)}&limit=5`,
-      { headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` } }
+      { headers }
     )
-    console.log('[GRADE-DEBUG] search status:', searchRes.status)
     if (!searchRes.ok) return null
 
     const searchData = await searchRes.json() as {
@@ -24,7 +26,6 @@ export async function buscarGradeTamanho(categoryId: string, accessToken: string
       if (attr?.value_id) { gridId = attr.value_id; break }
     }
 
-    console.log('[GRADE-DEBUG] gridId encontrado:', gridId)
     if (!gridId) return null
 
     // 2. Busca os valores da grade pelo grid_id
@@ -32,7 +33,6 @@ export async function buscarGradeTamanho(categoryId: string, accessToken: string
       `https://api.mercadolibre.com/size_specs/${encodeURIComponent(gridId)}`,
       { headers: { Accept: 'application/json' } }
     )
-    console.log('[GRADE-DEBUG] grade status:', gradeRes.status)
     if (!gradeRes.ok) return null
 
     const gradeData = await gradeRes.json() as {
@@ -40,8 +40,6 @@ export async function buscarGradeTamanho(categoryId: string, accessToken: string
       name: string
       rows?: Array<{ local_name?: string; sizes?: Array<{ id?: string; name?: string }> }>
     }
-
-    console.log('[GRADE-DEBUG] grade body:', JSON.stringify(gradeData).slice(0, 300))
 
     const values: { id: string; name: string }[] = []
     for (const row of gradeData.rows ?? []) {
@@ -55,8 +53,7 @@ export async function buscarGradeTamanho(categoryId: string, accessToken: string
       grid_name: gradeData.name,
       values,
     }
-  } catch (err) {
-    console.log('[GRADE-DEBUG] erro:', String(err))
+  } catch {
     return null
   }
 }
