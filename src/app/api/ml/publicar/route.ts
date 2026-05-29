@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
     ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
     ...(temVariacoes ? {
       variations: body.variations?.map(v => {
-        const combinacoesSemSize = v.attribute_combinations.filter(
-          a => !['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE', 'SIZE_GRID_ROW_ID'].includes(a.id.toUpperCase())
+        const combinacoesSemRowId = v.attribute_combinations.filter(
+          a => a.id.toUpperCase() !== 'SIZE_GRID_ROW_ID'
         )
         return {
           attribute_combinations: [
-            ...combinacoesSemSize,
+            ...combinacoesSemRowId,
             ...(v.size_grid_row_id ? [{ id: 'SIZE_GRID_ROW_ID', value_name: v.size_grid_row_id }] : []),
           ],
           available_quantity: v.available_quantity,
