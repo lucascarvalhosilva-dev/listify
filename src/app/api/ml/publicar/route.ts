@@ -18,6 +18,7 @@ interface PublicarBody {
   fotos: string[]
   atributos?: { id: string; value_name?: string; value_id?: string }[]
   variations?: Array<{
+    sku?: string
     attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
     available_quantity: number
     price: number
@@ -98,6 +99,7 @@ export async function POST(request: NextRequest) {
           available_quantity: v.available_quantity,
           price: v.price,
           ...(pictureIdsProcessados.length ? { picture_ids: pictureIdsProcessados } : {}),
+          ...(v.sku ? { seller_custom_field: v.sku } : {}),
         }
       }))
     : []
@@ -138,14 +140,33 @@ export async function POST(request: NextRequest) {
   }
 
   // Persiste histórico da publicação — falha silenciosa (ML já aceitou, não pode reverter)
+  function normalizarCombKey(combs: unknown): string {
+    if (!Array.isArray(combs)) return ''
+    return JSON.stringify(
+      (combs as Array<{ id?: string; value_name?: string }>)
+        .map(a => ({ id: a.id ?? '', value_name: a.value_name ?? '' }))
+        .sort((a, b) => a.id.localeCompare(b.id))
+    )
+  }
+
+  const skuPorCombs = new Map<string, string>()
+  for (const v of body.variations ?? []) {
+    if (v.sku) skuPorCombs.set(normalizarCombKey(v.attribute_combinations), v.sku)
+  }
+
   const mlVariations = Array.isArray(mlBody.variations)
-    ? (mlBody.variations as Record<string, unknown>[]).map(v => ({
-        id: v.id,
-        user_product_id: v.user_product_id,
-        attribute_combinations: v.attribute_combinations,
-        available_quantity: v.available_quantity,
-        price: v.price,
-      }))
+    ? (mlBody.variations as Record<string, unknown>[]).map(v => {
+        const skuDaResposta = typeof v.seller_custom_field === 'string' ? v.seller_custom_field : null
+        const skuFallback = skuPorCombs.get(normalizarCombKey(v.attribute_combinations)) ?? null
+        return {
+          id: v.id,
+          user_product_id: v.user_product_id,
+          attribute_combinations: v.attribute_combinations,
+          available_quantity: v.available_quantity,
+          price: v.price,
+          sku: skuDaResposta ?? skuFallback,
+        }
+      })
     : null
 
   const supabaseService = createServiceClient()
