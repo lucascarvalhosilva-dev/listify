@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine, temConector } from '@/lib/normalizar-canais'
+import { normalizarCanalParaEngine, normalizarCanaisChatParaEngine } from '@/lib/normalizar-canais'
 import { criarCardPriceGuard, calcularMetricasPriceGuard, type ProdutoRevisaoPriceGuard, type VariacaoML } from '@/lib/price-guard'
 import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/validador-pre-upload'
 import { criarComparadorListing } from '@/lib/comparador-listing'
@@ -612,16 +612,14 @@ export async function POST(request: Request) {
       conversa_id,
       canais: canaisEngine,
     }
-    const validadoresUpload = arquivosGerados
-      .filter(arquivo => !temConector(arquivo.canal))
-      .map(arquivo =>
-        validarPreUploadCatalogo({
-          produtos: produtosRevisao,
-          canal: arquivo.canal,
-          driveUrl: sessao.drive_url,
-          arquivoPath: arquivo.path,
-        })
-      )
+    const validadoresUpload = arquivosGerados.map(arquivo =>
+      validarPreUploadCatalogo({
+        produtos: produtosRevisao,
+        canal: arquivo.canal,
+        driveUrl: sessao.drive_url,
+        arquivoPath: arquivo.path,
+      })
+    )
     const validadorUploadChat = consolidarValidadoresUpload(validadoresUpload)
     const validadorUploadAction = validadorUploadChat
       ? [{
@@ -735,14 +733,14 @@ export async function POST(request: Request) {
         priceGuardAction,
         ...uploadFotosAction,
         ...publicacaoMLAction,
-        ...arquivosGerados.filter(a => !temConector(a.canal)).map(a => ({
+        ...arquivosGerados.map(a => ({
           acao: 'card_download_arquivo',
           path: a.path,
           canal: a.canal,
           nome_canal_label: CANAL_LABELS[a.canal] ?? a.canal,
           tamanho_bytes: a.tamanho_bytes,
         })),
-        ...canaisAlvo.filter(c => !temConector(c)).map(canalChat => {
+        ...canaisAlvo.map(canalChat => {
           const nomeLabel = CANAL_LABELS[normalizarCanalParaEngine(canalChat)] ?? canalChat
           return {
             acao: 'botao_ajuda_upload',
@@ -790,14 +788,14 @@ export async function POST(request: Request) {
             priceGuardAction,
             ...uploadFotosAction,
             ...publicacaoMLAction,
-            ...arquivosBaixaveis.filter(a => !temConector(a.canal)).map(a => ({
+            ...arquivosBaixaveis.map(a => ({
               acao: 'card_download_arquivo',
               path: a.path,
               canal: a.canal,
               nome_canal_label: a.nome_canal_label,
               tamanho_bytes: a.tamanho_bytes,
             })),
-            ...canaisAlvo.filter(c => !temConector(c)).map(canalChat => {
+            ...canaisAlvo.map(canalChat => {
               const nomeLabel = CANAL_LABELS[normalizarCanalParaEngine(canalChat)] ?? canalChat
               return {
                 acao: 'botao_ajuda_upload',
