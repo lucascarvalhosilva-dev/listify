@@ -229,21 +229,35 @@ function ConexoesContent() {
 
             {!blingCarregando && (
               blingConectado ? (
-                <button
-                  onClick={handleDesconectarBling}
-                  disabled={desconectandoBling}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '9px 14px', borderRadius: 12, flexShrink: 0,
-                    border: '1px solid #fca5a5', background: '#fef2f2',
-                    color: '#c5221f', fontSize: 13, fontWeight: 700,
-                    cursor: desconectandoBling ? 'not-allowed' : 'pointer',
-                    opacity: desconectandoBling ? 0.6 : 1,
-                  }}
-                >
-                  <Unlink size={14} strokeWidth={2.2} />
-                  {desconectandoBling ? 'Desconectando...' : 'Desconectar'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <a
+                    href="/mapeamento"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      padding: '9px 14px', borderRadius: 12,
+                      border: '1px solid #dfe7f1', background: '#ffffff',
+                      color: '#182233', fontSize: 13, fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Mapear produtos
+                  </a>
+                  <button
+                    onClick={handleDesconectarBling}
+                    disabled={desconectandoBling}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      padding: '9px 14px', borderRadius: 12,
+                      border: '1px solid #fca5a5', background: '#fef2f2',
+                      color: '#c5221f', fontSize: 13, fontWeight: 700,
+                      cursor: desconectandoBling ? 'not-allowed' : 'pointer',
+                      opacity: desconectandoBling ? 0.6 : 1,
+                    }}
+                  >
+                    <Unlink size={14} strokeWidth={2.2} />
+                    {desconectandoBling ? 'Desconectando...' : 'Desconectar'}
+                  </button>
+                </div>
               ) : (
                 <a
                   href="/api/bling/auth"
