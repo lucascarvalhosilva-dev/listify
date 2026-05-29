@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ArrowUp, Loader2, PanelLeft, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import ChatFileAttachment from '@/components/ChatFileAttachment'
@@ -145,12 +145,11 @@ function ChatPrincipalInner() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sidebarRef = useRef<SidebarConversasRef>(null)
   const requestIdRef = useRef(0)
+  const initRanRef = useRef(false)
   const [sidebarAberta, setSidebarAberta] = useState(false)
   const [editorPrecosAberto, setEditorPrecosAberto] = useState<string | null>(null)
   const [fotosUploadadas, setFotosUploadadas] = useState<Record<string, string[]>>({})
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const conversaParam = searchParams.get('conversa')
   const supabase = createClient()
 
   const atualizarUrlConversa = (id: string | null) => {
@@ -167,7 +166,7 @@ function ChatPrincipalInner() {
       const nomeUser = perfil.nome || (perfil.email ? perfil.email.split('@')[0] : 'você')
       setNome(nomeUser)
 
-      const conversaInicial = conversaParam
+      const conversaInicial = new URLSearchParams(window.location.search).get('conversa')
       if (conversaInicial) {
         const historicoConversa = await carregarMensagensConversa(conversaInicial)
         if (historicoConversa) {
@@ -224,6 +223,8 @@ function ChatPrincipalInner() {
         setPrimeiraMensagem(true)
       }
     }
+    if (initRanRef.current) return
+    initRanRef.current = true
     init()
   }, [])
 
