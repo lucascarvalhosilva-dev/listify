@@ -17,6 +17,7 @@ export interface VariacaoML {
   attribute_combinations: Array<{ id: string; value_name?: string; value_id?: string }>
   available_quantity: number
   price: number
+  size_grid_row_id?: string
 }
 
 export interface ProdutoRevisaoPriceGuard {

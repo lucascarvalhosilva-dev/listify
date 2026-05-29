@@ -19,6 +19,7 @@ interface PublicarBody {
     available_quantity: number
     price: number
     picture_ids?: string[]
+    size_grid_row_id?: string
   }>
 }
 
@@ -87,7 +88,15 @@ export async function POST(request: NextRequest) {
     description: { plain_text: body.descricao },
     pictures: fotosPublicas.map(url => ({ source: url })),
     ...(atributosFinais.length ? { attributes: atributosFinais } : {}),
-    ...(temVariacoes ? { variations: body.variations } : {}),
+    ...(temVariacoes ? {
+      variations: body.variations?.map(v => ({
+        attribute_combinations: v.attribute_combinations,
+        available_quantity: v.available_quantity,
+        price: v.price,
+        ...(v.picture_ids?.length ? { picture_ids: v.picture_ids } : {}),
+        ...(v.size_grid_row_id ? { size_grid_row_id: v.size_grid_row_id } : {}),
+      })),
+    } : {}),
   }
 
   console.log('[ML publicar] userId:', user.id, '| categoria:', body.categoria_ml, '| titulo:', body.titulo)

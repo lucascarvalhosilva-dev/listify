@@ -8,7 +8,8 @@ import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
 import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
 import { buscarGTIN } from '@/lib/ml/gtin'
-import { buscarGradeTamanho, type GradeTamanho } from '@/lib/ml/grade-tamanho'
+import { buscarDominioML } from '@/lib/ml/dominio'
+import { obterOuCriarGrade } from '@/lib/ml/criar-grade'
 import { getValidMLToken } from '@/lib/ml/token'
 
 export const maxDuration = 60
@@ -65,8 +66,11 @@ const IDS_VARIACAO = new Set(['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE', 'COLOR', '
 
 function agruparVariacoesML(
   produtos: ProdutoRevisaoPriceGuard[],
-  produtosPorSku: Map<string, ProdutoValido>
+  produtosPorSku: Map<string, ProdutoValido>,
+  gradesPorChave: Map<string, { grid_id: string; rows: { tamanho: string; row_id: string }[] } | null>,
+  dominiosPorSku: Map<string, string | null>,
 ): ProdutoRevisaoPriceGuard[] {
+  const normStr = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
   const grupos = new Map<string, ProdutoRevisaoPriceGuard[]>()
   for (const p of produtos) {
     const base = skuBase(p.sku)
@@ -95,11 +99,18 @@ function agruparVariacoesML(
       if (tamanho) attribute_combinations.push({ id: 'SIZE', value_name: tamanho, ...(sizeAttr?.value_id ? { value_id: sizeAttr.value_id } : {}) })
       if (cor) attribute_combinations.push({ id: 'COLOR', value_name: cor })
 
+      const genero = orig?.genero ?? 'Sem gênero'
+      const domainId = dominiosPorSku.get(variante.sku) ?? null
+      const gradeKey = domainId ? `${domainId}__${genero}` : null
+      const grade = gradeKey ? (gradesPorChave.get(gradeKey) ?? null) : null
+      const rowMatch = tamanho && grade ? grade.rows.find(r => normStr(r.tamanho) === normStr(tamanho)) : null
+
       return {
         sku: variante.sku,
         attribute_combinations,
         available_quantity: orig?.estoque ?? variante.estoque ?? 1,
         price: variante.preco_ml ?? pai.preco_ml ?? 0,
+        ...(rowMatch ? { size_grid_row_id: rowMatch.row_id } : {}),
       }
     })
 
@@ -339,17 +350,57 @@ export async function POST(request: Request) {
       )]
       const atributosPorCategoria = new Map<string, AtributoML[]>()
       const ml = await getValidMLToken(user.id).catch(() => null)
-      const gradesPorCategoria = new Map<string, GradeTamanho | null>()
       await Promise.all(
         categoriasUnicas.map(async (catId) => {
-          const [attrs, grade] = await Promise.all([
-            buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[]),
-            buscarGradeTamanho(catId, ml?.access_token ?? undefined).catch(() => null),
-          ])
+          const attrs = await buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[])
           atributosPorCategoria.set(catId, attrs)
-          gradesPorCategoria.set(catId, grade)
         })
       )
+
+      // Deduplicar por nome antes de chamar buscarDominioML (endpoint público, sem token)
+      const nomesUnicos = [...new Set(comCategorias.map(p => p.nome))]
+      const dominioPorNome = new Map<string, string | null>()
+      await Promise.all(
+        nomesUnicos.map(async (nome) => {
+          const dominio = await buscarDominioML(nome).catch(() => null)
+          dominioPorNome.set(nome, dominio?.domain_id ?? null)
+        })
+      )
+      const dominiosPorSku = new Map<string, string | null>()
+      for (const p of comCategorias) {
+        dominiosPorSku.set(p.sku, dominioPorNome.get(p.nome) ?? null)
+      }
+
+      // Agrupar produtos por (domainId + genero) e coletar todos os tamanhos do grupo
+      const gruposGrade = new Map<string, { domainId: string; genero: string; tamanhos: Set<string>; nomeProduto: string }>()
+      for (const p of comCategorias) {
+        const domainId = dominiosPorSku.get(p.sku)
+        if (!domainId) continue
+        const original = produtosPorSku.get(p.sku)
+        const genero = original?.genero ?? p.genero ?? 'Sem gênero'
+        const tamanho = original?.tamanho ?? p.tamanho
+        if (!tamanho) continue
+        const key = `${domainId}__${genero}`
+        if (!gruposGrade.has(key)) gruposGrade.set(key, { domainId, genero, tamanhos: new Set(), nomeProduto: p.nome })
+        gruposGrade.get(key)!.tamanhos.add(tamanho)
+      }
+
+      // Criar/reusar uma grade por combinação (domínio + gênero) — requer token ML
+      const gradesPorChave = new Map<string, { grid_id: string; rows: { tamanho: string; row_id: string }[] } | null>()
+      if (ml) {
+        await Promise.all(
+          [...gruposGrade.entries()].map(async ([key, grupo]) => {
+            const grade = await obterOuCriarGrade({
+              domainId: grupo.domainId,
+              genero: grupo.genero,
+              tamanhos: [...grupo.tamanhos],
+              nomeProduto: grupo.nomeProduto,
+              accessToken: ml.access_token,
+            }).catch(() => null)
+            gradesPorChave.set(key, grade)
+          })
+        )
+      }
       const TAMANHO_RE_LOCAL = /\b(pp|p|m|g{1,3}|xg|xxg|xs|s|xl|xxl|\d{2,3})\b/i
       const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
       const mesmoAtributo = (id: string, alvos: string[]) => alvos.includes(id.toUpperCase())
@@ -420,19 +471,19 @@ export async function POST(request: Request) {
           if (!tamanho) {
             pendentesFinal[sizeGridIdx] = { ...sizeGridAttr, name: 'Adicione coluna Tamanho na planilha' }
           } else {
-            console.log('[SIZE] buscando grade para categoria:', catId)
-            const grade = gradesPorCategoria.get(catId) ?? null
-            console.log('[SIZE] grade encontrada:', grade ? `grid_id=${grade.grid_id} values=${grade.values.length}` : 'null')
-            if (grade?.values.length) {
-              const match = grade.values.find(v => norm(v.name) === norm(tamanho) || norm(v.id) === norm(tamanho))
-              console.log('[SIZE] match resultado:', match ? `${match.id}/${match.name}` : 'sem match')
-              // SIZE_GRID_ID sempre vai em attributes quando a grade existe
+            const domainId = dominiosPorSku.get(p.sku) ?? null
+            const genero = original?.genero ?? p.genero ?? 'Sem gênero'
+            const gradeKey = domainId ? `${domainId}__${genero}` : null
+            const grade = gradeKey ? (gradesPorChave.get(gradeKey) ?? null) : null
+            console.log('[SIZE] grade encontrada:', grade ? `grid_id=${grade.grid_id} rows=${grade.rows.length}` : 'null')
+            if (grade) {
               removerPendentes(pendentesFinal, ['SIZE_GRID_ID'])
-              upsertMapeado(mapeadosFinal, { id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_name })
-
-              if (match) {
+              upsertMapeado(mapeadosFinal, { id: sizeGridAttr.id, value_id: grade.grid_id, value_name: grade.grid_id })
+              const row = grade.rows.find(r => norm(r.tamanho) === norm(tamanho))
+              console.log('[SIZE] row match:', row ? row.row_id : 'sem match')
+              if (row) {
                 removerPendentes(pendentesFinal, ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'])
-                upsertMapeado(mapeadosFinal, { id: 'SIZE', value_id: match.id, value_name: match.name })
+                upsertMapeado(mapeadosFinal, { id: 'SIZE', value_name: tamanho })
               }
             }
           }
@@ -455,7 +506,7 @@ export async function POST(request: Request) {
       }))
 
       // Agrupa variações (ex: 132-P, 132-M, 132-G) em um único produto com variations[]
-      produtosRevisao = agruparVariacoesML(produtosRevisao, produtosPorSku)
+      produtosRevisao = agruparVariacoesML(produtosRevisao, produtosPorSku, gradesPorChave, dominiosPorSku)
     }
 
     const produtosRevisaoML = Object.keys(fotosUpload).length > 0
