@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getValidMLToken } from '@/lib/ml/token'
 import { prepararFotosML } from '@/lib/ml/fotos'
 import { buscarAtributosObrigatorios, normalizarAtributosML } from '@/lib/ml/atributos'
@@ -133,6 +134,38 @@ export async function POST(request: NextRequest) {
     const mensagem = traduzirErroMercadoLivre(mlBody)
     return Response.json({ error: mensagem, detalhes: mlBody }, { status: 502 })
   }
+
+  // Persiste histórico da publicação — falha silenciosa (ML já aceitou, não pode reverter)
+  const mlVariations = Array.isArray(mlBody.variations)
+    ? (mlBody.variations as Record<string, unknown>[]).map(v => ({
+        id: v.id,
+        user_product_id: v.user_product_id,
+        attribute_combinations: v.attribute_combinations,
+        available_quantity: v.available_quantity,
+        price: v.price,
+      }))
+    : null
+
+  const supabaseService = createServiceClient()
+  const { error: upsertErr } = await supabaseService
+    .from('ml_publicacoes')
+    .upsert(
+      {
+        user_id: user.id,
+        ml_item_id: String(mlBody.id),
+        catalogo_id: null,
+        sku_base: null,
+        titulo: body.titulo,
+        permalink: typeof mlBody.permalink === 'string' ? mlBody.permalink : null,
+        status: typeof mlBody.status === 'string' ? mlBody.status : null,
+        variations: mlVariations,
+        ml_payload: mlBody,
+        last_synced_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,ml_item_id' }
+    )
+
+  if (upsertErr) console.error('[ML publicar] erro ao persistir:', upsertErr)
 
   return Response.json({
     id: mlBody.id,
