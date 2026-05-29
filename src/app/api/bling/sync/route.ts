@@ -23,12 +23,6 @@ interface BlingProduto {
   }
 }
 
-interface MlPublicacao {
-  ml_item_id: string
-  sku_base: string | null
-  variations: Array<{ id: number; sku?: string | null }> | null
-}
-
 interface MLUpdate {
   tipo: 'simples' | 'variacao'
   saldo?: number
@@ -162,43 +156,35 @@ export async function POST() {
     .maybeSingle()
   const pausarSemEstoque = profile?.pausar_sem_estoque ?? false
 
-  // ── Ler ml_publicacoes ────────────────────────────────────────────────────
-  const { data: publicacoes } = await service
-    .from('ml_publicacoes')
-    .select('ml_item_id, sku_base, variations')
+  // ── Ler bling_ml_mapping ─────────────────────────────────────────────────
+  const { data: mappingRows } = await service
+    .from('bling_ml_mapping')
+    .select('bling_sku, ml_item_id, ml_variation_id')
     .eq('user_id', user.id)
 
-  const mapVariacao = new Map<string, { ml_item_id: string; variation_id: number }>()
-  const mapSimples = new Map<string, string>()
-
-  for (const pub of (publicacoes ?? []) as MlPublicacao[]) {
-    if (Array.isArray(pub.variations) && pub.variations.length > 0) {
-      for (const v of pub.variations) {
-        if (v.sku) mapVariacao.set(v.sku, { ml_item_id: pub.ml_item_id, variation_id: v.id })
-      }
-    } else if (pub.sku_base) {
-      mapSimples.set(pub.sku_base, pub.ml_item_id)
-    }
+  const mappingBySku = new Map<string, { ml_item_id: string; ml_variation_id: number | null }>()
+  for (const m of mappingRows ?? []) {
+    mappingBySku.set(m.bling_sku as string, {
+      ml_item_id: m.ml_item_id as string,
+      ml_variation_id: (m.ml_variation_id as number | null) ?? null,
+    })
   }
 
-  // ── Cruzar bling_estoque com ml_publicacoes ───────────────────────────────
+  // ── Cruzar bling_estoque com bling_ml_mapping ─────────────────────────────
   const mlUpdates = new Map<string, MLUpdate>()
 
   for (const linha of linhas) {
+    const match = mappingBySku.get(linha.sku)
+    if (!match) continue
+
     const saldo = Math.max(0, linha.saldo ?? 0)
 
-    const varMatch = mapVariacao.get(linha.sku)
-    if (varMatch) {
-      const existing = mlUpdates.get(varMatch.ml_item_id)
-      const entry = existing ?? { tipo: 'variacao' as const, variacoes: [] }
-      entry.variacoes!.push({ variation_id: varMatch.variation_id, sku: linha.sku, saldo })
-      mlUpdates.set(varMatch.ml_item_id, entry)
-      continue
-    }
-
-    const simMatch = mapSimples.get(linha.sku)
-    if (simMatch) {
-      mlUpdates.set(simMatch, { tipo: 'simples', saldo, sku: linha.sku })
+    if (match.ml_variation_id !== null) {
+      const entry = mlUpdates.get(match.ml_item_id) ?? { tipo: 'variacao' as const, variacoes: [] }
+      entry.variacoes!.push({ variation_id: match.ml_variation_id, sku: linha.sku, saldo })
+      mlUpdates.set(match.ml_item_id, entry)
+    } else {
+      mlUpdates.set(match.ml_item_id, { tipo: 'simples', saldo, sku: linha.sku })
     }
   }
 
