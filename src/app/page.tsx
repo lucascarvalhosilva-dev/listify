@@ -153,13 +153,12 @@ function ChatPrincipalInner() {
   const supabase = createClient()
 
   const atualizarUrlConversa = (id: string | null) => {
-    console.log('[URL] tentando trocar para:', id, '| url atual:', window.location.search)
-    router.replace(id ? `/?conversa=${encodeURIComponent(id)}` : '/', { scroll: false })
+    const novaUrl = id ? `/?conversa=${encodeURIComponent(id)}` : '/'
+    window.history.replaceState(null, '', novaUrl)
   }
 
   useEffect(() => {
     const init = async () => {
-      console.log('[INIT] rodou | url:', window.location.search)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/sobre'); return }
 
@@ -264,7 +263,6 @@ function ChatPrincipalInner() {
   }
 
   const selecionarConversa = async (id: string) => {
-    console.log('[SELECIONAR] clicou em:', id)
     const myId = ++requestIdRef.current
     setCarregandoConversa(true)
     setSidebarAberta(false)
