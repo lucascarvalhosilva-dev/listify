@@ -9,6 +9,7 @@ import { buscarCategoriaML } from '@/lib/ml/categoria'
 import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
 import { buscarGTIN } from '@/lib/ml/gtin'
 import { buscarGradeTamanho, type GradeTamanho } from '@/lib/ml/grade-tamanho'
+import { getValidMLToken } from '@/lib/ml/token'
 
 export const maxDuration = 60
 
@@ -337,12 +338,13 @@ export async function POST(request: Request) {
         comCategorias.map(p => p.categoria_ml).filter((c): c is string => Boolean(c))
       )]
       const atributosPorCategoria = new Map<string, AtributoML[]>()
+      const mlTokenParaGrade = await getValidMLToken(user.id).catch(() => null)
       const gradesPorCategoria = new Map<string, GradeTamanho | null>()
       await Promise.all(
         categoriasUnicas.map(async (catId) => {
           const [attrs, grade] = await Promise.all([
             buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[]),
-            buscarGradeTamanho(catId).catch(() => null),
+            mlTokenParaGrade ? buscarGradeTamanho(catId, mlTokenParaGrade.access_token).catch(() => null) : Promise.resolve(null),
           ])
           atributosPorCategoria.set(catId, attrs)
           gradesPorCategoria.set(catId, grade)

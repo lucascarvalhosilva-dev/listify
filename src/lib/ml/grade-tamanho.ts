@@ -4,13 +4,14 @@ export interface GradeTamanho {
   values: { id: string; name: string }[]
 }
 
-export async function buscarGradeTamanho(categoryId: string): Promise<GradeTamanho | null> {
+export async function buscarGradeTamanho(categoryId: string, accessToken: string): Promise<GradeTamanho | null> {
   try {
     // 1. Busca um item real da categoria para pegar o grid_id usado
     const searchRes = await fetch(
       `https://api.mercadolibre.com/sites/MLB/search?category=${encodeURIComponent(categoryId)}&limit=5`,
-      { headers: { Accept: 'application/json' } }
+      { headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` } }
     )
+    console.log('[GRADE-DEBUG] search status:', searchRes.status)
     if (!searchRes.ok) return null
 
     const searchData = await searchRes.json() as {
