@@ -396,6 +396,7 @@ export async function POST(request: Request) {
               tamanhos: [...grupo.tamanhos],
               nomeProduto: grupo.nomeProduto,
               accessToken: ml.access_token,
+              userId: user.id,
             }).catch(() => null)
             gradesPorChave.set(key, grade)
           })

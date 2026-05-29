@@ -10,10 +10,12 @@ async function main() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  const { data } = await sb.from('ml_contas').select('access_token').limit(1).single()
+  const { data } = await sb.from('ml_contas').select('access_token, user_id').limit(1).single()
   const token = data?.access_token
+  const userId = data?.user_id
   console.log('token:', token ? 'encontrado' : 'não encontrado')
-  if (!token) return
+  console.log('userId:', userId ?? 'não encontrado')
+  if (!token || !userId) return
 
   const dominio = await buscarDominioML('Camiseta Manga Curta Basica Algodao')
   console.log('dominio:', dominio)
@@ -25,6 +27,7 @@ async function main() {
     tamanhos: ['P', 'M', 'G'],
     nomeProduto: 'Camiseta Manga Curta Basica Algodao',
     accessToken: token,
+    userId,
   })
   console.log(JSON.stringify(resultado, null, 2))
 }

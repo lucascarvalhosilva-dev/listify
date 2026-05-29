@@ -1,3 +1,5 @@
+import { createServiceClient } from '../supabase/service'
+
 interface ChartRow {
   id: string
   attributes: Array<{ id: string; values: Array<{ id?: string; name: string }> }>
@@ -21,14 +23,23 @@ const TORAX_DE: Record<string, string> = {
   'UN': '88', 'Único': '88', 'Sob medida': '88',
 }
 
+function extrairRows(chart: Chart): { tamanho: string; row_id: string }[] {
+  return (chart.rows ?? []).flatMap(row => {
+    const sizeAttr = row.attributes.find(a => a.id === 'SIZE')
+    const tamanho = sizeAttr?.values?.[0]?.name ?? ''
+    return tamanho ? [{ tamanho, row_id: row.id }] : []
+  })
+}
+
 export async function obterOuCriarGrade(params: {
   domainId: string
   genero: string
   tamanhos: string[]
   nomeProduto: string
   accessToken: string
+  userId: string
 }): Promise<{ grid_id: string; rows: { tamanho: string; row_id: string }[] } | null> {
-  const { domainId, genero, tamanhos, nomeProduto, accessToken } = params
+  const { domainId, genero, tamanhos, nomeProduto, accessToken, userId } = params
 
   const headers = {
     Accept: 'application/json',
@@ -36,17 +47,35 @@ export async function obterOuCriarGrade(params: {
     Authorization: `Bearer ${accessToken}`,
   }
 
-  try {
-    // O endpoint /catalog/charts espera domain_id sem o prefixo do site (ex: "T_SHIRTS", não "MLB-T_SHIRTS")
-    const domainIdSemPrefixo = domainId.replace(/^MLB-/, '')
+  // O endpoint /catalog/charts espera domain_id sem o prefixo do site (ex: "T_SHIRTS", não "MLB-T_SHIRTS")
+  const domainIdSemPrefixo = domainId.replace(/^MLB-/, '')
+  const supabase = createServiceClient()
 
-    // 1. Pega seller_id do usuário autenticado
+  try {
+    // 1. Busca cache no Supabase por user_id + domain_id + genero
+    const { data: cached } = await supabase
+      .from('ml_grades')
+      .select('grid_id, rows')
+      .eq('user_id', userId)
+      .eq('domain_id', domainId)
+      .eq('genero', genero)
+      .maybeSingle()
+
+    if (cached) {
+      console.log('[GRADE] cache hit — grid_id:', cached.grid_id)
+      return {
+        grid_id: cached.grid_id as string,
+        rows: cached.rows as { tamanho: string; row_id: string }[],
+      }
+    }
+
+    // 2. Cache miss → buscar seller_id
     const meRes = await fetch('https://api.mercadolibre.com/users/me', { headers })
     if (!meRes.ok) return null
     const me = await meRes.json() as { id: number }
     const sellerId = me.id
 
-    // 2. Busca charts existentes do seller
+    // 3. Busca charts existentes no ML para o seller
     const searchRes = await fetch(
       `https://api.mercadolibre.com/catalog/charts/search?seller_id=${sellerId}&site_id=MLB`,
       { headers }
@@ -60,16 +89,16 @@ export async function obterOuCriarGrade(params: {
         return genderAttr.values?.some(v => v.name?.toLowerCase() === genero.toLowerCase())
       })
       if (existing) {
-        const rows = (existing.rows ?? []).flatMap(row => {
-          const sizeAttr = row.attributes.find(a => a.id === 'SIZE')
-          const tamanho = sizeAttr?.values?.[0]?.name ?? ''
-          return tamanho ? [{ tamanho, row_id: row.id }] : []
-        })
-        return { grid_id: existing.id, rows }
+        const result = { grid_id: existing.id, rows: extrairRows(existing) }
+        await supabase.from('ml_grades').upsert(
+          { user_id: userId, seller_id: String(sellerId), domain_id: domainId, genero, grid_id: result.grid_id, rows: result.rows },
+          { onConflict: 'user_id,domain_id,genero' }
+        )
+        return result
       }
     }
 
-    // 3. Cria nova grade com medidas padrão por tamanho
+    // 4. Cria nova grade com medidas padrão por tamanho
     const body = {
       names: { MLB: `${nomeProduto} - Guia de Tamanhos` },
       domain_id: domainIdSemPrefixo,
@@ -96,20 +125,50 @@ export async function obterOuCriarGrade(params: {
       body: JSON.stringify(body),
     })
     if (!createRes.ok) {
-      const errText = await createRes.text()
-      console.error('criar grade erro:', createRes.status, errText)
+      const errBody = await createRes.json() as { error?: string; errors?: Array<{ code?: string }> }
+      const isNameTaken = errBody.error === 'chart_validation_error' &&
+        (errBody.errors ?? []).some(e => e.code === 'chart_name_unavailable')
+
+      if (isNameTaken) {
+        // Chart já existe — tenta buscar por domain_id como fallback
+        const fallbackRes = await fetch(
+          `https://api.mercadolibre.com/catalog/charts/search?seller_id=${sellerId}&domain_id=${domainIdSemPrefixo}&site_id=MLB`,
+          { headers }
+        )
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json() as { results?: Chart[] }
+          const match = (fallbackData.results ?? []).find(chart => {
+            const genderAttr = chart.attributes?.find(a => a.id === 'GENDER')
+            if (!genderAttr) return true
+            return genderAttr.values?.some(v => v.name?.toLowerCase() === genero.toLowerCase())
+          })
+          if (match) {
+            const result = { grid_id: match.id, rows: extrairRows(match) }
+            await supabase.from('ml_grades').upsert(
+              { user_id: userId, seller_id: String(sellerId), domain_id: domainId, genero, grid_id: result.grid_id, rows: result.rows },
+              { onConflict: 'user_id,domain_id,genero' }
+            )
+            return result
+          }
+        }
+      }
+
+      console.error('criar grade erro:', createRes.status, JSON.stringify(errBody))
       return null
     }
     const created = await createRes.json() as Chart
+    const result = { grid_id: created.id, rows: extrairRows(created) }
 
-    const rows = (created.rows ?? []).flatMap(row => {
-      const sizeAttr = row.attributes.find(a => a.id === 'SIZE')
-      const tamanho = sizeAttr?.values?.[0]?.name ?? ''
-      return tamanho ? [{ tamanho, row_id: row.id }] : []
-    })
+    // 5. Persiste no Supabase após criação bem-sucedida
+    const { error: upsertErr } = await supabase.from('ml_grades').upsert(
+      { user_id: userId, seller_id: String(sellerId), domain_id: domainId, genero, grid_id: result.grid_id, rows: result.rows },
+      { onConflict: 'user_id,domain_id,genero' }
+    )
+    if (upsertErr) console.error('[GRADE] upsert erro:', upsertErr)
 
-    return { grid_id: created.id, rows }
-  } catch {
+    return result
+  } catch (err) {
+    console.error('[GRADE] erro inesperado:', err)
     return null
   }
 }
