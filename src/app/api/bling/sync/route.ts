@@ -170,10 +170,13 @@ export async function POST() {
     })
   }
 
+  console.log('[sync] mappingBySku keys:', [...mappingBySku.keys()])
+
   // ── Cruzar bling_estoque com bling_ml_mapping ─────────────────────────────
   const mlUpdates = new Map<string, MLUpdate>()
 
   for (const linha of linhas) {
+    console.log('[sync] tentando cruzar sku:', linha.sku, '| match:', mappingBySku.get(linha.sku))
     const match = mappingBySku.get(linha.sku)
     if (!match) continue
 
