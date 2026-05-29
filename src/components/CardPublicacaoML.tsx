@@ -245,6 +245,11 @@ export default function CardPublicacaoML({ fotosInjetadas, ...data }: CardPublic
               ) : (
                 <span>Status: {resultado.status ?? 'publicado'}</span>
               )}
+              {resultado.status === 'paused' && (
+                <div style={{ marginTop: 6, color: '#3d6b58', fontSize: 11, lineHeight: 1.5 }}>
+                  Seu anúncio foi criado e está sendo processado pelo Mercado Livre. As fotos podem levar alguns minutos para aparecer e o anúncio é ativado automaticamente em seguida.
+                </div>
+              )}
             </div>
           ))}
         </div>
