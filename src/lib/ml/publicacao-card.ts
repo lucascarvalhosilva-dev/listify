@@ -31,6 +31,7 @@ export interface PublicacaoMLPayload {
   fotos: string[]
   atributos?: AtributoMLMapeado[]
   variations?: Array<{
+    sku?: string
     attribute_combinations: VariacaoML['attribute_combinations']
     available_quantity: number
     price: number
@@ -214,6 +215,7 @@ function montarPayload(
         const fotosVariacao = v.fotos?.filter(urlImagemPublicavel) ?? []
         const pictureIds = fotosVariacao.length > 0 ? fotosVariacao : fotos
         return {
+          ...(v.sku ? { sku: v.sku } : {}),
           attribute_combinations: v.attribute_combinations,
           available_quantity: v.available_quantity,
           price: v.price,
