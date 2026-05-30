@@ -63,6 +63,7 @@ interface CacheRow {
   altura_cm: number
   gtin: string
   confianca_dimensoes: 'alta' | 'media'
+  atributos?: { id: string; value_name: string }[] | null
 }
 
 function normalizarSku(sku: string): string {
@@ -136,6 +137,7 @@ function cacheRowToBatchSpec(row: CacheRow, sku: string): BatchProductSpec {
     ncm: row.ncm,
     gtin: row.gtin,
     confianca_dimensoes: row.confianca_dimensoes,
+    atributos: row.atributos ?? undefined,
   }
 }
 
@@ -216,7 +218,10 @@ export async function POST(request: NextRequest) {
     const comCache: ProdutoInput[] = []
     const semCache: ProdutoInput[] = []
     for (const p of produtos) {
-      if (cacheMap.has(p.nome)) {
+      const row = cacheMap.get(p.nome)
+      const precisaAtributos = (p.atributos_categoria?.length ?? 0) > 0
+      const cacheTemAtributos = ((row?.atributos as unknown[] | null)?.length ?? 0) > 0
+      if (row && (!precisaAtributos || cacheTemAtributos)) {
         comCache.push(p)
       } else {
         semCache.push(p)
@@ -331,6 +336,7 @@ export async function POST(request: NextRequest) {
           altura_cm: spec.altura_cm,
           gtin: String(spec.gtin),
           confianca_dimensoes: spec.confianca_dimensoes,
+          atributos: spec.atributos ?? null,
         }))
 
         const { error: upsertError } = await supabase
