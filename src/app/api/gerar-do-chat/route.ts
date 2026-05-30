@@ -381,6 +381,7 @@ export async function POST(request: Request) {
     console.log('[GERAR-DO-CHAT] process-catalog ok, produtos_processados:', processData.produtos_processados)
 
     const produtosRevisaoBase = processData.produtos_revisao ?? []
+    console.log('[debug atributos_ia]', JSON.stringify(produtosRevisaoBase.map(p => ({ sku: p.sku, categoria_ml: p.categoria_ml, atributos_ia: p.atributos_ia }))))
     const produtosPorSku = new Map(produtos.map(p => [p.sku, p]))
     let produtosRevisao: ProdutoRevisaoPriceGuard[] = produtosRevisaoBase
     if (temML) {
