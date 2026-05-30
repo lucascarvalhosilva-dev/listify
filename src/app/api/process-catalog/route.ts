@@ -225,6 +225,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Cache: ${comCache.length} produto(s) com cache, ${semCache.length} sem cache`)
     console.log('[PROCESS-CATALOG] comCache:', comCache.length, 'semCache:', semCache.length)
+    console.log('[debug cache split] comCache SKUs:', comCache.map(p => p.sku), '| semCache SKUs:', semCache.map(p => p.sku))
 
     // Popula specsMap com os produtos do cache
     for (const p of comCache) {
@@ -271,12 +272,18 @@ export async function POST(request: NextRequest) {
         const chunk = chunks[c]
         try {
           console.log('[PROCESS-CATALOG] enviando para IA:', JSON.stringify({ skus: chunk.map(p => p.sku), nomes: chunk.map(p => p.nome) }))
+          console.log('[debug chunk pre-IA] atributos_categoria:', JSON.stringify(chunk.map(p => ({
+            sku: p.sku,
+            atributos_categoria_count: p.atributos_categoria?.length ?? 0,
+            atributos_categoria: p.atributos_categoria,
+          }))))
           const specs = await inferProductSpecsBatch(
             chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo, atributos_categoria: p.atributos_categoria })),
             regime,
             canais,
             instrucaoPreventiva
           )
+          console.log('[debug specs atributos da IA]', JSON.stringify(specs.map(s => ({ sku: s.sku, atributos: s.atributos }))))
           for (const spec of specs) {
             const principal = chunk.find(p => normalizarSku(p.sku) === normalizarSku(spec.sku))
             if (principal) {

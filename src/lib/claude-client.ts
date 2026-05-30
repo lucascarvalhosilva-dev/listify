@@ -94,7 +94,7 @@ function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string, cana
     '  "atributos": [{ "id": "string (id do atributo)", "value_name": "string" }] // apenas os que souber; array vazio se nenhum',
   ].join(',\n')
 
-  return `Regime tributário: ${regime}
+  const prompt = `Regime tributário: ${regime}
 
 Produtos:
 ${lista}
@@ -103,6 +103,8 @@ Retorne um array JSON com um objeto por produto, na mesma ordem, com exatamente 
 [{
 ${schemaFields}
 }]`
+  console.log('[debug buildBatchUserPrompt] prompt completo:\n', prompt)
+  return prompt
 }
 
 function parseArrayResponse(text: string): unknown[] {
@@ -179,6 +181,7 @@ export async function inferProductSpecsBatch(
   }
 
   const parsed = parseArrayResponse(raw.text)
+  console.log('[debug inferProductSpecsBatch] atributos por produto:', JSON.stringify((parsed as BatchProductSpec[]).map(s => ({ sku: s.sku, atributos: s.atributos }))))
   return parsed as BatchProductSpec[]
 }
 

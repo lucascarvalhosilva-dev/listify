@@ -341,6 +341,12 @@ export async function POST(request: Request) {
       }
     })
 
+    console.log('[debug atributos_categoria] produtosEngine[0]:', JSON.stringify({
+      sku: produtosEngine[0]?.sku,
+      atributos_categoria_count: produtosEngine[0]?.atributos_categoria?.length ?? 0,
+      atributos_categoria: produtosEngine[0]?.atributos_categoria,
+    }))
+
     const cookieHeader = request.headers.get('cookie') ?? ''
     const processUrl = new URL('/api/process-catalog', request.url).toString()
     console.log('[GERAR-DO-CHAT] chamando process-catalog, canais:', canaisEngine, 'produtos:', produtosEngine.length)
