@@ -283,6 +283,36 @@ export async function POST(request: Request) {
     if (markErr) console.error('[GERAR-DO-CHAT] erro ao marcar geracao_disparada:', markErr)
 
     const canaisEngine = normalizarCanaisChatParaEngine(canaisAlvo)
+    const temML = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
+
+    // ── Descoberta de categoria ML: nome cru da planilha, antes de process-catalog ──
+    const catPorSku = new Map<string, { id: string; name: string } | null>()
+    const atributosPorCategoria = new Map<string, AtributoML[]>()
+    if (temML) {
+      const nomesUnicos = [...new Set(produtos.map(p => p.nome))]
+      const catPorNome = new Map<string, { id: string; name: string } | null>()
+      await Promise.all(
+        nomesUnicos.map(async (nome) => {
+          const cat = await buscarCategoriaML(nome).catch(() => null)
+          catPorNome.set(nome, cat)
+        })
+      )
+      for (const p of produtos) {
+        catPorSku.set(p.sku, catPorNome.get(p.nome) ?? null)
+      }
+      const categoriasUnicas = [...new Set(
+        [...catPorSku.values()]
+          .filter((c): c is { id: string; name: string } => Boolean(c))
+          .map(c => c.id)
+      )]
+      await Promise.all(
+        categoriasUnicas.map(async (catId) => {
+          const attrs = await buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[])
+          atributosPorCategoria.set(catId, attrs)
+        })
+      )
+    }
+
     const produtosEngine = produtos.map(p => ({
       sku: p.sku,
       nome: p.nome,
@@ -336,28 +366,15 @@ export async function POST(request: Request) {
     const processData = await processResp.json() as ProcessCatalogResponse
     console.log('[GERAR-DO-CHAT] process-catalog ok, produtos_processados:', processData.produtos_processados)
 
-    const temML = canaisEngine.map(normalizarCanalParaEngine).includes('ml')
     const produtosRevisaoBase = processData.produtos_revisao ?? []
     const produtosPorSku = new Map(produtos.map(p => [p.sku, p]))
     let produtosRevisao: ProdutoRevisaoPriceGuard[] = produtosRevisaoBase
     if (temML) {
-      const comCategorias = await Promise.all(
-        produtosRevisaoBase.map(async (p) => {
-          const cat = await buscarCategoriaML(p.nome).catch(() => null)
-          return cat ? { ...p, categoria_ml: cat.id } : p
-        })
-      )
-      const categoriasUnicas = [...new Set(
-        comCategorias.map(p => p.categoria_ml).filter((c): c is string => Boolean(c))
-      )]
-      const atributosPorCategoria = new Map<string, AtributoML[]>()
+      const comCategorias = produtosRevisaoBase.map(p => {
+        const cat = catPorSku.get(p.sku)
+        return cat ? { ...p, categoria_ml: cat.id, categoria_nome: cat.name } : p
+      })
       const ml = await getValidMLToken(user.id).catch(() => null)
-      await Promise.all(
-        categoriasUnicas.map(async (catId) => {
-          const attrs = await buscarAtributosObrigatorios(catId).catch(() => [] as AtributoML[])
-          atributosPorCategoria.set(catId, attrs)
-        })
-      )
 
       // Deduplicar por nome antes de chamar buscarDominioML (endpoint público, sem token)
       const nomesUnicos = [...new Set(comCategorias.map(p => p.nome))]
