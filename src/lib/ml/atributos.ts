@@ -111,7 +111,7 @@ function exigeValorFechado(id: string, valueType: string): boolean {
   return valueType === 'list' || valueType === 'boolean'
 }
 
-function mapearValorFechado(attr: AtributoML, valor: string): AtributoMLMapeado | null {
+export function mapearValorFechado(attr: AtributoML, valor: string): AtributoMLMapeado | null {
   if (!attr.values?.length) return { id: attr.id, value_name: valor }
   if (!exigeValorFechado(attr.id, attr.value_type)) return { id: attr.id, value_name: valor }
 

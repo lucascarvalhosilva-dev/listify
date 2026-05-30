@@ -6,7 +6,7 @@ import { consolidarValidadoresUpload, validarPreUploadCatalogo } from '@/lib/val
 import { criarComparadorListing } from '@/lib/comparador-listing'
 import { criarCardPublicacaoML } from '@/lib/ml/publicacao-card'
 import { buscarCategoriaML } from '@/lib/ml/categoria'
-import { buscarAtributosObrigatorios, mapearAtributos, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
+import { buscarAtributosObrigatorios, mapearAtributos, mapearValorFechado, type AtributoML, type AtributoMLMapeado } from '@/lib/ml/atributos'
 import { buscarGTIN } from '@/lib/ml/gtin'
 import { buscarDominioML } from '@/lib/ml/dominio'
 import { obterOuCriarGrade } from '@/lib/ml/criar-grade'
@@ -526,6 +526,20 @@ export async function POST(request: Request) {
                 removerPendentes(pendentesFinal, ['SIZE', 'TAMANHO', 'ALPHANUMERIC_SIZE'])
                 upsertMapeado(mapeadosFinal, { id: 'SIZE', value_name: tamanho })
               }
+            }
+          }
+        }
+
+        // ── Fusão atributos_ia → pendentes (heurística tem precedência) ──────────
+        if (p.atributos_ia?.length) {
+          for (let i = pendentesFinal.length - 1; i >= 0; i--) {
+            const pendente = pendentesFinal[i]
+            const iaMatch = p.atributos_ia.find(ia => ia.id.toUpperCase() === pendente.id.toUpperCase())
+            if (!iaMatch || !iaMatch.value_name || iaMatch.value_name === '0') continue
+            const resultado = mapearValorFechado(pendente, iaMatch.value_name)
+            if (resultado) {
+              mapeadosFinal.push(resultado)
+              pendentesFinal.splice(i, 1)
             }
           }
         }
