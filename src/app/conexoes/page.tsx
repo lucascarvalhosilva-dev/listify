@@ -255,7 +255,7 @@ function ConexoesContent() {
               blingConectado ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                   <a
-                    href="/mapeamento"
+                    href="/vincular"
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 7,
                       padding: '9px 14px', borderRadius: 12,

@@ -163,7 +163,7 @@ export default function MapeamentoPage() {
         )}
 
         <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#182233', margin: 0 }}>Mapear produtos</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#182233', margin: 0 }}>Vincular produtos</h1>
           <p style={{ fontSize: 14, color: '#697386', margin: '8px 0 0', lineHeight: 1.6 }}>
             Vincule cada variação do Mercado Livre ao produto correspondente no Bling para sincronização automática de estoque.
           </p>
