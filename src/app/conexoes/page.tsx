@@ -23,6 +23,14 @@ function ConexoesContent() {
   const [blingConectado, setBlingConectado] = useState(false)
   const [blingCarregando, setBlingCarregando] = useState(true)
   const [desconectandoBling, setDesconectandoBling] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
+  const [resultadoSync, setResultadoSync] = useState<{
+    sincronizados: number
+    ml_atualizados: number
+    alertas: { ml_item_id: string; sku: string; acao: string }[]
+    erros: { ml_item_id: string }[]
+  } | null>(null)
+  const [erroSync, setErroSync] = useState<string | null>(null)
 
   const bannerInicial =
     searchParams.get('ml') === 'conectado' ? 'Mercado Livre' :
@@ -73,6 +81,22 @@ function ConexoesContent() {
     }
     setConta(null)
     setDesconectando(false)
+  }
+
+  const sincronizar = async () => {
+    setSincronizando(true)
+    setResultadoSync(null)
+    setErroSync(null)
+    try {
+      const res = await fetch('/api/bling/sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) setErroSync(data.error ?? 'Erro ao sincronizar.')
+      else setResultadoSync(data)
+    } catch {
+      setErroSync('Não foi possível conectar ao servidor.')
+    } finally {
+      setSincronizando(false)
+    }
   }
 
   const handleDesconectarBling = async () => {
@@ -240,8 +264,22 @@ function ConexoesContent() {
                       textDecoration: 'none',
                     }}
                   >
-                    Mapear produtos
+                    Vincular produtos
                   </a>
+                  <button
+                    onClick={sincronizar}
+                    disabled={sincronizando}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      padding: '9px 14px', borderRadius: 12,
+                      border: '1px solid #dfe7f1', background: '#ffffff',
+                      color: '#182233', fontSize: 13, fontWeight: 600,
+                      cursor: sincronizando ? 'not-allowed' : 'pointer',
+                      opacity: sincronizando ? 0.6 : 1,
+                    }}
+                  >
+                    {sincronizando ? 'Sincronizando...' : 'Sincronizar estoque'}
+                  </button>
                   <button
                     onClick={handleDesconectarBling}
                     disabled={desconectandoBling}
@@ -277,6 +315,62 @@ function ConexoesContent() {
               )
             )}
           </div>
+
+          {/* Resultado do sync */}
+          {erroSync && (
+            <div style={{
+              background: '#fef2f2', border: '1px solid #fca5a5',
+              borderRadius: 14, padding: '14px 18px',
+              fontSize: 13, color: '#c5221f', fontWeight: 600,
+            }}>
+              {erroSync}
+            </div>
+          )}
+
+          {resultadoSync && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{
+                background: '#ecfdf5', border: '1px solid #6ee7b7',
+                borderRadius: 14, padding: '14px 18px',
+                fontSize: 13, fontWeight: 600, color: '#065f46',
+              }}>
+                <CheckCircle2 size={14} strokeWidth={2.3} style={{ verticalAlign: 'middle', marginRight: 6 }} />
+                {resultadoSync.ml_atualizados} anúncio(s) atualizado(s) · {resultadoSync.sincronizados} produto(s) lido(s) do Bling
+              </div>
+
+              {resultadoSync.alertas.length > 0 && (
+                <div style={{
+                  background: '#fffbeb', border: '1px solid #fde68a',
+                  borderRadius: 14, padding: '14px 18px',
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+                    Atenção
+                  </div>
+                  {resultadoSync.alertas.map((a, i) => (
+                    <div key={i} style={{ fontSize: 13, color: '#78350f', lineHeight: 1.8 }}>
+                      • {a.sku} — {a.acao}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {resultadoSync.erros.length > 0 && (
+                <div style={{
+                  background: '#fef2f2', border: '1px solid #fca5a5',
+                  borderRadius: 14, padding: '14px 18px',
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#c5221f', marginBottom: 8 }}>
+                    Falhas ao atualizar
+                  </div>
+                  {resultadoSync.erros.map((e, i) => (
+                    <div key={i} style={{ fontSize: 13, color: '#991b1b', lineHeight: 1.8 }}>
+                      • {e.ml_item_id} — falha ao atualizar
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </main>
