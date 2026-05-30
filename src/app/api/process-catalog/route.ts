@@ -29,6 +29,7 @@ interface ProdutoInput {
   tamanho?: string
   custo: number
   estoque: number
+  atributos_categoria?: { id: string; name: string; value_type: string; values_exemplo?: string[] }[]
 }
 
 interface RequestBody {
@@ -271,7 +272,7 @@ export async function POST(request: NextRequest) {
         try {
           console.log('[PROCESS-CATALOG] enviando para IA:', JSON.stringify({ skus: chunk.map(p => p.sku), nomes: chunk.map(p => p.nome) }))
           const specs = await inferProductSpecsBatch(
-            chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo })),
+            chunk.map(p => ({ sku: p.sku, nome: p.nome, custo: p.custo, atributos_categoria: p.atributos_categoria })),
             regime,
             canais,
             instrucaoPreventiva
@@ -463,6 +464,7 @@ export async function POST(request: NextRequest) {
         bullet_point5: p.specs.bullet_point5,
         ncm: p.specs.ncm,
         gtin: p.specs.ean,
+        atributos_ia: specsMap.get(normalizarSku(p.sku))?.atributos ?? [],
       })),
     })
   } catch (err) {

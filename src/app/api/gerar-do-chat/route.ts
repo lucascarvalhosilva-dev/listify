@@ -161,7 +161,7 @@ interface ProcessCatalogResponse {
   produtos_processados: number
   alertas: string[]
   arquivos: Record<string, string | null>
-  produtos_revisao?: ProdutoRevisaoPriceGuard[]
+  produtos_revisao?: (ProdutoRevisaoPriceGuard & { atributos_ia?: { id: string; value_name: string }[] })[]
 }
 
 function formatarDataLabel(d: Date): string {
@@ -313,19 +313,33 @@ export async function POST(request: Request) {
       )
     }
 
-    const produtosEngine = produtos.map(p => ({
-      sku: p.sku,
-      nome: p.nome,
-      marca: p.marca,
-      categoria: p.categoria,
-      custo: p.custo,
-      estoque: p.estoque,
-      cor: p.cor,
-      genero: p.genero,
-      tipo_roupa: p.tipo_roupa,
-      tipo_manga: p.tipo_manga,
-      tamanho: p.tamanho,
-    }))
+    const produtosEngine = produtos.map(p => {
+      const cat = catPorSku.get(p.sku)
+      const atributos_categoria = cat
+        ? (atributosPorCategoria.get(cat.id) ?? []).map(attr => ({
+            id: attr.id,
+            name: attr.name,
+            value_type: attr.value_type,
+            ...((attr.value_type === 'list' || attr.value_type === 'boolean') && attr.values?.length
+              ? { values_exemplo: attr.values.slice(0, 15).map(v => v.name) }
+              : {}),
+          }))
+        : []
+      return {
+        sku: p.sku,
+        nome: p.nome,
+        marca: p.marca,
+        categoria: p.categoria,
+        custo: p.custo,
+        estoque: p.estoque,
+        cor: p.cor,
+        genero: p.genero,
+        tipo_roupa: p.tipo_roupa,
+        tipo_manga: p.tipo_manga,
+        tamanho: p.tamanho,
+        atributos_categoria,
+      }
+    })
 
     const cookieHeader = request.headers.get('cookie') ?? ''
     const processUrl = new URL('/api/process-catalog', request.url).toString()

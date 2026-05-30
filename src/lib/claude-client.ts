@@ -30,12 +30,14 @@ export interface BatchProductSpec {
   ncm: string
   gtin: string
   confianca_dimensoes: 'alta' | 'media'
+  atributos?: { id: string; value_name: string }[]
 }
 
 interface ProdutoParaBatch {
   sku: string
   nome: string
   custo: number
+  atributos_categoria?: { id: string; name: string; value_type: string; values_exemplo?: string[] }[]
 }
 
 const BATCH_SYSTEM_PROMPT =
@@ -44,7 +46,18 @@ const BATCH_SYSTEM_PROMPT =
   'Responda APENAS com um array JSON válido, sem markdown, sem texto adicional.'
 
 function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string, canais: string[]): string {
-  const lista = produtos.map(p => `SKU ${p.sku}: ${p.nome} (custo R$${p.custo.toFixed(2)})`).join('\n')
+  const lista = produtos.map(p => {
+    let linha = `SKU ${p.sku}: ${p.nome} (custo R$${p.custo.toFixed(2)})`
+    if (p.atributos_categoria?.length) {
+      const atrsStr = p.atributos_categoria.map(a =>
+        a.values_exemplo?.length
+          ? `  - ${a.id} (${a.name}): escolha entre: ${a.values_exemplo.join(', ')}`
+          : `  - ${a.id} (${a.name}): texto livre`
+      ).join('\n')
+      linha += `\n  Atributos a preencher (use seu conhecimento; omita os que não souber):\n${atrsStr}`
+    }
+    return linha
+  }).join('\n\n')
 
   const descFields: string[] = []
   if (canais.includes('ml')) descFields.push('  "descricao_ml": "string (texto corrido sem HTML, sem bullet points, sem links — specs técnicas + benefícios + uso, máx 3000 chars)"')
@@ -78,6 +91,7 @@ function buildBatchUserPrompt(produtos: ProdutoParaBatch[], regime: string, cana
     '  "ncm": "string (8 dígitos)"',
     '  "gtin": "string (EAN/GTIN ou 0 se não houver)"',
     '  "confianca_dimensoes": "alta" ou "media"',
+    '  "atributos": [{ "id": "string (id do atributo)", "value_name": "string" }] // apenas os que souber; array vazio se nenhum',
   ].join(',\n')
 
   return `Regime tributário: ${regime}
